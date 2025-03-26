@@ -1,0 +1,27 @@
+name = "ssl-dropship"
+compatibility_date = "2024-03-26"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "ssl-dropship-production"
+routes = ["ssl-dropship.pages.dev/*"]
+workers_dev = true
+
+[env.release]
+name = "ssl-dropship-release"
+routes = ["release.ssl-dropship.pages.dev/*"]
+workers_dev = true
+
+[env.development]
+name = "ssl-dropship-development"
+routes = ["dev.ssl-dropship.pages.dev/*"]
+workers_dev = true
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "build"
+
+[site]
+bucket = ".next/static"
+entry-point = "."
