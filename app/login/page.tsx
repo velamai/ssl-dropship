@@ -20,11 +20,11 @@
 import { useState, ChangeEvent, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
-import { validateEmail } from "@/lib/validation";
-import { CustomToast, useToast } from "@/components/ui/CustomToast";
+import { apiClient } from "../../lib/api-client";
+import { validateEmail } from "../../lib/validation";
+import { CustomToast, useToast } from "../components/ui/CustomToast";
 import { PublicRoute } from "../components/RouteGuards";
-import { auth } from "@/lib/auth";
+import { auth } from "../../lib/auth";
 import { Eye, EyeOff } from "lucide-react";
 
 // Constants for error messages to maintain consistency and enable easy updates
