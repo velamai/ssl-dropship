@@ -2,15 +2,14 @@
   "name": "ssl-dropship",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "start": "next start",
-    "lint": "next lint",
-    "next:build": "next build",
-    "build": "next build",
-    "postbuild": "next-on-pages",
-    "deploy": "wrangler pages deploy .vercel/output/static --project-name=ssl-dropship --branch=production"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "start": "next start",
+  "lint": "next lint",
+  "build": "next build && next-on-pages",
+  "deploy": "wrangler pages deploy .vercel/output --project-name=ssl-dropship --branch=production"
+}
+,
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",
