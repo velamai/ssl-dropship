@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import { ToastProvider } from "./components/ui/CustomToast";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SSL Dropship",
-  description: "SSL Dropship Application",
+  title: "v0 App",
+  description: "Created with v0",
+  generator: "v0.dev",
 };
 
 export default function RootLayout({
@@ -17,9 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ToastProvider>{children}</ToastProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
