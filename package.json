@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "next lint",
     "build": "next build",
-    "postbuild": "next-on-pages --output-dir .vercel/output",
+    "postbuild": "next-on-pages",
     "deploy": "wrangler pages deploy .vercel/output/static --project-name=ssl-dropship --branch=production"
   },
   "dependencies": {
