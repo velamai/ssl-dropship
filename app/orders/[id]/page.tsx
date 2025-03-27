@@ -1,13 +1,13 @@
-"use client"
-import Link from "next/link"
-import { Package, ChevronLeft, Truck, MapPin, Box, Clock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
-import { Navbar } from "@/components/navbar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { getCountryCode } from "@/lib/utils"
-import { CountryFlag } from "@/components/country-flag"
+"use client";
+import Link from "next/link";
+import { Package, ChevronLeft, Truck, MapPin, Box, Clock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Navbar } from "@/components/navbar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { getCountryCode } from "@/lib/utils";
+import { CountryFlag } from "@/components/country-flag";
 
 export default function OrderDetailsPage({ params }: { params: { id: string } }) {
   // Mock order data based on the ID from the URL
@@ -17,12 +17,12 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
       params.id === "ORD-2023-1234"
         ? "ready"
         : params.id === "ORD-2023-1235"
-          ? "processing"
-          : params.id === "ORD-2023-1236"
-            ? "completed"
-            : params.id === "ORD-2023-1237"
-              ? "cancelled"
-              : "ready",
+        ? "processing"
+        : params.id === "ORD-2023-1236"
+        ? "completed"
+        : params.id === "ORD-2023-1237"
+        ? "cancelled"
+        : "ready",
     date: "2023-11-15",
     items: [
       {
@@ -82,35 +82,35 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
         completed: params.id === "ORD-2023-1236",
       },
     ],
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ready":
-        return "bg-success text-white"
+        return "bg-success text-white";
       case "processing":
-        return "bg-primary text-white"
+        return "bg-primary text-white";
       case "completed":
-        return "bg-secondary text-secondary-foreground"
+        return "bg-secondary text-secondary-foreground";
       case "cancelled":
-        return "bg-destructive text-destructive-foreground"
+        return "bg-destructive text-destructive-foreground";
       default:
-        return "bg-muted text-muted-foreground"
+        return "bg-muted text-muted-foreground";
     }
-  }
+  };
 
   const getStatusIcon = (completed: boolean, isActive: boolean) => {
     if (completed) {
-      return <CheckCircle2 className="h-6 w-6 text-success" />
+      return <CheckCircle2 className="h-6 w-6 text-success" />;
     } else if (isActive) {
-      return <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
     } else {
-      return <Clock className="h-6 w-6 text-[#a2a2a2]" />
+      return <Clock className="h-6 w-6 text-[#a2a2a2]" />;
     }
-  }
+  };
 
   // Calculate total price
-  const totalPrice = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalPrice = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -269,7 +269,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                   <div className="space-y-6">
                     {order.trackingHistory.map((event, index) => {
                       // Determine if this is the active (current) step
-                      const isActive = event.completed === false
+                      const isActive = event.completed === false;
 
                       return (
                         <div key={index} className="relative flex gap-4">
@@ -292,7 +292,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                             {event.location && <p className="text-sm text-[#a2a2a2]">{event.location}</p>}
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </CardContent>
@@ -315,6 +315,5 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
         </div>
       </main>
     </div>
-  )
+  );
 }
-

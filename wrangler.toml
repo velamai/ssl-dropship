@@ -1,0 +1,5 @@
+name = "ssl-dropship"
+compatibility_date = "2025-03-27"
+
+[build]
+command = "npm run build && npm run postbuild"
