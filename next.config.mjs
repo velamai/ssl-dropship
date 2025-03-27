@@ -16,7 +16,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-
+  output: 'export',
   async headers() {
     return [
       {
