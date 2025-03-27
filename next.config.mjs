@@ -16,6 +16,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  output: 'export', // enables static export
+  trailingSlash: true, // avoids 404s on static hosting like Cloudflare
 
   async headers() {
     return [
