@@ -193,46 +193,32 @@ const getDetailedBadRequestMessage = (errorData?: ApiErrorData): string => {
   return errorData.message || ERROR_MESSAGES.STATUS_400;
 };
 
-// Enhanced error message mappings for better user experience
+// Simple error message mapping for registration
 const API_ERROR_MESSAGES = {
-  // HTTP Status based messages
-  BAD_REQUEST: "Please check your input and try again.",
-  METHOD_NOT_ALLOWED: "An unexpected error occurred. Please contact support if this persists.",
-  SERVER_ERROR: "Something went wrong on our end. Please try again later.",
-  NETWORK_ERROR: "Unable to connect to the server. Please check your internet connection.",
-
-  // Specific error cases
-  USER_EXISTS: "An account with this email already exists. Please sign in or use a different email.",
-  VALIDATION_ERROR: "Please check the input fields for errors.",
-  GENERIC_ERROR: "An error occurred during registration. Please try again.",
-
-  // Helper function to get appropriate error message
   getErrorMessage: (error: any): string => {
     // Handle network errors
     if (!error.response) {
-      return API_ERROR_MESSAGES.NETWORK_ERROR;
+      return "Unable to connect to the server. Please check your internet connection.";
     }
 
-    const { status, data } = error.response;
-    const errorMessage = data?.error?.toLowerCase() || "";
+    const errorMessage = error.response?.data?.error?.toLowerCase() || "";
 
-    // Handle specific status codes
-    switch (status) {
-      case 400:
-        if (errorMessage.includes("already exists")) {
-          return API_ERROR_MESSAGES.USER_EXISTS;
-        }
-        return API_ERROR_MESSAGES.VALIDATION_ERROR;
-
-      case 405:
-        return API_ERROR_MESSAGES.METHOD_NOT_ALLOWED;
-
-      case 500:
-        return API_ERROR_MESSAGES.SERVER_ERROR;
-
-      default:
-        return API_ERROR_MESSAGES.GENERIC_ERROR;
+    // Handle specific error messages
+    if (errorMessage.includes("already exists")) {
+      return "User already exists";
     }
+    if (errorMessage.includes("missing required field")) {
+      return errorMessage;
+    }
+    if (errorMessage.includes("method not allowed")) {
+      return "Method not allowed";
+    }
+    if (errorMessage.includes("internal server error")) {
+      return "Something went wrong. Please try again later.";
+    }
+
+    // If it's a validation error, return the exact message
+    return error.response?.data?.error || "Something went wrong. Please try again later.";
   },
 };
 
@@ -466,41 +452,33 @@ export default function RegisterPage() {
           router.push("/dashboard");
         }, 1500);
       } else if (response.status === "error") {
-        const errorMessage = response.message || response.error || "Registration failed. Please try again.";
+        const errorMessage = API_ERROR_MESSAGES.getErrorMessage({
+          response: { data: { error: response.error } },
+        });
 
-        // Check if error is related to existing user
-        if (errorMessage.toLowerCase().includes("already exists")) {
-          showToast(API_ERROR_MESSAGES.USER_EXISTS, "error", {
+        showToast(errorMessage, "error", {
+          // Add Sign In action only for "User already exists" error
+          ...(errorMessage === "User already exists" && {
             action: {
               label: "Sign In",
               onClick: () => router.push("/login"),
             },
-          });
-        } else {
-          // Only show toast for general errors
-          showToast(errorMessage, "error");
-        }
+          }),
+        });
       }
     } catch (error: any) {
       console.error("Registration Error:", error);
+      const errorMessage = API_ERROR_MESSAGES.getErrorMessage(error);
 
-      // Handle network or server errors
-      if (!error.response) {
-        showToast(API_ERROR_MESSAGES.NETWORK_ERROR, "error");
-        return;
-      }
-
-      const { status, data } = error.response;
-      const errorMessage = data?.message || data?.error || "An unexpected error occurred";
-
-      // Only show toast for non-validation errors
-      if (status !== 400 || !isValidationError(errorMessage)) {
-        showToast(API_ERROR_MESSAGES.getErrorMessage(error), "error");
-      } else {
-        // For validation errors, set field errors without toast
-        const fieldErrors = parseValidationErrors(errorMessage);
-        setFormErrors(fieldErrors);
-      }
+      showToast(errorMessage, "error", {
+        // Add Sign In action only for "User already exists" error
+        ...(errorMessage === "User already exists" && {
+          action: {
+            label: "Sign In",
+            onClick: () => router.push("/login"),
+          },
+        }),
+      });
     } finally {
       setIsSubmitting(false);
     }

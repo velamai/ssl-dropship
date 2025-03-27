@@ -6,8 +6,9 @@
     "dev": "next dev",
     "start": "next start",
     "lint": "next lint",
-     "next:build": "next build",
-  "build": "npm run next:build && next-on-pages",
+    "next:build": "next build",
+    "build": "npm run next:build",
+    "postbuild": "next-on-pages",
     "deploy": "wrangler pages deploy .vercel/output/static --project-name=ssl-dropship --branch=production"
   },
   "dependencies": {
