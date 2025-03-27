@@ -2,11 +2,12 @@
   "name": "ssl-dropship",
   "version": "0.1.0",
   "private": true,
- "scripts": {
+"scripts": {
   "dev": "next dev",
   "start": "next start",
   "lint": "next lint",
-  "build": "next build && next-on-pages",
+  "build": "next build",                  
+  "postbuild": "next-on-pages",   
   "deploy": "wrangler pages deploy .vercel/output --project-name=ssl-dropship --branch=production"
 }
 ,
