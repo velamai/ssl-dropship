@@ -1,796 +1,549 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, X, Eye, EyeOff } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { validateForm, validateEmail, FormErrors } from "@/lib/validation";
-import { CustomToast, useToast } from "@/components/ui/CustomToast";
-import { auth } from "@/lib/auth";
-import { PublicRoute } from "../components/RouteGuards";
+import type React from "react";
 
-interface FormData {
-  firstname: string;
-  lastname: string;
+import { useState } from "react";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { toast } from "@/components/ui/use-toast";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { parsePhoneNumber, isValidPhoneNumber } from "react-phone-number-input";
+
+// International phone number validation and utilities
+const getPhoneDetails = (phone: string) => {
+  if (!phone)
+    return { nationalNumber: "", countryCode: "", country: "", isValid: false };
+
+  try {
+    const phoneNumber = parsePhoneNumber(phone);
+    if (phoneNumber) {
+      return {
+        nationalNumber: phoneNumber.nationalNumber,
+        countryCode: phoneNumber.countryCallingCode,
+        country: phoneNumber.country || "",
+        isValid: phoneNumber.isValid(),
+      };
+    }
+  } catch (error) {
+    console.error("Error parsing phone number:", error);
+  }
+
+  return { nationalNumber: "", countryCode: "", country: "", isValid: false };
+};
+
+const validatePhoneNumber = (phone: string): string | null => {
+  if (!phone) {
+    return "Phone number is required";
+  }
+
+  // Use react-phone-number-input validation
+  if (!isValidPhoneNumber(phone)) {
+    return "Please enter a valid phone number";
+  }
+
+  return null;
+};
+
+// Form validation
+const validateForm = (formData: {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  confirmPassword: string;
-}
+  phoneNumber: string;
+}): { [key: string]: string } => {
+  const errors: { [key: string]: string } = {};
 
-interface SendOtpResponse {
-  success: boolean;
-  message: string;
-}
-
-interface VerifyResponse {
-  success: boolean;
-  message: string;
-  verified?: boolean;
-  severity?: string;
-}
-
-interface RegisterData {
-  token: string;
-  user?: {
-    id: string;
-    email: string;
-    firstname: string;
-    lastname: string;
-  };
-}
-
-interface RegisterResponse {
-  status: "success" | "error";
-  message?: string;
-  error?: string;
-  data?: RegisterData;
-}
-
-interface ApiErrorData {
-  status: string;
-  error?: string;
-  message?: string;
-}
-
-interface ApiError {
-  response?: {
-    data?: ApiErrorData;
-    status?: number;
-  };
-  message?: string;
-}
-
-interface ToastAction {
-  label: string;
-  onClick: () => void;
-}
-
-interface ToastOptions {
-  action?: ToastAction;
-}
-
-interface OtpErrors {
-  code?: string;
-}
-
-// Enhanced error message mappings for better user experience
-const ERROR_MESSAGES = {
-  // HTTP Status Code based messages
-  STATUS_400: "The provided information is not valid. Please check your input and try again.",
-  STATUS_401: "Your session has expired. Please try again.",
-  STATUS_403: "You don't have permission to perform this action.",
-  STATUS_404: "The requested service is not available at the moment.",
-  STATUS_429: "Too many attempts. Please wait a moment before trying again.",
-  STATUS_500: "We're experiencing technical difficulties. Please try again later.",
-
-  // Specific error messages
-  USER_EXISTS: "An account with this email already exists. Please try signing in.",
-  INVALID_EMAIL: "Please enter a valid email address.",
-  WEAK_PASSWORD:
-    "Password must be at least 8 characters long and include uppercase, lowercase, numbers, and special characters.",
-  INVALID_PASSWORD: "The password format is incorrect. Please check the requirements below.",
-  PASSWORDS_NOT_MATCH: "The passwords you entered don't match. Please try again.",
-  INVALID_NAME: "Name should only contain letters and be at least 2 characters long.",
-  NETWORK_ERROR: "Unable to connect to the server. Please check your internet connection.",
-  UNKNOWN_ERROR: "Something went wrong. Please try again later.",
-  SERVER_ERROR: "Server error occurred. Please try again later.",
-
-  // Field-specific validation messages
-  REQUIRED_FIELD: (field: string) => `${field} is required.`,
-  INVALID_FORMAT: (field: string) => `${field} format is invalid.`,
-  TOO_SHORT: (field: string, min: number) => `${field} must be at least ${min} characters long.`,
-  TOO_LONG: (field: string, max: number) => `${field} cannot exceed ${max} characters.`,
-} as const;
-
-// Enhanced helper function to get user-friendly error message
-const getErrorMessage = (error: ApiError): string => {
-  const errorData = error.response?.data;
-  const statusCode = error.response?.status;
-
-  // Handle network errors
-  if (!errorData && !statusCode) {
-    return error.message === "Network Error" ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.UNKNOWN_ERROR;
+  // First name validation
+  if (!formData.firstName.trim()) {
+    errors.firstName = "First name is required";
+  } else if (formData.firstName.trim().length < 2) {
+    errors.firstName = "First name must be at least 2 characters long";
   }
 
-  // Handle HTTP status codes
-  if (statusCode) {
-    switch (statusCode) {
-      case 400:
-        return getDetailedBadRequestMessage(errorData);
-      case 401:
-        return ERROR_MESSAGES.STATUS_401;
-      case 403:
-        return ERROR_MESSAGES.STATUS_403;
-      case 404:
-        return ERROR_MESSAGES.STATUS_404;
-      case 429:
-        return ERROR_MESSAGES.STATUS_429;
-      case 500:
-        return ERROR_MESSAGES.STATUS_500;
-    }
+  // Last name validation
+  if (!formData.lastName.trim()) {
+    errors.lastName = "Last name is required";
+  } else if (formData.lastName.trim().length < 2) {
+    errors.lastName = "Last name must be at least 2 characters long";
   }
 
-  // Handle specific error messages from the API
-  if (errorData) {
-    const errorMessage = errorData.error?.toLowerCase() || errorData.message?.toLowerCase() || "";
-
-    if (errorMessage.includes("already exists")) {
-      return ERROR_MESSAGES.USER_EXISTS;
-    }
-
-    if (errorMessage.includes("invalid email")) {
-      return ERROR_MESSAGES.INVALID_EMAIL;
-    }
-
-    if (errorMessage.includes("password")) {
-      if (errorMessage.includes("match")) {
-        return ERROR_MESSAGES.PASSWORDS_NOT_MATCH;
-      }
-      if (errorMessage.includes("weak")) {
-        return ERROR_MESSAGES.WEAK_PASSWORD;
-      }
-      return ERROR_MESSAGES.INVALID_PASSWORD;
-    }
-
-    if (errorMessage.includes("name")) {
-      return ERROR_MESSAGES.INVALID_NAME;
-    }
-
-    // If API provides a specific message, use it
-    if (errorData.message) {
-      return errorData.message;
-    }
+  // Email validation
+  if (!formData.email.trim()) {
+    errors.email = "Email address is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    errors.email = "Please enter a valid email address";
   }
 
-  return ERROR_MESSAGES.UNKNOWN_ERROR;
+  // Phone number validation
+  const phoneError = validatePhoneNumber(formData.phoneNumber);
+  if (phoneError) {
+    errors.phoneNumber = phoneError;
+  }
+
+  // Password validation
+  if (!formData.password) {
+    errors.password = "Password is required";
+  } else if (formData.password.length < 6) {
+    errors.password = "Password must be at least 6 characters long";
+  }
+
+  return errors;
 };
 
-// Helper function to get detailed message for 400 Bad Request errors
-const getDetailedBadRequestMessage = (errorData?: ApiErrorData): string => {
-  if (!errorData) return ERROR_MESSAGES.STATUS_400;
+// Registration mutation function
+const registerUser = async (userData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+}) => {
+  const supabase = getSupabaseBrowserClient();
 
-  const errorMessage = errorData.error?.toLowerCase() || errorData.message?.toLowerCase() || "";
+  // Extract phone details
+  const phoneDetails = getPhoneDetails(userData.phoneNumber);
 
-  // Handle specific validation errors
-  if (errorMessage.includes("required")) {
-    const field = errorMessage.split(" ")[0];
-    return ERROR_MESSAGES.REQUIRED_FIELD(field.charAt(0).toUpperCase() + field.slice(1));
+  // Combine first and last name
+  const fullName = `${userData.firstName.trim()} ${userData.lastName.trim()}`;
+
+  // First, register with Supabase Auth
+  const { data, error } = await supabase.auth.signUp({
+    email: userData.email,
+    password: userData.password,
+    options: {
+      data: {
+        full_name: fullName,
+        first_name: userData.firstName.trim(),
+        last_name: userData.lastName.trim(),
+        phone_number: phoneDetails.nationalNumber,
+        country_code: phoneDetails.countryCode,
+      },
+    },
+  });
+
+  console.log({ data });
+
+  if (error) {
+    throw error;
   }
 
-  if (errorMessage.includes("invalid")) {
-    if (errorMessage.includes("email")) {
-      return ERROR_MESSAGES.INVALID_EMAIL;
-    }
-    if (errorMessage.includes("password")) {
-      return ERROR_MESSAGES.INVALID_PASSWORD;
-    }
-    if (errorMessage.includes("name")) {
-      return ERROR_MESSAGES.INVALID_NAME;
+  // If registration was successful and we have a user, call the logistics endpoint
+  if (data.user?.id) {
+    try {
+      const { data: logisticsData, error: logisticsError } =
+        await supabase.functions.invoke("drop-ship-register", {
+          body: {
+            user_id: data.user.id,
+            phone_number: phoneDetails.nationalNumber || "",
+            phone_country_code: phoneDetails.countryCode || "",
+          },
+        });
+
+      if (logisticsError) {
+        console.error(
+          "Failed to register with logistics service:",
+          logisticsError
+        );
+      } else {
+        console.log(
+          "Successfully registered with logistics service",
+          logisticsData
+        );
+      }
+    } catch (logisticsError) {
+      console.error("Error calling logistics registration:", logisticsError);
     }
   }
 
-  return errorData.message || ERROR_MESSAGES.STATUS_400;
-};
-
-// Simple error message mapping for registration
-const API_ERROR_MESSAGES = {
-  getErrorMessage: (error: any): string => {
-    // Handle network errors
-    if (!error.response) {
-      return "Unable to connect to the server. Please check your internet connection.";
-    }
-
-    const errorMessage = error.response?.data?.error?.toLowerCase() || "";
-
-    // Handle specific error messages
-    if (errorMessage.includes("already exists")) {
-      return "User already exists";
-    }
-    if (errorMessage.includes("missing required field")) {
-      return errorMessage;
-    }
-    if (errorMessage.includes("method not allowed")) {
-      return "Method not allowed";
-    }
-    if (errorMessage.includes("internal server error")) {
-      return "Something went wrong. Please try again later.";
-    }
-
-    // If it's a validation error, return the exact message
-    return error.response?.data?.error || "Something went wrong. Please try again later.";
-  },
+  return data;
 };
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { toast, showToast, hideToast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [formData, setFormData] = useState<FormData>({
-    firstname: "",
-    lastname: "",
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    phoneNumber: "",
   });
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [verifiedEmail, setVerifiedEmail] = useState<string>("");
-  const [otpErrors, setOtpErrors] = useState<OtpErrors>({});
-  const [isResendingOtp, setIsResendingOtp] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Use React Query mutation
+  const registerMutation = useMutation({
+    mutationFn: registerUser,
+    onSuccess: (data) => {
+      toast({
+        title: "Registration successful",
+        description:
+          "Your account has been created. Please check your email for verification.",
+        variant: "default",
+      });
+      router.push("/");
+    },
+    onError: (error: any) => {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "Failed to register. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // If changing email after verification, reset verification status
-    if (name === "email" && isEmailVerified && value !== verifiedEmail) {
-      setIsEmailVerified(false);
-      setVerifiedEmail("");
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value.trimStart(), // Trim leading whitespace while typing
-    }));
-
-    // Clear error when user starts typing
-    if (formErrors[name as keyof FormErrors]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  // Add OTP validation function
-  const validateOtp = (otp: string): string | null => {
-    if (!otp) {
-      return "OTP is required";
-    }
-    if (!/^\d{6}$/.test(otp)) {
-      return "OTP must be 6 digits";
-    }
-    return null;
-  };
+  const handlePhoneChange = (value: string | undefined) => {
+    setFormData((prev) => ({ ...prev, phoneNumber: value || "" }));
 
-  const startResendTimer = () => {
-    setResendTimer(30); // 30 seconds cooldown
-    const interval = setInterval(() => {
-      setResendTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleSendOtp = async () => {
-    const trimmedEmail = formData.email.trim();
-
-    // Validate email - Only set field error, no toast
-    const emailError = validateEmail(trimmedEmail);
-    if (emailError) {
-      setFormErrors((prev) => ({ ...prev, email: emailError }));
-      return;
-    }
-
-    setIsSendingEmailOtp(true); // New loading state for email verify button
-    setIsResendingOtp(true);
-    try {
-      const response = await apiClient.sendOtp({
-        identifier: trimmedEmail,
-        type: "EMAIL",
-      });
-
-      const typedResponse = response as unknown as SendOtpResponse;
-
-      if (typedResponse.success) {
-        setShowVerifyModal(true);
-        showToast("OTP sent successfully. Please check your email.", "success");
-        startResendTimer();
-        // Clear any existing OTP and errors when sending new OTP
-        setOtpValue("");
-        setOtpErrors({});
-      } else {
-        const errorMessage = typedResponse.message || "Failed to send OTP";
-        if (errorMessage.toLowerCase().includes("already exists")) {
-          setFormErrors((prev) => ({
-            ...prev,
-            email: "Email is already registered",
-          }));
-          showToast("This email is already registered", "info", {
-            action: {
-              label: "Sign In",
-              onClick: () => router.push("/login"),
-            },
-          });
-        } else if (errorMessage.toLowerCase().includes("too many requests")) {
-          showToast("Please wait before requesting another OTP", "warning");
-        } else {
-          showToast(errorMessage, "error");
-        }
-      }
-    } catch (error: any) {
-      console.error("OTP Error:", error);
-      if (!error.response) {
-        showToast("Network error. Please check your connection.", "error");
-      } else {
-        const errorMessage = error.response.data?.message || "Failed to send OTP";
-        showToast(errorMessage, "error");
-      }
-    } finally {
-      setIsSendingEmailOtp(false);
-      setIsResendingOtp(false);
+    // Clear validation error for phone field when user starts typing
+    if (validationErrors.phoneNumber) {
+      setValidationErrors((prev) => ({ ...prev, phoneNumber: "" }));
     }
   };
 
-  const handleVerifyOtp = async () => {
-    // Clear previous errors
-    setOtpErrors({});
-    setIsVerifying(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // Validate OTP format
-    const otpError = validateOtp(otpValue);
-    if (otpError) {
-      setOtpErrors({ code: otpError });
-      setIsVerifying(false);
-      return;
-    }
+    // Validate form before submission
+    const errors = validateForm(formData);
 
-    try {
-      const response = await apiClient.verifyOtp({
-        identifier: formData.email.trim(),
-        type: "EMAIL",
-        otp: otpValue,
-      });
-
-      const typedResponse = response as unknown as VerifyResponse;
-
-      if (typedResponse.success) {
-        setShowVerifyModal(false);
-        setIsEmailVerified(true);
-        setVerifiedEmail(formData.email.trim());
-        showToast("Email verified successfully", "success");
-        setOtpValue("");
-        setOtpErrors({});
-      } else {
-        const errorMessage = typedResponse.message?.toLowerCase() || "";
-
-        if (errorMessage.includes("expired")) {
-          showToast("OTP has expired. Please request a new one.", "warning");
-          setOtpErrors({ code: "OTP has expired" });
-        } else if (errorMessage.includes("invalid")) {
-          setOtpErrors({ code: "Invalid OTP code" });
-        } else if (errorMessage.includes("attempts")) {
-          showToast("Too many failed attempts. Please request a new OTP.", "warning");
-          setOtpErrors({ code: "Too many failed attempts" });
-        } else {
-          setOtpErrors({ code: typedResponse.message || "Verification failed" });
-        }
-        setOtpValue("");
-      }
-    } catch (error: any) {
-      console.error("Verify Error:", error);
-      if (!error.response) {
-        showToast("Network error. Please check your connection.", "error");
-      } else {
-        const errorMessage = error.response.data?.message || "Verification failed";
-        setOtpErrors({ code: errorMessage });
-      }
-      setOtpValue("");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleRegister = async () => {
-    // Check if email is verified
-    if (!isEmailVerified) {
-      showToast("Please verify your email before registering", "warning");
-      return;
-    }
-
-    // Trim all form data before validation
-    const trimmedData = {
-      firstname: formData.firstname.trim(),
-      lastname: formData.lastname.trim(),
-      email: formData.email.trim(),
-      password: formData.password.trim(),
-      confirmPassword: formData.confirmPassword.trim(),
-    };
-
-    // Validate form inputs - Only set field errors, no toasts
-    const errors = validateForm(trimmedData);
     if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
+      setValidationErrors(errors);
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const response = (await apiClient.register({
-        firstname: trimmedData.firstname,
-        lastname: trimmedData.lastname,
-        email: trimmedData.email,
-        password: trimmedData.password,
-        usertype: "dropship",
-      })) as RegisterResponse;
-
-      if (response.status === "success" && response.data?.token) {
-        auth.setToken(response.data.token);
-        showToast("Registration successful! Redirecting to dashboard...", "success");
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
-      } else if (response.status === "error") {
-        const errorMessage = API_ERROR_MESSAGES.getErrorMessage({
-          response: { data: { error: response.error } },
-        });
-
-        showToast(errorMessage, "error", {
-          // Add Sign In action only for "User already exists" error
-          ...(errorMessage === "User already exists" && {
-            action: {
-              label: "Sign In",
-              onClick: () => router.push("/login"),
-            },
-          }),
-        });
-      }
-    } catch (error: any) {
-      console.error("Registration Error:", error);
-      const errorMessage = API_ERROR_MESSAGES.getErrorMessage(error);
-
-      showToast(errorMessage, "error", {
-        // Add Sign In action only for "User already exists" error
-        ...(errorMessage === "User already exists" && {
-          action: {
-            label: "Sign In",
-            onClick: () => router.push("/login"),
-          },
-        }),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Helper function to check if an error is a validation error
-  const isValidationError = (errorMessage: string): boolean => {
-    const validationKeywords = ["required", "invalid", "must be", "cannot be", "should be", "minimum", "maximum"];
-    return validationKeywords.some((keyword) => errorMessage.toLowerCase().includes(keyword));
-  };
-
-  // Helper function to parse validation errors into field errors
-  const parseValidationErrors = (errorMessage: string): FormErrors => {
-    const errors: FormErrors = {};
-
-    if (errorMessage.toLowerCase().includes("email")) {
-      errors.email = errorMessage;
-    } else if (errorMessage.toLowerCase().includes("password")) {
-      errors.password = errorMessage;
-    } else if (errorMessage.toLowerCase().includes("firstname")) {
-      errors.firstname = errorMessage;
-    } else if (errorMessage.toLowerCase().includes("lastname")) {
-      errors.lastname = errorMessage;
-    }
-
-    return errors;
+    // Clear any previous validation errors
+    setValidationErrors({});
+    registerMutation.mutate(formData);
   };
 
   return (
-    <PublicRoute>
-      <div className="flex min-h-screen w-full flex-col overflow-hidden lg:flex-row">
-        {/* Left Column - Illustration */}
-        <div className="relative hidden w-full overflow-hidden rounded-r-[32px] bg-[#f5e5ff] lg:block lg:w-[45%]">
-          {/* Logo */}
-          <div className="absolute left-12 top-12 z-10">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
-                  <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
-                  <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
-                </svg>
+    <div className="flex min-h-screen w-full flex-col overflow-hidden lg:flex-row">
+      {/* Left Column - Illustration */}
+      <div className="relative hidden w-full overflow-hidden rounded-r-[32px] bg-[#f5e5ff] lg:block lg:w-[45%]">
+        {/* Logo */}
+        <div className="absolute left-12 top-12 z-10">
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10">
+              <svg
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
+                <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
+                <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
+              </svg>
+            </div>
+            <div>
+              <div className="font-bold leading-tight text-[#3f3f3f]">
+                COLOMBO
               </div>
-              <div>
-                <div className="font-bold leading-tight text-[#3f3f3f]">COLOMBO</div>
-                <div className="-mt-1 text-xs font-medium text-[#E53935]">MAIL</div>
+              <div className="-mt-1 text-xs font-medium text-[#E53935]">
+                DROP SHIP
               </div>
             </div>
-            <div className="mt-1 text-[10px] text-[#545454]">you sell we dispatch</div>
+          </div>
+          <div className="mt-1 text-[10px] text-[#545454]">
+            we ship your orders
           </div>
         </div>
 
-        {/* Right Column - Registration Form */}
-        <div className="flex w-full flex-col justify-between px-6 py-8 lg:w-[55%] lg:px-16 lg:py-12 xl:px-24">
-          <div className="mx-auto w-full max-w-[380px]">
-            <div className="mb-6 space-y-1.5">
-              <h1 className="text-[22px] font-medium leading-tight text-[#3f3f3f] md:text-[26px]">
-                Get Started <br />
-                with <span className="text-[#9c4cd2]">Colombo Mail</span>
-              </h1>
-              <p className="text-[14px] text-[#a2a2a2]">Register your account</p>
-            </div>
+        {/* Illustration */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          {/* Circle background */}
+          <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9a3bd9]/10"></div>
 
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          {/* Clouds */}
+          <div className="relative h-[450px] w-[450px]">
+            {/* Small cloud top left */}
+            <div className="absolute left-[50px] top-[100px] h-[20px] w-[40px] rounded-[10px] bg-white"></div>
+
+            {/* Medium cloud left */}
+            <div className="absolute left-[20px] top-[180px] h-[25px] w-[80px] rounded-[12px] bg-white"></div>
+
+            {/* Medium cloud top */}
+            <div className="absolute left-[150px] top-[60px] h-[25px] w-[60px] rounded-[12px] bg-white"></div>
+
+            {/* Large cloud top right */}
+            <div className="absolute right-[80px] top-[80px] h-[30px] w-[120px] rounded-[15px] bg-white"></div>
+
+            {/* Medium cloud bottom left */}
+            <div className="absolute bottom-[120px] left-[60px] h-[25px] w-[70px] rounded-[12px] bg-white"></div>
+
+            {/* Large cloud bottom right */}
+            <div className="absolute bottom-[80px] right-[40px] h-[30px] w-[110px] rounded-[15px] bg-white"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column - Registration Form */}
+      <div className="flex w-full flex-col justify-between px-6 py-8 lg:w-[55%] lg:px-16 lg:py-12 xl:px-24">
+        {/* Mobile Logo - Only visible on small screens */}
+        <div className="mb-6 flex items-center gap-2 lg:hidden">
+          <div className="h-8 w-8">
+            <svg
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
+              <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
+              <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
+            </svg>
+          </div>
+          <div>
+            <div className="font-bold leading-tight text-[#3f3f3f]">
+              COLOMBO
+            </div>
+            <div className="-mt-1 text-xs font-medium text-[#E53935]">
+              DROP SHIP
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-[380px]">
+          <div className="mb-6 space-y-1.5">
+            <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
+              Create Account
+            </h1>
+            <h2 className="text-[32px] font-bold text-[#9c4cd2]">
+              Colombo Drop Ship
+            </h2>
+            <p className="text-[14px] text-[#a2a2a2] mt-2">
+              Please enter your email and password to proceed
+            </p>
+          </div>
+
+          {registerMutation.error && (
+            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+              {(registerMutation.error as any)?.message ||
+                "Failed to register. Please try again."}
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label htmlFor="firstname" className="block text-[14px] font-medium text-[#3f3f3f]">
+                <label
+                  htmlFor="firstName"
+                  className="block text-[14px] font-medium text-[#3f3f3f]"
+                >
                   First Name
                 </label>
                 <input
-                  id="firstname"
-                  name="firstname"
+                  id="firstName"
+                  name="firstName"
                   type="text"
-                  value={formData.firstname}
-                  onChange={handleInputChange}
-                  placeholder="Enter first name"
-                  className={`h-[46px] w-full rounded-lg border ${
-                    formErrors.firstname ? "border-red-500" : "border-[#e2e2e2]"
-                  } bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]`}
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="Enter your first name"
+                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
+                    validationErrors.firstName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                  required
                 />
-                {formErrors.firstname && <p className="text-xs text-red-500">{formErrors.firstname}</p>}
+                {validationErrors.firstName && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.firstName}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="lastname" className="block text-[14px] font-medium text-[#3f3f3f]">
+                <label
+                  htmlFor="lastName"
+                  className="block text-[14px] font-medium text-[#3f3f3f]"
+                >
                   Last Name
                 </label>
                 <input
-                  id="lastname"
-                  name="lastname"
+                  id="lastName"
+                  name="lastName"
                   type="text"
-                  value={formData.lastname}
-                  onChange={handleInputChange}
-                  placeholder="Enter last name"
-                  className={`h-[46px] w-full rounded-lg border ${
-                    formErrors.lastname ? "border-red-500" : "border-[#e2e2e2]"
-                  } bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]`}
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Enter your last name"
+                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
+                    validationErrors.lastName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                  required
                 />
-                {formErrors.lastname && <p className="text-xs text-red-500">{formErrors.lastname}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-[14px] font-medium text-[#3f3f3f]">
-                  Email
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="Enter email"
-                      className={`h-[46px] w-full rounded-lg border ${
-                        formErrors.email ? "border-red-500" : isEmailVerified ? "border-green-500" : "border-[#e2e2e2]"
-                      } bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]`}
-                    />
-                    {isEmailVerified && formData.email === verifiedEmail && (
-                      <Check size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
-                    )}
-                    {isEmailVerified && formData.email !== verifiedEmail && (
-                      <span className="absolute -bottom-5 left-0 text-xs text-amber-600">
-                        Email changed. Verification required.
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={isSendingEmailOtp || (isEmailVerified && formData.email === verifiedEmail)}
-                    className={`h-[46px] w-[100px] rounded-lg ${
-                      isEmailVerified && formData.email === verifiedEmail
-                        ? "bg-green-500 cursor-not-allowed"
-                        : "bg-[#9a3bd9] hover:bg-[#9a3bd9]/90"
-                    } text-[14px] font-medium text-white transition-colors disabled:opacity-50 relative`}
-                  >
-                    {isSendingEmailOtp ? (
-                      <>
-                        <span className="opacity-0">Verify</span>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        </div>
-                      </>
-                    ) : isEmailVerified && formData.email === verifiedEmail ? (
-                      "Verified"
-                    ) : (
-                      "Verify"
-                    )}
-                  </button>
-                </div>
-                {formErrors.email && <p className="text-xs text-red-500">{formErrors.email}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="password" className="block text-[14px] font-medium text-[#3f3f3f]">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter password"
-                    className={`h-[46px] w-full rounded-lg border ${
-                      formErrors.password ? "border-red-500" : "border-[#e2e2e2]"
-                    } bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {formErrors.password && <p className="text-xs text-red-500">{formErrors.password}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="block text-[14px] font-medium text-[#3f3f3f]">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    placeholder="Confirm password"
-                    className={`h-[46px] w-full rounded-lg border ${
-                      formErrors.confirmPassword ? "border-red-500" : "border-[#e2e2e2]"
-                    } bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                  >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {formErrors.confirmPassword && <p className="text-xs text-red-500">{formErrors.confirmPassword}</p>}
-              </div>
-
-              <button
-                type="submit"
-                onClick={handleRegister}
-                disabled={isSubmitting}
-                className="h-[46px] w-full rounded-lg bg-[#9a3bd9] text-[14px] font-medium text-white transition-colors hover:bg-[#9a3bd9]/90 disabled:opacity-70"
-              >
-                {isSubmitting ? "Registering..." : "Register"}
-              </button>
-
-              <div className="text-center text-[13px] text-[#a2a2a2]">
-                Already have an account?{" "}
-                <Link href="/login" className="text-[#9c4cd2] hover:underline">
-                  Sign In
-                </Link>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        {/* Verification Modal */}
-        {showVerifyModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="verification-title"
-          >
-            <div
-              className="relative mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-lg animate-scaleIn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => {
-                  setShowVerifyModal(false);
-                  setOtpValue("");
-                  setOtpErrors({});
-                }}
-                className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2"
-                aria-label="Close verification dialog"
-              >
-                <X size={16} />
-              </button>
-
-              <div className="text-center">
-                <h2 id="verification-title" className="mb-4 text-xl font-medium text-[#5f5672]">
-                  Verify Your Email
-                </h2>
-
-                <p className="mb-1 text-[14px] text-[#abb3ba]">Enter the 6-digit code sent to {formData.email}</p>
-
-                <div className="relative mb-6">
-                  <input
-                    type="text"
-                    value={otpValue}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setOtpValue(value);
-                      if (otpErrors.code) {
-                        setOtpErrors({});
-                      }
-                    }}
-                    placeholder="000000"
-                    className={`h-[48px] w-full rounded-lg border ${
-                      otpErrors.code ? "border-red-500" : "border-[#e2e2e2]"
-                    } bg-white px-4 text-center text-[15px] font-medium tracking-wider outline-none transition-colors focus:border-[#9a3bd9] focus:ring-1 focus:ring-[#9c4cd2]`}
-                    maxLength={6}
-                    inputMode="numeric"
-                    pattern="\d*"
-                    aria-label="Verification code"
-                    autoFocus
-                  />
-                  {otpErrors.code && (
-                    <p className="absolute -bottom-6 left-0 right-0 text-xs text-red-500 mb-1">{otpErrors.code}</p>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={otpValue.length !== 6 || isVerifying}
-                  className="mb-4 mt-1 h-[48px] w-full rounded-lg bg-[#9a3bd9] text-[15px] font-medium text-white transition-all hover:bg-[#8a34c3] focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isVerifying ? "Verifying..." : "Verify"}
-                </button>
-
-                <button
-                  onClick={handleSendOtp}
-                  disabled={isResendingOtp || resendTimer > 0}
-                  className={`text-[13px] font-medium ${
-                    isResendingOtp || resendTimer > 0
-                      ? "text-[#b7b5b8] cursor-not-allowed"
-                      : "text-[#9a3bd9] hover:underline"
-                  } transition-colors focus:outline-none`}
-                  aria-label="Resend verification code"
-                >
-                  {isResendingOtp ? "Sending..." : resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"}
-                </button>
+                {validationErrors.lastName && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.lastName}
+                  </p>
+                )}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Toast Notification */}
-        {toast && <CustomToast message={toast.message} type={toast.type} onClose={hideToast} />}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="block text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter email address"
+                className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
+                  validationErrors.email
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                }`}
+                required
+              />
+              {validationErrors.email && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.email}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="phoneNumber"
+                className="block text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Phone Number
+              </label>
+              <PhoneInput
+                id="phoneNumber"
+                placeholder="Enter your phone number"
+                value={formData.phoneNumber}
+                onChange={handlePhoneChange}
+                defaultCountry="IN"
+                international
+                countryCallingCodeEditable={false}
+                className={`${
+                  validationErrors.phoneNumber
+                    ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
+                    : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
+                } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc]`}
+              />
+              {validationErrors.phoneNumber && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.phoneNumber}
+                </p>
+              )}
+              {!validationErrors.phoneNumber && (
+                <p className="text-[12px] text-[#a2a2a2] mt-1">
+                  International phone numbers supported
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="block text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a password"
+                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 pr-12 text-[14px] outline-none focus:ring-1 ${
+                    validationErrors.password
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a2a2a2] hover:text-[#3f3f3f]"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {validationErrors.password && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.password}
+                </p>
+              )}
+              {!validationErrors.password && (
+                <p className="text-[12px] text-[#a2a2a2] mt-1">
+                  Password must be at least 6 characters
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={registerMutation.isPending}
+              className="h-[46px] w-full rounded-lg bg-[#9a3bd9] text-[14px] font-medium text-white transition-colors hover:bg-[#9a3bd9]/90 disabled:opacity-70"
+            >
+              {registerMutation.isPending
+                ? "Creating Account..."
+                : "Create Account"}
+            </button>
+
+            <div className="text-center text-[13px] text-[#a2a2a2]">
+              Already have an account?{" "}
+              <Link
+                href="/"
+                className="text-[#9c4cd2] font-medium hover:underline"
+              >
+                Sign In
+              </Link>
+            </div>
+          </form>
+        </div>
+
+        {/* Bottom decorative elements */}
+        <div className="hidden lg:block absolute bottom-0 right-0 opacity-10 -z-50">
+          <svg
+            width="400"
+            height="200"
+            viewBox="0 0 400 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M350 150 C380 120 390 80 370 50 C350 20 300 10 250 30 C200 50 150 40 120 10 C90 -20 40 -10 20 30 C0 70 20 120 60 150 C100 180 150 170 200 150 C250 130 320 180 350 150Z"
+              fill="#9a3bd9"
+            />
+          </svg>
+        </div>
       </div>
-    </PublicRoute>
+    </div>
   );
 }

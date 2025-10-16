@@ -1,3 +1,5 @@
+import { Toaster } from "@/components/ui/sonner";
+import ReactQueryProvider from "@/lib/QueryClientProvider";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -14,7 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ReactQueryProvider>
+          {children}
+          <Toaster />
+        </ReactQueryProvider>
+      </body>
     </html>
   );
 }
