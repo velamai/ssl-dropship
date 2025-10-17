@@ -2,17 +2,27 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { parsePhoneNumber, isValidPhoneNumber } from "react-phone-number-input";
+import { IdentityVerification } from "@/components/identity-verification";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// International phone number validation and utilities
 const getPhoneDetails = (phone: string) => {
   if (!phone)
     return { nationalNumber: "", countryCode: "", country: "", isValid: false };
@@ -47,44 +57,99 @@ const validatePhoneNumber = (phone: string): string | null => {
   return null;
 };
 
-// Form validation
-const validateForm = (formData: {
+// Helper function to upload file to R2 using signed URL
+async function uploadFileToR2(file: File): Promise<string> {
+  // Get signed URL
+  const signedUrlResponse = await fetch(
+    "/api/identity-verification-signed-url",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileType: file.type,
+      }),
+    }
+  );
+
+  if (!signedUrlResponse.ok) {
+    const errorData = await signedUrlResponse.json();
+    throw new Error(errorData.error || "Failed to get upload URL");
+  }
+
+  const { signedUrl, key } = await signedUrlResponse.json();
+
+  // Upload file directly to R2
+  const uploadResponse = await fetch(signedUrl, {
+    method: "PUT",
+    body: file,
+    headers: {
+      "Content-Type": file.type,
+    },
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Failed to upload file to storage");
+  }
+
+  return key;
+}
+
+// Form data interface
+interface FormData {
+  // Step 1: Personal Information
   firstName: string;
   lastName: string;
   email: string;
   password: string;
   phoneNumber: string;
-}): { [key: string]: string } => {
+
+  // Step 2: Address Information
+  addressLine1: string;
+  addressLine2: string;
+  addressLine3: string;
+  addressLine4: string;
+  country: string;
+  pincode: string;
+
+  // Step 3: Identity Verification
+  identityVerification: {
+    proofType: string;
+    frontImage: File | null;
+    backImage: File | null;
+    frontImageUrl: string;
+    backImageUrl: string;
+  };
+}
+
+// Step validation functions
+const validateStep1 = (formData: FormData): { [key: string]: string } => {
   const errors: { [key: string]: string } = {};
 
-  // First name validation
   if (!formData.firstName.trim()) {
     errors.firstName = "First name is required";
   } else if (formData.firstName.trim().length < 2) {
     errors.firstName = "First name must be at least 2 characters long";
   }
 
-  // Last name validation
   if (!formData.lastName.trim()) {
     errors.lastName = "Last name is required";
   } else if (formData.lastName.trim().length < 2) {
     errors.lastName = "Last name must be at least 2 characters long";
   }
 
-  // Email validation
   if (!formData.email.trim()) {
     errors.email = "Email address is required";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
     errors.email = "Please enter a valid email address";
   }
 
-  // Phone number validation
   const phoneError = validatePhoneNumber(formData.phoneNumber);
   if (phoneError) {
     errors.phoneNumber = phoneError;
   }
 
-  // Password validation
   if (!formData.password) {
     errors.password = "Password is required";
   } else if (formData.password.length < 6) {
@@ -94,14 +159,113 @@ const validateForm = (formData: {
   return errors;
 };
 
+const validateStep2 = (formData: FormData): { [key: string]: string } => {
+  const errors: { [key: string]: string } = {};
+
+  if (!formData.addressLine1.trim()) {
+    errors.addressLine1 = "Address line 1 is required";
+  }
+
+  if (!formData.country.trim()) {
+    errors.country = "Country is required";
+  }
+
+  if (!formData.pincode.trim()) {
+    errors.pincode = "Pincode is required";
+  } else if (!/^\d{5,6}$/.test(formData.pincode.trim())) {
+    errors.pincode = "Please enter a valid pincode";
+  }
+
+  return errors;
+};
+
+const validateStep3 = (formData: FormData): { [key: string]: string } => {
+  const errors: { [key: string]: string } = {};
+
+  if (!formData.identityVerification.proofType) {
+    errors.proofType = "Please select a document type";
+  }
+
+  if (!formData.identityVerification.frontImage) {
+    errors.frontImage = "Please upload the front side of your document";
+  }
+
+  // Check if back image is required based on proof type
+  const requiresBackImage = ["aadhaar", "driving_license"].includes(
+    formData.identityVerification.proofType
+  );
+  if (requiresBackImage && !formData.identityVerification.backImage) {
+    errors.backImage = "Please upload the back side of your document";
+  }
+
+  return errors;
+};
+
+// Session storage utilities
+const SESSION_STORAGE_KEY = "registration_form_data";
+const STEP_STORAGE_KEY = "registration_current_step";
+
+const saveToSessionStorage = (data: Partial<FormData>) => {
+  if (typeof window !== "undefined") {
+    try {
+      const existingData = getFromSessionStorage();
+      const updatedData = { ...existingData, ...data };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedData));
+    } catch (error) {
+      console.error("Error saving to session storage:", error);
+    }
+  }
+};
+
+const saveCurrentStep = (step: number) => {
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(STEP_STORAGE_KEY, step.toString());
+    } catch (error) {
+      console.error("Error saving current step:", error);
+    }
+  }
+};
+
+const getFromSessionStorage = (): Partial<FormData> => {
+  if (typeof window !== "undefined") {
+    try {
+      const data = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      console.error("Error reading from session storage:", error);
+      return {};
+    }
+  }
+  return {};
+};
+
+const getCurrentStep = (): number => {
+  if (typeof window !== "undefined") {
+    try {
+      const step = sessionStorage.getItem(STEP_STORAGE_KEY);
+      return step ? parseInt(step, 10) : 1;
+    } catch (error) {
+      console.error("Error reading current step:", error);
+      return 1;
+    }
+  }
+  return 1;
+};
+
+const clearSessionStorage = () => {
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      sessionStorage.removeItem(STEP_STORAGE_KEY);
+    } catch (error) {
+      console.error("Error clearing session storage:", error);
+    }
+  }
+};
+
 // Registration mutation function
-const registerUser = async (userData: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phoneNumber: string;
-}) => {
+const registerUser = async (userData: FormData) => {
   const supabase = getSupabaseBrowserClient();
 
   // Extract phone details
@@ -109,6 +273,23 @@ const registerUser = async (userData: {
 
   // Combine first and last name
   const fullName = `${userData.firstName.trim()} ${userData.lastName.trim()}`;
+
+  console.log({ userData });
+
+  console.log(
+    JSON.stringify({
+      // user_id: data.user.id,
+      address_line1: userData.addressLine1,
+      address_line2: userData.addressLine2,
+      address_line3: userData.addressLine3,
+      address_line4: userData.addressLine4,
+      country: userData.country,
+      pincode: userData.pincode,
+      proofType: userData.identityVerification.proofType,
+      frontImageUrl: userData.identityVerification.frontImageUrl,
+      backImageUrl: userData.identityVerification.backImageUrl || null,
+    })
+  );
 
   // First, register with Supabase Auth
   const { data, error } = await supabase.auth.signUp({
@@ -138,8 +319,17 @@ const registerUser = async (userData: {
         await supabase.functions.invoke("drop-ship-register", {
           body: {
             user_id: data.user.id,
-            phone_number: phoneDetails.nationalNumber || "",
-            phone_country_code: phoneDetails.countryCode || "",
+            address_line1: userData.addressLine1,
+            address_line2: userData.addressLine2,
+            address_line3: userData.addressLine3,
+            address_line4: userData.addressLine4,
+            country: userData.country,
+            pincode: userData.pincode,
+            proofType: userData.identityVerification.proofType,
+            frontImageUrl: userData.identityVerification.frontImageUrl,
+            backImageUrl: userData.identityVerification.backImageUrl || null,
+            phone_number: phoneDetails.nationalNumber,
+            phone_country_code: phoneDetails.countryCode,
           },
         });
 
@@ -164,32 +354,97 @@ const registerUser = async (userData: {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     phoneNumber: "",
+    addressLine1: "",
+    addressLine2: "",
+    addressLine3: "",
+    addressLine4: "",
+    country: "",
+    pincode: "",
+    identityVerification: {
+      proofType: "",
+      frontImage: null,
+      backImage: null,
+      frontImageUrl: "",
+      backImageUrl: "",
+    },
   });
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
 
+  // Load data and current step from session storage on component mount
+  useEffect(() => {
+    const savedData = getFromSessionStorage();
+    const savedStep = getCurrentStep();
+
+    if (Object.keys(savedData).length > 0) {
+      setFormData((prev) => ({ ...prev, ...savedData }));
+    }
+
+    if (savedStep > 1) {
+      setCurrentStep(savedStep);
+    }
+  }, []);
+
   // Use React Query mutation
   const registerMutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: (data) => {
-      toast({
-        title: "Registration successful",
-        description:
-          "Your account has been created. Please check your email for verification.",
-        variant: "default",
-      });
-      router.push("/");
+    onSuccess: async (data) => {
+      console.log({ data });
+
+      // // If user was created successfully and we have identity verification data, submit it
+      // if (
+      //   data.user?.id &&
+      //   formData.identityVerification.proofType &&
+      //   formData.identityVerification.frontImageUrl
+      // ) {
+      //   try {
+      //     await submitIdentityVerification({
+      //       userId: data.user.id,
+      //       proofType: formData.identityVerification.proofType,
+      //       frontImageUrl: formData.identityVerification.frontImageUrl,
+      //       backImageUrl: formData.identityVerification.backImageUrl || null,
+      //     });
+
+      //     toast({
+      //       title: "Registration successful",
+      //       description:
+      //         "Your account has been created and identity verification submitted. Please check your email for verification.",
+      //       variant: "default",
+      //     });
+      //   } catch (verificationError) {
+      //     console.error(
+      //       "Identity verification submission failed:",
+      //       verificationError
+      //     );
+      //     // Still show success for registration, but mention verification issue
+      //     toast({
+      //       title: "Registration successful",
+      //       description:
+      //         "Your account has been created. Identity verification will be processed separately. Please check your email for verification.",
+      //       variant: "default",
+      //     });
+      //   }
+      // } else {
+      // }
+      // Show inline success panel; do not change step count
+      setIsUploadingFiles(false);
+      clearSessionStorage();
+      setRegistrationSuccess(true);
     },
     onError: (error: any) => {
       console.error("Registration error:", error);
+      setIsUploadingFiles(false);
       toast({
         title: "Registration failed",
         description: error.message || "Failed to register. Please try again.",
@@ -204,7 +459,9 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const updatedData = { ...formData, [name]: value };
+    setFormData(updatedData);
+    saveToSessionStorage(updatedData);
 
     // Clear validation error for this field when user starts typing
     if (validationErrors[name]) {
@@ -213,7 +470,9 @@ export default function RegisterPage() {
   };
 
   const handlePhoneChange = (value: string | undefined) => {
-    setFormData((prev) => ({ ...prev, phoneNumber: value || "" }));
+    const updatedData = { ...formData, phoneNumber: value || "" };
+    setFormData(updatedData);
+    saveToSessionStorage(updatedData);
 
     // Clear validation error for phone field when user starts typing
     if (validationErrors.phoneNumber) {
@@ -221,20 +480,490 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSelectChange = (name: string, value: string) => {
+    console.log(name, value);
+    const updatedData = { ...formData, [name]: value };
+    setFormData(updatedData);
+    saveToSessionStorage(updatedData);
 
-    // Validate form before submission
-    const errors = validateForm(formData);
+    // Clear validation error for this field when user makes selection
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
 
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
+  const handleIdentityChange = (data: {
+    proofType: string;
+    frontImage: File | null;
+    backImage: File | null;
+  }) => {
+    const updatedData = {
+      ...formData,
+      identityVerification: {
+        ...formData.identityVerification,
+        proofType: data.proofType,
+        frontImage: data.frontImage,
+        backImage: data.backImage,
+      },
+    };
+    setFormData(updatedData);
+    saveToSessionStorage(updatedData);
+  };
+
+  const validateCurrentStep = () => {
+    let errors: { [key: string]: string } = {};
+
+    switch (currentStep) {
+      case 1:
+        errors = validateStep1(formData);
+        break;
+      case 2:
+        errors = validateStep2(formData);
+        break;
+      case 3:
+        errors = validateStep3(formData);
+        break;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateCurrentStep()) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      saveCurrentStep(nextStep);
+    }
+  };
+
+  const handlePrevious = () => {
+    const prevStep = currentStep - 1;
+    setCurrentStep(prevStep);
+    saveCurrentStep(prevStep);
+  };
+
+  const handleSubmit = async () => {
+    if (!validateCurrentStep()) return;
+
+    // Validate identity inputs at submit time
+    const { proofType, frontImage, backImage } = formData.identityVerification;
+    const requiresBackImage = ["aadhaar", "driving_license"].includes(
+      proofType
+    );
+    if (!proofType || !frontImage || (requiresBackImage && !backImage)) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        ...(proofType ? {} : { proofType: "Please select a document type" }),
+        ...(frontImage
+          ? {}
+          : { frontImage: "Please upload the front side of your document" }),
+        ...(requiresBackImage && !backImage
+          ? { backImage: "Please upload the back side of your document" }
+          : {}),
+      }));
       return;
     }
 
-    // Clear any previous validation errors
-    setValidationErrors({});
-    registerMutation.mutate(formData);
+    // Upload documents first
+    try {
+      setIsUploadingFiles(true);
+      const frontImageUrl = await uploadFileToR2(frontImage as File);
+      let backImageUrl = "";
+      if (backImage) {
+        backImageUrl = await uploadFileToR2(backImage as File);
+      }
+
+      const updatedData = {
+        ...formData,
+        identityVerification: {
+          ...formData.identityVerification,
+          frontImageUrl,
+          backImageUrl,
+        },
+      };
+
+      setFormData(updatedData);
+      registerMutation.mutate(updatedData);
+    } catch (error) {
+      console.error("Identity upload failed:", error);
+      setIsUploadingFiles(false);
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="firstName"
+                  className="text-[14px] font-medium text-[#3f3f3f]"
+                >
+                  First Name
+                </Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="Enter your first name"
+                  className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                    validationErrors.firstName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                />
+                {validationErrors.firstName && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.firstName}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="lastName"
+                  className="text-[14px] font-medium text-[#3f3f3f]"
+                >
+                  Last Name
+                </Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Enter your last name"
+                  className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                    validationErrors.lastName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                />
+                {validationErrors.lastName && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.lastName}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="email"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Email address
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter email address"
+                className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                  validationErrors.email
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                }`}
+              />
+              {validationErrors.email && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.email}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="phoneNumber"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Phone Number
+              </Label>
+              <PhoneInput
+                id="phoneNumber"
+                placeholder="Enter your phone number"
+                value={formData.phoneNumber}
+                onChange={handlePhoneChange}
+                defaultCountry="IN"
+                international
+                countryCallingCodeEditable={false}
+                className={`${
+                  validationErrors.phoneNumber
+                    ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
+                    : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
+                } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc]`}
+              />
+              {validationErrors.phoneNumber && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.phoneNumber}
+                </p>
+              )}
+              {!validationErrors.phoneNumber && (
+                <p className="text-[12px] text-[#a2a2a2] mt-1">
+                  International phone numbers supported
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="password"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a password"
+                  className={`h-[46px] bg-[#fcfcfc] pr-12 text-[14px] ${
+                    validationErrors.password
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a2a2a2] hover:text-[#3f3f3f]"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {validationErrors.password && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.password}
+                </p>
+              )}
+              {!validationErrors.password && (
+                <p className="text-[12px] text-[#a2a2a2] mt-1">
+                  Password must be at least 6 characters
+                </p>
+              )}
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="addressLine1"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Address Line 1 *
+              </Label>
+              <Input
+                id="addressLine1"
+                name="addressLine1"
+                type="text"
+                value={formData.addressLine1}
+                onChange={handleChange}
+                placeholder="Enter your address"
+                className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                  validationErrors.addressLine1
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                }`}
+              />
+              {validationErrors.addressLine1 && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.addressLine1}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="addressLine2"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Address Line 2
+              </Label>
+              <Input
+                id="addressLine2"
+                name="addressLine2"
+                type="text"
+                value={formData.addressLine2}
+                onChange={handleChange}
+                placeholder="Apartment, suite, etc. (optional)"
+                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="addressLine3"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Address Line 3 *
+              </Label>
+              <Input
+                id="addressLine3"
+                name="addressLine3"
+                type="text"
+                value={formData.addressLine3}
+                onChange={handleChange}
+                placeholder="City, state"
+                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="addressLine4"
+                className="text-[14px] font-medium text-[#3f3f3f]"
+              >
+                Address Line 4
+              </Label>
+              <Input
+                id="addressLine4"
+                name="addressLine4"
+                type="text"
+                value={formData.addressLine4}
+                onChange={handleChange}
+                placeholder="Additional details (optional)"
+                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="country"
+                  className="text-[14px] font-medium text-[#3f3f3f]"
+                >
+                  Country *
+                </Label>
+                <Select
+                  value={formData.country}
+                  onValueChange={(value) =>
+                    handleSelectChange("country", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                      validationErrors.country
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                    }`}
+                  >
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IN">India</SelectItem>
+                    <SelectItem value="US">United States</SelectItem>
+                    <SelectItem value="UK">United Kingdom</SelectItem>
+                    <SelectItem value="CA">Canada</SelectItem>
+                    <SelectItem value="AU">Australia</SelectItem>
+                    <SelectItem value="DE">Germany</SelectItem>
+                    <SelectItem value="FR">France</SelectItem>
+                    <SelectItem value="JP">Japan</SelectItem>
+                    <SelectItem value="CN">China</SelectItem>
+                    <SelectItem value="BR">Brazil</SelectItem>
+
+                    {/* {sortedCountries.map((country) => (
+                      <SelectItem key={country.code} value={country.name}>
+                        {country.name}
+                      </SelectItem>
+                    ))} */}
+                  </SelectContent>
+                </Select>
+                {validationErrors.country && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.country}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="pincode"
+                  className="text-[14px] font-medium text-[#3f3f3f]"
+                >
+                  Pincode / Zipcode *
+                </Label>
+                <Input
+                  id="pincode"
+                  name="pincode"
+                  type="text"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  placeholder="Enter pincode"
+                  className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                    validationErrors.pincode
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                  }`}
+                />
+                {validationErrors.pincode && (
+                  <p className="text-[12px] text-red-600 mt-1">
+                    {validationErrors.pincode}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-5 ">
+            <IdentityVerification
+              isVerified={false}
+              onChange={handleIdentityChange}
+            />
+
+            {validationErrors.proofType && (
+              <p className="text-[12px] text-red-600 mt-1">
+                {validationErrors.proofType}
+              </p>
+            )}
+            {validationErrors.frontImage && (
+              <p className="text-[12px] text-red-600 mt-1">
+                {validationErrors.frontImage}
+              </p>
+            )}
+            {validationErrors.backImage && (
+              <p className="text-[12px] text-red-600 mt-1">
+                {validationErrors.backImage}
+              </p>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4 rounded-md border border-green-200 bg-green-50 p-4 text-green-800">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5" />
+              <span className="font-medium">Account created successfully</span>
+            </div>
+            <p className="text-sm">Please verify your email to sign in.</p>
+            <div className="pt-2">
+              <Link href="/" className="text-[#9c4cd2] hover:underline">
+                Return to home
+              </Link>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -260,7 +989,7 @@ export default function RegisterPage() {
                 COLOMBO
               </div>
               <div className="-mt-1 text-xs font-medium text-[#E53935]">
-                DROP SHIP
+                DROP & SHIP
               </div>
             </div>
           </div>
@@ -298,7 +1027,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Column - Registration Form */}
-      <div className="flex w-full flex-col justify-between px-6 py-8 lg:w-[55%] lg:px-16 lg:py-12 xl:px-24">
+      <div className="flex w-full flex-col justify-between px-6 py-8 lg:w-[55%] lg:px-16 lg:py-12 xl:px-24 overflow-auto max-h-screen">
         {/* Mobile Logo - Only visible on small screens */}
         <div className="mb-6 flex items-center gap-2 lg:hidden">
           <div className="h-8 w-8">
@@ -316,24 +1045,57 @@ export default function RegisterPage() {
             <div className="font-bold leading-tight text-[#3f3f3f]">
               COLOMBO
             </div>
-            <div className="-mt-1 text-xs font-medium text-[#E53935]">
-              DROP SHIP
-            </div>
+            <div className="-mt-1 text-xs font-medium text-[#E53935]">MAIL</div>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[380px]">
+        <div className="mx-auto w-full max-w-[550px]">
           <div className="mb-6 space-y-1.5">
             <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
               Create Account
             </h1>
             <h2 className="text-[32px] font-bold text-[#9c4cd2]">
-              Colombo Drop Ship
+              Drop & Ship
             </h2>
-            <p className="text-[14px] text-[#a2a2a2] mt-2">
-              Please enter your email and password to proceed
-            </p>
+            {!registrationSuccess && (
+              <p className="text-[14px] text-[#a2a2a2] mt-2">
+                Step {currentStep} of 3:{" "}
+                {currentStep === 1
+                  ? "Personal Information"
+                  : currentStep === 2
+                  ? "Address Information"
+                  : "Identity Verification"}
+              </p>
+            )}
           </div>
+
+          {/* Progress Bar */}
+          {!registrationSuccess && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                        step <= currentStep
+                          ? "bg-[#9c4cd2] text-white"
+                          : "bg-gray-200 text-gray-500"
+                      }`}
+                    >
+                      {step < currentStep ? <Check size={16} /> : step}
+                    </div>
+                    {step < 3 && (
+                      <div
+                        className={`w-[12.5rem] h-1 mx-2 rounded ${
+                          step < currentStep ? "bg-[#9c4cd2]" : "bg-gray-200"
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {registerMutation.error && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
@@ -342,194 +1104,77 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="firstName"
-                  className="block text-[14px] font-medium text-[#3f3f3f]"
-                >
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="Enter your first name"
-                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
-                    validationErrors.firstName
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                  }`}
-                  required
-                />
-                {validationErrors.firstName && (
-                  <p className="text-[12px] text-red-600 mt-1">
-                    {validationErrors.firstName}
-                  </p>
-                )}
+          <div className="space-y-5">
+            {!registrationSuccess && renderStepContent()}
+
+            {registrationSuccess && (
+              <div className="mb-6 space-y-3 rounded-md border border-green-200 bg-green-50 p-4 text-green-800">
+                <div className="flex items-center gap-2">
+                  <Check className="h-5 w-5" />
+                  <span className="font-medium">
+                    Account created successfully
+                  </span>
+                </div>
+                <p className="text-sm">Please verify your email to sign in.</p>
               </div>
+            )}
 
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="lastName"
-                  className="block text-[14px] font-medium text-[#3f3f3f]"
-                >
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Enter your last name"
-                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
-                    validationErrors.lastName
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                  }`}
-                  required
-                />
-                {validationErrors.lastName && (
-                  <p className="text-[12px] text-red-600 mt-1">
-                    {validationErrors.lastName}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="block text-[14px] font-medium text-[#3f3f3f]"
-              >
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter email address"
-                className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:ring-1 ${
-                  validationErrors.email
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                }`}
-                required
-              />
-              {validationErrors.email && (
-                <p className="text-[12px] text-red-600 mt-1">
-                  {validationErrors.email}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="phoneNumber"
-                className="block text-[14px] font-medium text-[#3f3f3f]"
-              >
-                Phone Number
-              </label>
-              <PhoneInput
-                id="phoneNumber"
-                placeholder="Enter your phone number"
-                value={formData.phoneNumber}
-                onChange={handlePhoneChange}
-                defaultCountry="IN"
-                international
-                countryCallingCodeEditable={false}
-                className={`${
-                  validationErrors.phoneNumber
-                    ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
-                    : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
-                } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc]`}
-              />
-              {validationErrors.phoneNumber && (
-                <p className="text-[12px] text-red-600 mt-1">
-                  {validationErrors.phoneNumber}
-                </p>
-              )}
-              {!validationErrors.phoneNumber && (
-                <p className="text-[12px] text-[#a2a2a2] mt-1">
-                  International phone numbers supported
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="block text-[14px] font-medium text-[#3f3f3f]"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  className={`h-[46px] w-full rounded-lg border bg-[#fcfcfc] px-3.5 pr-12 text-[14px] outline-none focus:ring-1 ${
-                    validationErrors.password
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                  }`}
-                  required
-                  minLength={6}
-                />
-                <button
+            {/* Navigation Buttons */}
+            {!registrationSuccess && (
+              <div className="flex justify-between pt-6">
+                <Button
                   type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a2a2a2] hover:text-[#3f3f3f]"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className="flex items-center gap-2"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  <ChevronLeft size={16} />
+                  Previous
+                </Button>
+
+                {currentStep < 3 ? (
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    className="bg-[#9a3bd9] hover:bg-[#9a3bd9]/90 flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </Button>
+                ) : currentStep === 3 ? (
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={registerMutation.isPending || isUploadingFiles}
+                    className="bg-[#9a3bd9] hover:bg-[#9a3bd9]/90"
+                  >
+                    {isUploadingFiles
+                      ? "Creating Account..."
+                      : registerMutation.isPending
+                      ? "Creating Account..."
+                      : "Create Account"}
+                  </Button>
+                ) : null}
               </div>
-              {validationErrors.password && (
-                <p className="text-[12px] text-red-600 mt-1">
-                  {validationErrors.password}
-                </p>
-              )}
-              {!validationErrors.password && (
-                <p className="text-[12px] text-[#a2a2a2] mt-1">
-                  Password must be at least 6 characters
-                </p>
-              )}
-            </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={registerMutation.isPending}
-              className="h-[46px] w-full rounded-lg bg-[#9a3bd9] text-[14px] font-medium text-white transition-colors hover:bg-[#9a3bd9]/90 disabled:opacity-70"
-            >
-              {registerMutation.isPending
-                ? "Creating Account..."
-                : "Create Account"}
-            </button>
-
-            <div className="text-center text-[13px] text-[#a2a2a2]">
-              Already have an account?{" "}
-              <Link
-                href="/"
-                className="text-[#9c4cd2] font-medium hover:underline"
-              >
-                Sign In
-              </Link>
-            </div>
-          </form>
+            {!registrationSuccess && (
+              <div className="text-center text-[13px] text-[#a2a2a2]">
+                Already have an account?{" "}
+                <Link
+                  href="/"
+                  className="text-[#9c4cd2] font-medium hover:underline"
+                >
+                  Sign In
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bottom decorative elements */}
-        <div className="hidden lg:block absolute bottom-0 right-0 opacity-10 -z-50">
+        <div className="hidden lg:block absolute bottom-0 right-0 opacity-10 -z-30">
           <svg
             width="400"
             height="200"
