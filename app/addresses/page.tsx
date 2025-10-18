@@ -1,64 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { MapPin, Copy, CheckCircle2, ChevronLeft, Search } from "lucide-react";
-import { Navbar } from "@/components/navbar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getCountryCode } from "@/lib/utils";
 import { CountryFlag } from "@/components/country-flag";
+import { Navbar } from "@/components/navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { WarehouseListSkeleton } from "@/components/ui/warehouse-skeleton";
+import { useWarehouses } from "@/lib/hooks/useWarehouses";
+import type { Warehouse } from "@/lib/types/warehouse";
+import { getCountryCode } from "@/lib/utils";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  Copy,
+  MapPin,
+  Search,
+} from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 
 export default function AddressesPage() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock data for addresses
-  const addresses = [
-    {
-      id: "addr-1",
-      name: "Main Warehouse",
-      addressLine1: "123 Logistics Way",
-      addressLine2: "Industrial Zone",
-      city: "Colombo",
-      postalCode: "10300",
-      country: "Sri Lanka",
-      isDefault: true,
-    },
-    {
-      id: "addr-2",
-      name: "Secondary Facility",
-      addressLine1: "456 Shipping Avenue",
-      addressLine2: "Business Park",
-      city: "Kandy",
-      postalCode: "20000",
-      country: "Sri Lanka",
-      isDefault: false,
-    },
-    {
-      id: "addr-3",
-      name: "International Hub",
-      addressLine1: "789 Export Road",
-      addressLine2: "Free Trade Zone",
-      city: "Singapore",
-      postalCode: "018956",
-      country: "Singapore",
-      isDefault: false,
-    },
-    {
-      id: "addr-4",
-      name: "US Distribution Center",
-      addressLine1: "101 Distribution Lane",
-      addressLine2: "Commerce Center",
-      city: "New York",
-      postalCode: "10001",
-      country: "United States",
-      isDefault: false,
-    },
-  ];
+  // Fetch warehouses using React Query
+  const { data: warehouses, isLoading, error, refetch } = useWarehouses();
 
   const copyToClipboard = (text: string, identifier: string) => {
     navigator.clipboard.writeText(text);
@@ -70,151 +39,323 @@ export default function AddressesPage() {
     }, 2000);
   };
 
-  // Filter addresses based on search query
-  const filteredAddresses = addresses.filter(
-    (address) =>
-      address.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      address.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter warehouses based on search query
+  const filteredWarehouses = useMemo(() => {
+    if (!warehouses) return [];
+
+    return warehouses.filter((warehouse) => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        (warehouse.name?.toLowerCase().includes(searchLower) ?? false) ||
+        warehouse.address_line1.toLowerCase().includes(searchLower) ||
+        (warehouse.address_line2?.toLowerCase().includes(searchLower) ??
+          false) ||
+        warehouse.country.toLowerCase().includes(searchLower) ||
+        warehouse.postal_code.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [warehouses, searchQuery]);
+
+  // Helper function to get the first non-null address line for city display
+  const getCityFromAddress = (warehouse: Warehouse): string => {
+    // Try to extract city from address lines or use a default
+    const addressLines = [
+      warehouse.address_line2,
+      warehouse.address_line3,
+      warehouse.address_line4,
+    ].filter(Boolean);
+
+    return addressLines[0] || `Area ${warehouse.postal_code}`;
+  };
 
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col">
         <Navbar activePage="addresses" />
 
-        <main className="flex-1 bg-[#fefcff] px-4 py-8 md:px-6 lg:px-8">
-          <div className="container mx-auto max-w-6xl">
+        <main className="flex-1 bg-gradient-to-br from-slate-50 to-purple-50/30 px-4 py-8 md:px-6 lg:px-8">
+          <div className="container mx-auto max-w-7xl">
             {/* Mobile Back Button */}
-            <div className="mb-4 block md:hidden">
-              <Link href="/dashboard" className="flex items-center text-sm text-[#3f3f3f]">
+            <div className="mb-6 block md:hidden">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
                 <ChevronLeft size={16} className="mr-1" />
                 Back to Dashboard
               </Link>
             </div>
 
-            <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-[#3f3f3f]">Addresses</h1>
-                <p className="text-[#a2a2a2]">View and copy addresses for your shipments</p>
-              </div>
+            {/* Header Section */}
+            <div className="mb-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-bold text-slate-900">
+                    Warehouse Addresses
+                  </h1>
+                  <p className="text-slate-600 text-lg">
+                    Manage and copy warehouse addresses for your shipments
+                  </p>
+                </div>
 
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#a2a2a2]" />
-                <Input
-                  type="search"
-                  placeholder="Search addresses..."
-                  className="pl-8 border-[#e2e2e2] bg-white"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <div className="relative w-full lg:w-80">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="search"
+                    placeholder="Search warehouses..."
+                    className="pl-10 h-11 border-slate-200 bg-white shadow-sm focus:border-purple-500 focus:ring-purple-500/20"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredAddresses.map((address) => (
-                <Card key={address.id} className="border-[#e2e2e2] bg-white">
-                  <CardContent className="p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CountryFlag countryCode={getCountryCode(address.country)} size="md" />
-                        <h3 className="font-medium text-[#3f3f3f]">{address.name}</h3>
-                      </div>
-                      {address.isDefault && <Badge className="bg-success text-white">Default</Badge>}
-                    </div>
+            {/* Loading State */}
+            {isLoading && <WarehouseListSkeleton count={6} />}
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#3f3f3f]">{address.addressLine1}</p>
-                        <button
-                          onClick={() => copyToClipboard(address.addressLine1, `${address.id}-line1`)}
-                          className="text-[#a2a2a2] hover:text-primary"
-                          aria-label="Copy address line 1"
+            {/* Error State */}
+            {error && (
+              <Alert className="mb-8 border-red-200 bg-red-50/50 backdrop-blur-sm">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <AlertDescription className="text-red-800 flex items-center justify-between">
+                  <span className="font-medium">
+                    Failed to load warehouses. Please try again.
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-4 border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={() => refetch()}
+                  >
+                    Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Data State */}
+            {!isLoading && !error && (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filteredWarehouses.map((warehouse) => (
+                  <Card
+                    key={warehouse.warehouse_id}
+                    className="group border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 hover:border-purple-300/50"
+                  >
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <CountryFlag
+                              countryCode={getCountryCode(warehouse.country)}
+                              size="md"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-slate-900 text-lg leading-tight">
+                              {warehouse.name || "Unnamed Warehouse"}
+                            </h3>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {warehouse.country}
+                            </p>
+                          </div>
+                        </div>
+                        {/* <div className="flex-shrink-0">
+                          <div className="h-2 w-2 rounded-full"></div>
+                        </div> */}
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between group/item">
+                          <p className="text-sm text-slate-700 font-medium">
+                            {warehouse.address_line1}
+                          </p>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                warehouse.address_line1,
+                                `${warehouse.warehouse_id}-line1`
+                              )
+                            }
+                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
+                            aria-label="Copy address line 1"
+                          >
+                            {copiedAddress ===
+                            `${warehouse.warehouse_id}-line1` ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+
+                        {warehouse.address_line2 && (
+                          <div className="flex items-center justify-between group/item">
+                            <p className="text-sm text-slate-600">
+                              {warehouse.address_line2}
+                            </p>
+                            <button
+                              onClick={() =>
+                                copyToClipboard(
+                                  warehouse.address_line2!,
+                                  `${warehouse.warehouse_id}-line2`
+                                )
+                              }
+                              className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
+                              aria-label="Copy address line 2"
+                            >
+                              {copiedAddress ===
+                              `${warehouse.warehouse_id}-line2` ? (
+                                <CheckCircle2 className="h-4 w-4 " />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {warehouse.address_line3 && (
+                          <div className="flex items-center justify-between group/item">
+                            <p className="text-sm text-slate-600">
+                              {warehouse.address_line3}
+                            </p>
+                            <button
+                              onClick={() =>
+                                copyToClipboard(
+                                  warehouse.address_line3!,
+                                  `${warehouse.warehouse_id}-line3`
+                                )
+                              }
+                              className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
+                              aria-label="Copy address line 3"
+                            >
+                              {copiedAddress ===
+                              `${warehouse.warehouse_id}-line3` ? (
+                                <CheckCircle2 className="h-4 w-4 " />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between group/item">
+                          <p className="text-sm text-slate-600">
+                            {getCityFromAddress(warehouse)},{" "}
+                            {warehouse.postal_code}
+                          </p>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                `${getCityFromAddress(warehouse)}, ${
+                                  warehouse.postal_code
+                                }`,
+                                `${warehouse.warehouse_id}-city`
+                              )
+                            }
+                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
+                            aria-label="Copy city and postal code"
+                          >
+                            {copiedAddress ===
+                            `${warehouse.warehouse_id}-city` ? (
+                              <CheckCircle2 className="h-4 w-4 " />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between group/item">
+                          <p className="text-sm text-slate-600 font-medium">
+                            {warehouse.country}
+                          </p>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                warehouse.country,
+                                `${warehouse.warehouse_id}-country`
+                              )
+                            }
+                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
+                            aria-label="Copy country"
+                          >
+                            {copiedAddress ===
+                            `${warehouse.warehouse_id}-country` ? (
+                              <CheckCircle2 className="h-4 w-4 " />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-4 border-t border-slate-100">
+                        <Button
+                          variant="outline"
+                          className="w-full border-slate-300 text-slate-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 font-medium"
+                          onClick={() => {
+                            const fullAddress = [
+                              warehouse.address_line1,
+                              warehouse.address_line2,
+                              warehouse.address_line3,
+                              warehouse.address_line4,
+                              `${getCityFromAddress(warehouse)}, ${
+                                warehouse.postal_code
+                              }`,
+                              warehouse.country,
+                            ]
+                              .filter(Boolean)
+                              .join(", ");
+
+                            copyToClipboard(
+                              fullAddress,
+                              `${warehouse.warehouse_id}-full`
+                            );
+                          }}
                         >
-                          {copiedAddress === `${address.id}-line1` ? (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
+                          {copiedAddress ===
+                          `${warehouse.warehouse_id}-full` ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-2 " />
+                              Address Copied!
+                            </>
                           ) : (
-                            <Copy className="h-4 w-4" />
+                            <>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Full Address
+                            </>
                           )}
-                        </button>
+                        </Button>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#3f3f3f]">{address.addressLine2}</p>
-                        <button
-                          onClick={() => copyToClipboard(address.addressLine2, `${address.id}-line2`)}
-                          className="text-[#a2a2a2] hover:text-primary"
-                          aria-label="Copy address line 2"
-                        >
-                          {copiedAddress === `${address.id}-line2` ? (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#3f3f3f]">
-                          {address.city}, {address.postalCode}
-                        </p>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(`${address.city}, ${address.postalCode}`, `${address.id}-city`)
-                          }
-                          className="text-[#a2a2a2] hover:text-primary"
-                          aria-label="Copy city and postal code"
-                        >
-                          {copiedAddress === `${address.id}-city` ? (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#3f3f3f]">{address.country}</p>
-                        <button
-                          onClick={() => copyToClipboard(address.country, `${address.id}-country`)}
-                          className="text-[#a2a2a2] hover:text-primary"
-                          aria-label="Copy country"
-                        >
-                          {copiedAddress === `${address.id}-country` ? (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      className="mt-4 w-full border-primary text-primary hover:bg-primary hover:text-white"
-                      onClick={() =>
-                        copyToClipboard(
-                          `${address.addressLine1}, ${address.addressLine2}, ${address.city}, ${address.postalCode}, ${address.country}`,
-                          `${address.id}-full`
-                        )
-                      }
-                    >
-                      {copiedAddress === `${address.id}-full` ? "Address Copied!" : "Copy Full Address"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredAddresses.length === 0 && (
-              <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed border-[#e2e2e2] bg-white p-8 text-center">
-                <MapPin className="h-12 w-12 text-[#a2a2a2]" />
-                <h3 className="mt-4 text-lg font-medium text-[#3f3f3f]">No addresses found</h3>
-                <p className="mt-2 text-[#a2a2a2]">
+            {/* Empty State */}
+            {!isLoading && !error && filteredWarehouses.length === 0 && (
+              <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white/50 backdrop-blur-sm p-12 text-center">
+                <div className="rounded-full bg-slate-100 p-4 mb-4">
+                  <MapPin className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                  No warehouses found
+                </h3>
+                <p className="text-slate-600 max-w-md">
                   {searchQuery
-                    ? `No addresses match "${searchQuery}"`
-                    : "There are no addresses available at the moment."}
+                    ? `No warehouses match "${searchQuery}". Try adjusting your search terms.`
+                    : "There are no warehouses available at the moment. Check back later or contact support."}
                 </p>
+                {searchQuery && (
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    Clear Search
+                  </Button>
+                )}
               </div>
             )}
           </div>

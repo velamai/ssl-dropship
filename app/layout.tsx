@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/lib/QueryClientProvider";
+import { AuthProvider } from "@/contexts/auth-context";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -17,10 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ReactQueryProvider>
-          {children}
-          <Toaster />
-        </ReactQueryProvider>
+        <AuthProvider>
+          <ReactQueryProvider>
+            {children}
+            <Toaster />
+          </ReactQueryProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const getPhoneDetails = (phone: string) => {
   if (!phone)
@@ -952,7 +953,10 @@ export default function RegisterPage() {
               <Check className="h-5 w-5" />
               <span className="font-medium">Account created successfully</span>
             </div>
-            <p className="text-sm">Please verify your email to sign in.</p>
+            <p className="text-sm">
+              Please verify your email to sign in. Verification email has been
+              sent to your inbox.
+            </p>
             <div className="pt-2">
               <Link href="/" className="text-[#9c4cd2] hover:underline">
                 Return to home
@@ -986,7 +990,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <div className="font-bold leading-tight text-[#3f3f3f]">
-                COLOMBO
+                UNIVERSAL
               </div>
               <div className="-mt-1 text-xs font-medium text-[#E53935]">
                 DROP & SHIP
@@ -1043,7 +1047,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <div className="font-bold leading-tight text-[#3f3f3f]">
-              COLOMBO
+              UNIVERSAL
             </div>
             <div className="-mt-1 text-xs font-medium text-[#E53935]">MAIL</div>
           </div>
@@ -1115,23 +1119,32 @@ export default function RegisterPage() {
                     Account created successfully
                   </span>
                 </div>
-                <p className="text-sm">Please verify your email to sign in.</p>
+                <p className="text-sm">
+                  Please verify your email to sign in. Verification email has
+                  been sent to your inbox.
+                </p>
               </div>
             )}
 
             {/* Navigation Buttons */}
             {!registrationSuccess && (
-              <div className="flex justify-between pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                  className="flex items-center gap-2"
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </Button>
+              <div
+                className={cn(
+                  "flex justify-between pt-6",
+                  currentStep === 1 && "justify-end"
+                )}
+              >
+                {currentStep > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </Button>
+                )}
 
                 {currentStep < 3 ? (
                   <Button

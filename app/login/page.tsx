@@ -122,7 +122,7 @@ export default function SignInPage() {
               </div>
               <div>
                 <div className="font-bold leading-tight text-[#3f3f3f]">
-                  COLOMBO
+                  UNIVERSAL
                 </div>
                 <div className="-mt-1 text-xs font-medium text-[#E53935]">
                   DROP SHIP
@@ -190,7 +190,7 @@ export default function SignInPage() {
                 Welcome to
               </h1>
               <h2 className="text-[32px] font-bold text-[#9c4cd2]">
-                Colombo Drop Ship
+                Universal Drop Ship
               </h2>
               <p className="text-[14px] text-[#a2a2a2] mt-2">
                 Please enter your email and password to proceed
