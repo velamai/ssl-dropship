@@ -238,6 +238,8 @@ export async function fetchCountries() {
       .select("*")
       .limit(1);
 
+    console.log("[Data Fetch] Countries column data:", columnData);
+
     if (columnError) throw columnError;
 
     // Determine the correct column names for code and name

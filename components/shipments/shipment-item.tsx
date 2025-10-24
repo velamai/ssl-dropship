@@ -1,8 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { ChevronDown, Trash2 } from "lucide-react";
 import type {
   Control,
@@ -11,8 +13,6 @@ import type {
   UseFormSetValue,
   UseFormWatch,
 } from "react-hook-form";
-import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
-import { ErrorMessage } from "@/components/ui/error-message";
 
 interface ShipmentItemProps {
   shipmentIndex: number;
@@ -44,6 +44,9 @@ export function ShipmentItem({
   const itemProductUrl = watch(
     `shipments.${shipmentIndex}.items.${itemIndex}.productUrl`
   );
+  const itemProductName = watch(
+    `shipments.${shipmentIndex}.items.${itemIndex}.productName`
+  );
 
   return (
     <div className="rounded border overflow-hidden">
@@ -55,7 +58,7 @@ export function ShipmentItem({
           <span className="text-sm font-medium">Product #{itemIndex + 1}</span>
           {!isExpanded && (
             <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-              {itemProductUrl || "No product URL"}
+              {itemProductName || itemProductUrl || "No product name"}
             </span>
           )}
         </div>
@@ -85,7 +88,27 @@ export function ShipmentItem({
 
       {isExpanded && (
         <div className="p-3 border-t">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label
+                htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
+              >
+                Product Name *
+              </Label>
+              <Input
+                id={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
+                {...register(
+                  `shipments.${shipmentIndex}.items.${itemIndex}.productName`
+                )}
+                placeholder="Enter product name"
+              />
+              <ErrorMessage
+                error={
+                  errors.shipments?.[shipmentIndex]?.items?.[itemIndex]
+                    ?.productName
+                }
+              />
+            </div>
             <div className="space-y-2">
               <Label
                 htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productUrl`}
@@ -107,6 +130,7 @@ export function ShipmentItem({
                 }
               />
             </div>
+
             <div className="space-y-2">
               <Label
                 htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.price`}
@@ -152,6 +176,27 @@ export function ShipmentItem({
                 }
               />
             </div>
+          </div>
+          <div className="space-y-2 mt-3">
+            <Label
+              htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productNote`}
+            >
+              Product Note
+            </Label>
+            <Textarea
+              id={`shipments.${shipmentIndex}.items.${itemIndex}.productNote`}
+              {...register(
+                `shipments.${shipmentIndex}.items.${itemIndex}.productNote`
+              )}
+              placeholder="Enter any additional notes about this product"
+              rows={3}
+            />
+            <ErrorMessage
+              error={
+                errors.shipments?.[shipmentIndex]?.items?.[itemIndex]
+                  ?.productNote
+              }
+            />
           </div>
         </div>
       )}

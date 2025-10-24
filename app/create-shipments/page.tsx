@@ -4,7 +4,6 @@ import { Navbar } from "@/components/navbar";
 import { FormHeader } from "@/components/shipments/form-header";
 import { ShipmentCard } from "@/components/shipments/shipment-card";
 import { Accordion } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
 import {
   ItemFormData,
   OrderFormData,
@@ -13,7 +12,7 @@ import {
   getPhoneDetails,
 } from "@/lib/schemas/shipmentSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
 
@@ -106,6 +105,8 @@ export default function CreateShipmentPage() {
             {
               uuid: generateUUID(),
               productUrl: "",
+              productName: "",
+              productNote: "",
               price: undefined,
               quantity: undefined,
             },
@@ -135,7 +136,6 @@ export default function CreateShipmentPage() {
   const [countries, setCountries] = useState<any[]>([]);
   const [courierServices, setCourierServices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Keep loading state for data fetching
-  const [currencies, setCurrencies] = useState<any[]>([]);
   const [detailedCourierServices, setDetailedCourierServices] = useState<any[]>(
     []
   );
@@ -143,108 +143,6 @@ export default function CreateShipmentPage() {
     [key: string]: PriceCalculationResult;
   }>({});
   const [showTermsDialog, setShowTermsDialog] = useState(false);
-
-  // Calculate total price based on shipment details
-  const calculateShipmentPrice = useCallback(
-    (shipmentIndex: number) => {
-      const shipmentData = getValues(`shipments.${shipmentIndex}`);
-      if (!shipmentData) return "0.00";
-
-      const { country, courierService, dimensions: dims } = shipmentData;
-      const shipmentType = "export";
-      const fieldId = shipmentFields[shipmentIndex]?.fieldId;
-
-      console.log(
-        `[Price Calc] Inputs for shipment index ${shipmentIndex} (ID: ${fieldId}):`,
-        {
-          country,
-          courierService,
-          currenciesLoaded: currencies.length > 0,
-          servicesLoaded: detailedCourierServices.length > 0,
-        }
-      );
-
-      const { length, width, height } = dims || {};
-      const hasAllDimensions =
-        length && width && height && length > 0 && width > 0 && height > 0;
-
-      const canCalculatePrice = country && courierService;
-
-      if (!canCalculatePrice) {
-        console.log(
-          `[Price Calc] Missing required fields for shipment ${fieldId}`
-        );
-        return "0.00";
-      }
-
-      const volume = hasAllDimensions ? (length * width * height) / 1000000 : 0;
-
-      const calculatorInput = {
-        from: "IN",
-        selected_to: country,
-        selected_courier_service: courierService,
-        selected_type: shipmentType,
-        selected_volume: volume,
-        currency: currencies,
-        Allcourierservicesdata: detailedCourierServices,
-      };
-
-      console.log(
-        `[Price Calc] Calculator input for shipment ${fieldId}:`,
-        JSON.stringify(calculatorInput)
-      );
-
-      const result = calculatePrice(calculatorInput);
-
-      console.log(`[Price Calc] Result for shipment ${fieldId}:`, result);
-
-      if (fieldId) {
-        setPriceCalculationResults((prev) => ({
-          ...prev,
-          [fieldId]: result,
-        }));
-      }
-
-      if (result.transportable && result.prices && result.prices.length > 0) {
-        return result.prices[0].finalPrice.toFixed(2);
-      }
-
-      return "0.00";
-    },
-    [
-      getValues,
-      currencies,
-      detailedCourierServices,
-      calculatePrice,
-      shipmentFields,
-    ]
-  );
-
-  // Calculate total order price using useMemo for derived state
-  const totalPrice = useMemo(() => {
-    return shipmentFields
-      .reduce((total, shipmentField) => {
-        const result = priceCalculationResults[shipmentField.fieldId];
-        if (
-          result?.transportable &&
-          result.prices &&
-          result.prices.length > 0
-        ) {
-          return total + result.prices[0].finalPrice;
-        }
-        return total;
-      }, 0)
-      .toFixed(2);
-  }, [shipmentFields, priceCalculationResults]);
-
-  // Check if any shipments cannot be transported
-  const hasNonTransportableShipments = useCallback(() => {
-    return shipmentFields.some(
-      (field) =>
-        priceCalculationResults[field.fieldId] &&
-        !priceCalculationResults[field.fieldId].transportable
-    );
-  }, [shipmentFields, priceCalculationResults]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -263,41 +161,12 @@ export default function CreateShipmentPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [countriesData, courierServicesData, currenciesData] =
-          await Promise.all([
-            fetchCountries(),
-            fetchCourierServices(),
-            fetchCurrencies(),
-          ]);
-
-        console.log("[Data Loading] Countries:", countriesData.slice(0, 2));
-        console.log(
-          "[Data Loading] Courier Services:",
-          courierServicesData.slice(0, 2)
-        );
-        console.log("[Data Loading] Currencies:", currenciesData.slice(0, 2));
+        const countriesData = await fetchCountries();
 
         setCountries(countriesData);
-        setCourierServices(courierServicesData);
-        setDetailedCourierServices(courierServicesData);
-        setCurrencies(currenciesData);
 
         if (countriesData.length > 0) {
           setValue("shipments.0.country", countriesData[0].code, {
-            shouldValidate: true,
-          });
-        }
-
-        if (courierServicesData.length > 0) {
-          console.log(
-            "[Data Loading] Courier Services:",
-            courierServicesData[0]
-          );
-          const serviceId =
-            courierServicesData[0].courier_service_id ||
-            courierServicesData[0].id;
-          console.log("[Data Loading] Using courier service ID:", serviceId);
-          setValue(`shipments.0.courierService` as any, serviceId as any, {
             shouldValidate: true,
           });
         }
@@ -407,11 +276,13 @@ export default function CreateShipmentPage() {
         {
           uuid: generateUUID(),
           productUrl: "",
+          productName: "",
+          productNote: "",
           price: undefined,
           quantity: undefined,
         },
       ],
-      invoiceUrl: undefined,
+      invoiceUrls: [],
       notes: "",
     });
   }, [appendShipment, countries, courierServices]);
@@ -448,33 +319,9 @@ export default function CreateShipmentPage() {
 
   // Helper function to transform shipment data for Supabase
   const transformShipmentData = useCallback(
-    (
-      shipmentData: ShipmentFormData,
-      userId: string,
-      orderId: string,
-      priceResult: PriceCalculationResult | undefined
-    ) => {
-      const { length, width, height } = shipmentData.dimensions;
-      const packageVolume =
-        typeof length === "number" &&
-        typeof width === "number" &&
-        typeof height === "number"
-          ? length * width * height // Store directly in cm³
-          : 0;
-
-      const shipmentPrice = priceResult?.prices?.[0]?.finalPrice || 0;
-      const weightPrice = priceResult?.prices?.[0]?.weightPrice || 0;
-      const dimensionalPrice = priceResult?.prices?.[0]?.dimensionPrice || 0;
-
+    (shipmentData: ShipmentFormData) => {
       // Extract phone details
       const phoneDetails = getPhoneDetails(shipmentData.receiver.phone || "");
-      console.log("Phone details for receiver:", phoneDetails);
-
-      console.log("Final Prices:", {
-        shipmentPrice,
-        weightPrice,
-        dimensionalPrice,
-      });
 
       const initialStatus = shipmentData.isPickupNeeded ? "Pick Up" : "Pending";
       const statusDescription = shipmentData.isPickupNeeded
@@ -490,8 +337,6 @@ export default function CreateShipmentPage() {
       ];
 
       return {
-        user_id: userId,
-        order_id: orderId,
         shipment_type: shipmentData.shipmentType,
         shipment_country_code: shipmentData.country,
         warehouse_id: shipmentData.warehouseId,
@@ -499,13 +344,6 @@ export default function CreateShipmentPage() {
         purchased_site: shipmentData.purchasedSite,
         receiving_date: shipmentData.receivingDate?.toISOString(),
         notes: shipmentData.notes,
-        shipment_courier_service_id: shipmentData.courierService,
-        package_type: shipmentData.packageType,
-        package_length: shipmentData.dimensions.length || 0,
-        package_width: shipmentData.dimensions.width || 0,
-        package_height: shipmentData.dimensions.height || 0,
-        package_volume: packageVolume,
-        is_pickup_needed: shipmentData.isPickupNeeded,
 
         receiver_first_name: shipmentData.receiver.firstName,
         receiver_last_name: shipmentData.receiver.lastName,
@@ -520,55 +358,18 @@ export default function CreateShipmentPage() {
         receiver_address_line4: shipmentData.receiver.addressLine4 || "",
         receiver_postal_code: shipmentData.receiver.postalCode || "",
 
-        pickup_address_line1: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.addressLine1
-          : null,
-        pickup_address_line2: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.addressLine2 || null
-          : null,
-        pickup_address_line3: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.addressLine3 || null
-          : null,
-        pickup_address_line4: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.addressLine4 || null
-          : null,
-        pickup_country: shipmentData.isPickupNeeded
-          ? shipmentData.country
-          : null,
-        pickup_date: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.date?.toISOString()
-          : null,
-        pickup_phonenumber: shipmentData.isPickupNeeded
-          ? getPhoneDetails(shipmentData.pickup?.phoneNumber || "")
-              .nationalNumber
-          : null,
-        pickup_phone_code: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.phoneCode || ""
-          : null,
-        pickup_instructions: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.instructions || null
-          : null,
-        pickup_postalcode: shipmentData.isPickupNeeded
-          ? shipmentData.pickup?.postalCode
-          : null,
-
         status_timeline: statusTimeline,
+        invoice_urls: shipmentData.invoiceUrls || [],
 
-        source: "logistics",
-        current_status: initialStatus,
-        ecommerce_order_total_price: 0,
-        grand_total: shipmentPrice,
-        shipment_price: shipmentPrice,
-        shipment_dimentional_price: dimensionalPrice,
-        shipment_weight_price: weightPrice,
-        payment_charges: 0,
-        price_details_advance_paid: 0,
-        price_details_arrears_amount: 0,
-        price_details_discount: 0,
-        price_details_other_charges: 0,
-        price_details_packing_charges: 0,
-        price_details_quantity: 0,
-        price_details_tax: 0,
+        products: shipmentData.items.map((item) => ({
+          url: item.productUrl,
+          name: item.productName,
+          note: item.productNote || "",
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+        })),
+
+        source: "drop_and_ship",
       };
     },
     []
@@ -580,6 +381,8 @@ export default function CreateShipmentPage() {
       return {
         shipment_id: shipmentId,
         product_url: item.productUrl,
+        product_name: item.productName,
+        product_note: item.productNote || "",
         declared_value: item.price || 0,
         quantity: item.quantity || 1,
         total_price: item.price || 0,
@@ -590,6 +393,87 @@ export default function CreateShipmentPage() {
   );
 
   // --- Submit Handler ---
+  // const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
+  //   console.log("Validated Form Data:", data);
+
+  //   if (!user) {
+  //     toast({
+  //       title: "Authentication required",
+  //       description: "Please log in to create a shipment",
+  //       variant: "destructive",
+  //     });
+  //     router.push("/");
+  //     return;
+  //   }
+
+  //   const userId = user.id;
+
+  //   try {
+  //     // 1. Create logistics order
+  //     const { data: orderData, error: orderError } = await supabase
+  //       .from("logistics_orders")
+  //       .insert({ user_id: userId, number_of_shipments: data.shipments.length })
+  //       .select()
+  //       .single();
+
+  //     if (orderError) throw orderError;
+  //     const orderId: string = orderData.logistics_order_id;
+  //     console.log("Order ID:", orderId);
+
+  //     const results = [];
+  //     // 2. Process each shipment
+  //     for (let i = 0; i < data.shipments.length; i++) {
+  //       const shipmentData = data.shipments[i];
+  //       const fieldId = shipmentFields[i]?.fieldId;
+  //       const priceResult = fieldId
+  //         ? priceCalculationResults[fieldId]
+  //         : undefined;
+  //       const transformedShipment = transformShipmentData(shipmentData);
+
+  //       // Create shipment
+  //       const { data: shipment, error: shipmentError } = await supabase
+  //         .from("shipments")
+  //         .insert(transformedShipment)
+  //         .select()
+  //         .single();
+
+  //       if (shipmentError) throw shipmentError;
+  //       const shipmentId: string = shipment.shipment_id;
+
+  //       // 3. Process items
+  //       if (shipmentData.items && shipmentData.items.length > 0) {
+  //         const itemsToInsert = shipmentData.items.map((item) =>
+  //           transformItemData(item, shipmentId)
+  //         );
+  //         const { data: items, error: itemsError } = await supabase
+  //           .from("shipment_items")
+  //           .insert(itemsToInsert)
+  //           .select();
+
+  //         if (itemsError) throw itemsError;
+  //         results.push({ shipment, items });
+  //       } else {
+  //         results.push({ shipment, items: [] });
+  //       }
+  //     }
+
+  //     toast({
+  //       title: "Success",
+  //       description: `Created ${results.length} shipment(s)`,
+  //     });
+  //     console.log("[Create Shipment] User state before navigation:", user);
+  //     setShowTermsDialog(false); // Close dialog on success
+  //     router.push("/shipments");
+  //   } catch (error: any) {
+  //     console.error("Error creating shipments:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //     setShowTermsDialog(false); // Close dialog on error
+  //   }
+  // };
   const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
     console.log("Validated Form Data:", data);
 
@@ -603,67 +487,31 @@ export default function CreateShipmentPage() {
       return;
     }
 
-    const userId = user.id;
-
     try {
-      // 1. Create logistics order
-      const { data: orderData, error: orderError } = await supabase
-        .from("logistics_orders")
-        .insert({ user_id: userId, number_of_shipments: data.shipments.length })
-        .select()
-        .single();
+      const token = (await supabase.auth.getSession()).data.session
+        ?.access_token;
 
-      if (orderError) throw orderError;
-      const orderId: string = orderData.logistics_order_id;
-      console.log("Order ID:", orderId);
+      setShowTermsDialog(true); // Close dialog on success
+      const transformedShipment = transformShipmentData(data.shipments[0]);
 
-      const results = [];
-      // 2. Process each shipment
-      for (let i = 0; i < data.shipments.length; i++) {
-        const shipmentData = data.shipments[i];
-        const fieldId = shipmentFields[i]?.fieldId;
-        const priceResult = fieldId
-          ? priceCalculationResults[fieldId]
-          : undefined;
-        const transformedShipment = transformShipmentData(
-          shipmentData,
-          userId,
-          orderId,
-          priceResult
-        );
-
-        // Create shipment
-        const { data: shipment, error: shipmentError } = await supabase
-          .from("shipments")
-          .insert(transformedShipment)
-          .select()
-          .single();
-
-        if (shipmentError) throw shipmentError;
-        const shipmentId: string = shipment.shipment_id;
-
-        // 3. Process items
-        if (shipmentData.items && shipmentData.items.length > 0) {
-          const itemsToInsert = shipmentData.items.map((item) =>
-            transformItemData(item, shipmentId)
-          );
-          const { data: items, error: itemsError } = await supabase
-            .from("shipment_items")
-            .insert(itemsToInsert)
-            .select();
-
-          if (itemsError) throw itemsError;
-          results.push({ shipment, items });
-        } else {
-          results.push({ shipment, items: [] });
+      const { data: responseData, error } = await supabase.functions.invoke(
+        "drop-and-ship-order",
+        {
+          method: "POST",
+          body: transformedShipment,
         }
+      );
+
+      if (error) {
+        throw new Error(error.message);
       }
 
       toast({
         title: "Success",
-        description: `Created ${results.length} shipment(s)`,
+        description: "Drop and Ship Order created successfully",
       });
-      console.log("[Create Shipment] User state before navigation:", user);
+      console.log("Drop and Ship Order created:", responseData);
+
       setShowTermsDialog(false); // Close dialog on success
       router.push("/shipments");
     } catch (error: any) {
@@ -677,43 +525,6 @@ export default function CreateShipmentPage() {
     }
   };
   // --- End Submit Handler ---
-
-  // Price Calculation Trigger Effect
-  useEffect(() => {
-    const subscription = watch((value, { name, type }) => {
-      const nameString = name || "";
-      if (
-        nameString.match(
-          /^shipments\.\d+\.(country|totalWeight|courierService|dimensions)/
-        )
-      ) {
-        const shipmentIndexMatch = nameString.match(/^shipments\.(\d+)/);
-        if (shipmentIndexMatch && shipmentIndexMatch[1]) {
-          const shipmentIndex = parseInt(shipmentIndexMatch[1], 10);
-          if (!isNaN(shipmentIndex) && shipmentIndex < shipmentFields.length) {
-            // Check index validity
-            console.log(
-              `[Price Trigger] Change detected in shipment index ${shipmentIndex}, field: ${nameString}`
-            );
-            if (currencies.length > 0 && detailedCourierServices.length > 0) {
-              calculateShipmentPrice(shipmentIndex);
-            } else {
-              console.log(
-                `[Price Trigger] Skipping calculation for index ${shipmentIndex} - dependencies not loaded.`
-              );
-            }
-          }
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [
-    watch,
-    calculateShipmentPrice,
-    currencies,
-    detailedCourierServices,
-    shipmentFields.length,
-  ]); // Add shipmentFields.length dependency
 
   if (isLoading || authIsLoading) {
     return (
@@ -736,8 +547,7 @@ export default function CreateShipmentPage() {
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
           <FormHeader
-            totalPrice={totalPrice}
-            hasNonTransportableShipments={hasNonTransportableShipments()}
+            totalPrice="1000.00"
             isSubmitting={isSubmitting}
             showTermsDialog={showTermsDialog}
             setShowTermsDialog={setShowTermsDialog}
@@ -824,87 +634,6 @@ export default function CreateShipmentPage() {
                 <div className="flex gap-2">
                   {/* <Button
                     type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={async () => {
-                      console.log("🧪 MANUAL VALIDATION TEST");
-                      const isValid = await handleSubmit(
-                        () => {
-                          console.log("✅ Form is valid!");
-                          toast({
-                            title: "✅ Validation Passed",
-                            description: "All form fields are valid!",
-                            variant: "default",
-                          });
-                        },
-                        (errors) => {
-                          console.log("❌ Form has errors:", errors);
-
-                          // Show only dimension validation errors in toast for test
-                          const dimensionErrorMessages: string[] = [];
-
-                          if (errors.shipments) {
-                            errors.shipments.forEach(
-                              (shipmentErrors, index) => {
-                                if (shipmentErrors) {
-                                  // Only collect dimensions errors for toast
-                                  if (shipmentErrors.dimensions) {
-                                    // Check for nested error structure
-                                    let errorMessage = null;
-                                    if (
-                                      typeof shipmentErrors.dimensions
-                                        .message === "string"
-                                    ) {
-                                      errorMessage =
-                                        shipmentErrors.dimensions.message;
-                                    } else if (
-                                      shipmentErrors.dimensions.root?.message
-                                    ) {
-                                      errorMessage =
-                                        shipmentErrors.dimensions.root.message;
-                                    }
-
-                                    if (errorMessage) {
-                                      dimensionErrorMessages.push(
-                                        `Shipment ${index + 1}: ${errorMessage}`
-                                      );
-                                    }
-                                  }
-                                }
-                              }
-                            );
-                          }
-
-                          if (dimensionErrorMessages.length > 0) {
-                            toast({
-                              title: "🧪 Dimension Test Failed",
-                              description: (
-                                <div className="space-y-1">
-                                  {dimensionErrorMessages.map((msg, idx) => (
-                                    <div key={idx} className="text-sm">
-                                      {msg}
-                                    </div>
-                                  ))}
-                                </div>
-                              ),
-                              variant: "destructive",
-                              duration: 6000,
-                            });
-                          } else {
-                            // Only show dimension success if there are NO validation errors at all
-                            // If there are other errors but no dimension errors, don't show anything
-                            console.log(
-                              "No dimension errors found in validation test"
-                            );
-                          }
-                        }
-                      )();
-                    }}
-                  >
-                    Test Validation
-                  </Button> */}
-                  <Button
-                    type="button"
                     variant="outline"
                     size="sm"
                     className="gap-1"
@@ -912,7 +641,7 @@ export default function CreateShipmentPage() {
                   >
                     <PlusCircle className="h-4 w-4" />
                     Add Shipment
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
 
@@ -950,7 +679,7 @@ export default function CreateShipmentPage() {
                 ))}
               </Accordion>
 
-              <div className="flex justify-center">
+              {/* <div className="flex justify-center">
                 <Button
                   variant="outline"
                   className="gap-1"
@@ -960,7 +689,7 @@ export default function CreateShipmentPage() {
                   <PlusCircle className="h-4 w-4" />
                   Add Another Shipment
                 </Button>
-              </div>
+              </div> */}
             </div>
           </form>
         </div>

@@ -4,7 +4,6 @@ import { Loader2, Send } from "lucide-react";
 
 interface FormHeaderProps {
   totalPrice: string;
-  hasNonTransportableShipments: boolean;
   isSubmitting: boolean;
   showTermsDialog: boolean;
   setShowTermsDialog: (show: boolean) => void;
@@ -13,7 +12,6 @@ interface FormHeaderProps {
 
 export function FormHeader({
   totalPrice,
-  hasNonTransportableShipments,
   isSubmitting,
   showTermsDialog,
   setShowTermsDialog,

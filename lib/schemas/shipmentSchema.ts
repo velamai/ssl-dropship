@@ -15,12 +15,14 @@ export const ItemSchema = z.object({
   uuid: z
     .string()
     .uuid()
-    .default(() => generateUUID()), // Automatically generate UUID
+    .default(() => generateUUID()), // Trigger new UUID generation
   productUrl: z
     .string()
     .trim()
     .min(1, "Product URL is required")
     .url({ message: "Product URL must be a valid URL" }),
+  productName: z.string().trim().min(1, "Product name is required"),
+  productNote: z.string().trim().optional(),
   price: z.preprocess(
     (val) =>
       val === "" || val === null || val === undefined ? undefined : Number(val),
@@ -181,10 +183,9 @@ export const ShipmentSchema = z
     pickup: z.any().optional(),
     receiver: ReceiverSchema,
     items: z.array(ItemSchema).min(1, "At least one item is required"),
-    // Optional production invoice URL uploaded via signed URL flow
-    invoiceUrl: z
-      .string()
-      .url({ message: "Invoice URL must be a valid URL" })
+    // Optional production invoice URLs uploaded via signed URL flow
+    invoiceUrls: z
+      .array(z.string().url({ message: "Invoice URL must be a valid URL" }))
       .optional(),
     // Optional free-form notes for the shipment
     notes: z.string().trim().optional(),

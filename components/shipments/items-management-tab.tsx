@@ -57,6 +57,8 @@ export function ItemsManagementTab({
     appendItem({
       uuid: uuidv4(),
       productUrl: "",
+      productName: "",
+      productNote: "",
       price: undefined,
       quantity: undefined,
     });

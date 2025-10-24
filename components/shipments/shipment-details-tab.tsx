@@ -79,8 +79,10 @@ export function ShipmentDetailsTab({
   shipmentType,
   priceCalculationResult,
 }: ShipmentDetailsTabProps) {
-  const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
-  const [isImageFile, setIsImageFile] = useState(false);
+  const [localFilePreviews, setLocalFilePreviews] = useState<{
+    [key: string]: string;
+  }>({});
+  const [imageFiles, setImageFiles] = useState<{ [key: string]: boolean }>({});
 
   // Helper function to check if file is an image
   const isImageType = (fileType: string) => {
@@ -207,8 +209,8 @@ export function ShipmentDetailsTab({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="link">Link</SelectItem>
-                    <SelectItem value="warehouse">Warehouse</SelectItem>
+                    <SelectItem value="link">Link to Ship service</SelectItem>
+                    <SelectItem value="warehouse">Warehouse service</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -283,7 +285,7 @@ export function ShipmentDetailsTab({
           )}
           <div className="space-y-2">
             <Label htmlFor={`shipments.${index}.receivingDate`}>
-              Receiving Date *
+              Expected Receiving Date *
             </Label>
             <Controller
               name={`shipments.${index}.receivingDate`}
@@ -330,19 +332,20 @@ export function ShipmentDetailsTab({
                   Product Invoice (PDF/Images)
                 </Label>
 
-                {getValues(`shipments.${index}.invoiceUrl`) && (
+                {(getValues(`shipments.${index}.invoiceUrls`) || []).length >
+                  0 && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     onClick={() => {
-                      setValue(`shipments.${index}.invoiceUrl`, undefined, {
+                      setValue(`shipments.${index}.invoiceUrls`, [], {
                         shouldValidate: true,
                         shouldDirty: true,
                       });
-                      setLocalFilePreview(null);
-                      setIsImageFile(false);
+                      setLocalFilePreviews({});
+                      setImageFiles({});
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -357,13 +360,16 @@ export function ShipmentDetailsTab({
                   className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
                 >
                   {/* Background image with blur effect */}
-                  {localFilePreview && isImageFile && (
+                  {Object.keys(localFilePreviews).length > 0 && (
                     <div className="absolute inset-0">
-                      <img
-                        src={localFilePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover filter blur-sm opacity-30"
-                      />
+                      {Object.values(localFilePreviews).map((preview, idx) => (
+                        <img
+                          key={idx}
+                          src={preview}
+                          alt="Preview"
+                          className="w-full h-full object-cover filter blur-sm opacity-30"
+                        />
+                      ))}
                     </div>
                   )}
 
@@ -371,8 +377,8 @@ export function ShipmentDetailsTab({
                   <div className="relative z-10 flex flex-col items-center gap-2">
                     <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
                     <span className="text-sm text-muted-foreground group-hover:text-primary">
-                      {localFilePreview && isImageFile
-                        ? "Click to change image"
+                      {Object.keys(localFilePreviews).length > 0
+                        ? "Click to add more files"
                         : "Click to upload or drag PDF/Images here"}
                     </span>
                   </div>
@@ -380,56 +386,86 @@ export function ShipmentDetailsTab({
                     id={`shipments.${index}.invoiceFile`}
                     type="file"
                     accept="application/pdf,image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    multiple
                     className="hidden"
                     onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
 
-                      // Set local preview for images
-                      const fileIsImage = isImageType(file.type);
-                      setIsImageFile(fileIsImage);
+                      // Set local previews for images
+                      const newPreviews = { ...localFilePreviews };
+                      const newImageFiles = { ...imageFiles };
 
-                      if (fileIsImage) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          setLocalFilePreview(e.target?.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      } else {
-                        setLocalFilePreview(null);
+                      for (const file of files) {
+                        const fileIsImage = isImageType(file.type);
+                        const fileId = `${file.name}-${
+                          file.size
+                        }-${Date.now()}`;
+                        newImageFiles[fileId] = fileIsImage;
+
+                        if (fileIsImage) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            newPreviews[fileId] = e.target?.result as string;
+                            setLocalFilePreviews(newPreviews);
+                          };
+                          reader.readAsDataURL(file);
+                        }
                       }
 
+                      setImageFiles(newImageFiles);
+
                       try {
+                        // Get signed URLs for all files
+                        const fileTypes = files.map(
+                          (file) => file.type || "application/pdf"
+                        );
                         const res = await fetch("/api/invoice-signed-url", {
-                          method: "POST",
+                          method: "PUT",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
-                            fileType: file.type || "application/pdf",
+                            fileTypes,
                           }),
                         });
                         if (!res.ok)
-                          throw new Error("Failed to get signed URL");
-                        const { signedUrl, publicUrl } = await res.json();
+                          throw new Error("Failed to get signed URLs");
+                        const { results } = await res.json();
 
-                        const putRes = await fetch(signedUrl, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": file.type || "application/pdf",
-                          },
-                          body: file,
+                        // Upload all files
+                        const uploadPromises = files.map(async (file, idx) => {
+                          const { signedUrl, publicUrl } = results[idx];
+                          const putRes = await fetch(signedUrl, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": file.type || "application/pdf",
+                            },
+                            body: file,
+                          });
+                          if (!putRes.ok)
+                            throw new Error(
+                              `Failed to upload file: ${file.name}`
+                            );
+                          return publicUrl;
                         });
-                        if (!putRes.ok)
-                          throw new Error("Failed to upload file");
 
-                        setValue(`shipments.${index}.invoiceUrl`, publicUrl, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
+                        const uploadedUrls = await Promise.all(uploadPromises);
+
+                        // Update form with all URLs
+                        const currentUrls =
+                          getValues(`shipments.${index}.invoiceUrls`) || [];
+                        setValue(
+                          `shipments.${index}.invoiceUrls`,
+                          [...currentUrls, ...uploadedUrls],
+                          {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          }
+                        );
                       } catch (err) {
                         console.error(err);
-                        // Clear preview on error
-                        setLocalFilePreview(null);
-                        setIsImageFile(false);
+                        // Clear previews on error
+                        setLocalFilePreviews({});
+                        setImageFiles({});
                       } finally {
                         e.currentTarget.value = "";
                       }
@@ -438,36 +474,92 @@ export function ShipmentDetailsTab({
                 </label>
 
                 {/* Preview area */}
-                {getValues(`shipments.${index}.invoiceUrl`) && (
-                  <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3">
-                    {isImageFile && localFilePreview ? (
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={localFilePreview}
-                          alt="Uploaded file preview"
-                          className="size-20 object-cover rounded border"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
-                            Image uploaded successfully
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Click the upload area to change
-                          </p>
+                {(getValues(`shipments.${index}.invoiceUrls`) || []).length >
+                  0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {getValues(`shipments.${index}.invoiceUrls`)?.map(
+                      (url: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-border bg-muted/30"
+                        >
+                          {Object.values(localFilePreviews).length > idx ? (
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={Object.values(localFilePreviews)[idx]}
+                                alt="Uploaded file preview"
+                                className="size-20 object-cover rounded border"
+                              />
+
+                              {/* <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  const currentUrls =
+                                    getValues(
+                                      `shipments.${index}.invoiceUrls`
+                                    ) || [];
+                                  const newUrls = currentUrls.filter(
+                                    (_, i) => i !== idx
+                                  );
+                                  setValue(
+                                    `shipments.${index}.invoiceUrls`,
+                                    newUrls,
+                                    {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    }
+                                  );
+                                  const newPreviews = { ...localFilePreviews };
+                                  delete Object.keys(newPreviews)[idx];
+                                  setLocalFilePreviews(newPreviews);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button> */}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-primary" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">
+                                  PDF uploaded successfully
+                                </p>
+                                <p className="text-xs text-muted-foreground break-all">
+                                  {url}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  const currentUrls =
+                                    getValues(
+                                      `shipments.${index}.invoiceUrls`
+                                    ) || [];
+                                  const newUrls = currentUrls.filter(
+                                    (_, i) => i !== idx
+                                  );
+                                  setValue(
+                                    `shipments.${index}.invoiceUrls`,
+                                    newUrls,
+                                    {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    }
+                                  );
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
-                            PDF uploaded successfully
-                          </p>
-                          <p className="text-xs text-muted-foreground break-all">
-                            {getValues(`shipments.${index}.invoiceUrl`)}
-                          </p>
-                        </div>
-                      </div>
+                      )
                     )}
                   </div>
                 )}

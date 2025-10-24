@@ -88,3 +88,80 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// New endpoint for multiple file uploads
+export async function PUT(request: NextRequest) {
+  try {
+    const { fileTypes } = await request.json();
+
+    if (!Array.isArray(fileTypes) || fileTypes.length === 0) {
+      return NextResponse.json(
+        {
+          error: "fileTypes must be a non-empty array.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+
+    // Validate all file types
+    for (const fileType of fileTypes) {
+      if (!allowedTypes.includes(fileType)) {
+        return NextResponse.json(
+          {
+            error: `Invalid file type: ${fileType}. Only PDF and image files are allowed.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const results = [];
+
+    for (const fileType of fileTypes) {
+      const uuid = uuidv4();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const extension = getFileExtension(fileType);
+      const generatedFileName = `${uuid}-${timestamp}.${extension}`;
+
+      const key = `production-invoices/${new Date().getFullYear()}/${generatedFileName}`;
+
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+        ContentType: fileType,
+        ContentLength: undefined,
+        ACL: "public-read",
+      });
+
+      const signedUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
+
+      const publicUrl = `https://ssl-drop-and-ship.2fc6a444d1c5ee247050bb888bcf2e28.r2.cloudflarestorage.com/${key}`;
+
+      results.push({
+        signedUrl,
+        key,
+        publicUrl,
+        fileName: generatedFileName,
+      });
+    }
+
+    return NextResponse.json({
+      results,
+    });
+  } catch (error) {
+    console.error("Multiple signed URLs generation error:", error);
+    return NextResponse.json(
+      { error: "Failed to generate signed URLs" },
+      { status: 500 }
+    );
+  }
+}
