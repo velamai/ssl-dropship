@@ -20,6 +20,7 @@ interface DatePickerProps {
   disabled?: boolean;
   name?: string;
   required?: boolean;
+  disabledDate?: (date: Date) => boolean;
 }
 
 export function DatePicker({
@@ -29,6 +30,7 @@ export function DatePicker({
   disabled,
   name,
   required,
+  disabledDate,
 }: DatePickerProps) {
   return (
     <Popover>
@@ -61,7 +63,7 @@ export function DatePicker({
             setDate(date);
           }}
           initialFocus
-          disabled={(date) => date < new Date()}
+          disabled={disabledDate}
           required={required}
         />
       </PopoverContent>

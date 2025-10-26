@@ -1,23 +1,5 @@
 "use client";
 
-import {
-  ArrowLeft,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  Loader2,
-  MapPin,
-  Package,
-  Printer,
-  ShoppingBag,
-  Truck,
-  User,
-  XCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
 import { Navbar } from "@/components/navbar";
 import OrderPdf from "@/components/shipments/order-pdf";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -48,75 +30,160 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
-import { sortedCountries } from "@/lib/countries";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { generateBarcode } from "@/lib/barcode";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Loader2,
+  MapPin,
+  Package,
+  Printer,
+  ShoppingBag,
+  Truck,
+  User,
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+// import { sortedCountries } from "@/lib/countries";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+// import { PDFDownloadLink } from "@react-pdf/renderer";
+import { sortedCountries } from "@/lib/countries";
 import Image from "next/image";
 import Script from "next/script";
 import { toast as sonnerToast, type ExternalToast } from "sonner";
-import { generateBarcode } from "@/lib/barcode";
+// import { generateBarcode } from "@/lib/barcode";
+
+type Warehouse = {
+  name: string;
+  country: string;
+  postal_code: string;
+  address_line1: string;
+  address_line2?: string;
+  address_line3?: string;
+  address_line4?: string;
+};
 
 interface Shipment {
-  receiver_phone_code: string;
+  idx: number;
   shipment_id: string;
-  order_id?: string;
   user_id: string;
-  created_at: string;
-  receiver_first_name?: string;
-  receiver_last_name?: string;
-  receiver_address_line1?: string;
-  receiver_address_line2?: string;
-  receiver_address_line3?: string;
-  receiver_address_line4?: string;
-  receiver_city?: string;
-  receiver_postal_code?: string;
-  receiver_phone?: string;
-  receiver_email?: string;
-  receiver_company?: string;
-  shipment_country_code?: string;
-  shipment_type?: string;
-  shipment_courier_service_id?: string;
-  shipment_total_weight?: number;
-  package_type?: string;
-  package_lenght: number;
+  current_status: string;
+  current_status_updated_at: string;
+  status_timeline: string; // JSON string of status history
+  source: string;
+  shipment_type: string;
+  shipment_country_code: string;
+  shipment_total_weight: number;
+
+  // Price and totals
+  shipment_weight_price: string;
+  shipment_dimentional_price: string;
+  shipment_price: string;
+  grand_total: string;
+
+  // Package details
+  package_type: string;
+  package_length: number;
   package_width: number;
   package_height: number;
-  package_volume?: number;
-  current_status: string;
-  current_status_updated_at?: string;
-  status_timeline?: any[];
-  special_instructions?: string;
-  is_pickup_needed?: boolean;
-  pickup_address_line1?: string;
-  pickup_address_line2?: string;
-  pickup_address_line3?: string;
-  pickup_address_line4?: string;
-  pickup_postalcode?: string;
-  pickup_country?: string;
-  pickup_phonenumber?: string;
-  pickup_phone_code?: string;
-  pickup_date?: string;
-  pickup_instructions?: string;
-  grand_total: number;
-  payment_method?: string;
-  payment_proof_url?: string;
-  payment_proof_status?: string;
-  payment_proof_submitted_at?: string;
-  payment_proof_rejection_reason?: string;
-  payment_id?: string;
-  paid_at?: string;
-  payment_details?: any;
-  payment_proof_approved_at?: string;
+  package_volume: string;
+
+  // Receiver info
+  receiver_first_name: string;
+  receiver_last_name: string;
+  receiver_company: string;
+  receiver_tax: string;
+  receiver_phone: string;
+  receiver_email: string;
+  receiver_address_line1: string;
+  receiver_address_line2: string;
+  receiver_address_line3: string;
+  receiver_address_line4: string;
+  receiver_postal_code: string;
+  receiver_phone_code: string;
+
+  // Drop and Ship
+  drop_and_ship_product_invoice_url: string; // JSON string of URLs
+  drop_and_ship_warehouse_id: string;
+  drop_and_ship_note: string;
+  drop_and_ship_expected_receiving_date: string;
+  drop_and_ship_order_id: string;
+  drop_and_ship_order_type: string;
+  drop_and_ship_purchase_date: string | null;
+  drop_and_ship_purchase_site: string | null;
+
+  // Meta
+  created_at: string;
+  updated_at: string;
+
+  // Optional / Nullable fields
+  order_id?: string | null;
+  price_details_quantity?: number;
+  price_details_tracking_id?: string | null;
+  price_details_other_charges?: string | null;
+  price_details_packing_charges?: string | null;
+  price_details_arrears_amount?: string | null;
+  price_details_tax?: string | null;
+  price_details_discount?: string | null;
+  price_details_advance_paid?: string | null;
+
+  confirmed_invoice_id?: string | null;
+  confirmed_invoice_url?: string | null;
+
+  payment_method?: string | null;
+  payment_information?: string | null;
+  payment_remarks?: string | null;
+  payment_approved_by?: string | null;
+  payment_proof_url?: string | null;
+  payment_proof_status?: string | null;
+  payment_proof_submitted_at?: string | null;
+  payment_proof_approved_at?: string | null;
+  payment_proof_rejection_reason?: string | null;
+  payment_charges?: string | null;
+  payment_id?: string | null;
+  paid_at?: string | null;
+  payment_details?: string | null;
+
+  ecommerce_order_total_price?: string | null;
+  ecommerce_order_id?: string | null;
+  ecommerce_shipment_cost?: string | null;
+  ecommerce_regular_price?: string | null;
+  ecommerce_sales_price?: string | null;
+  ecommerce_total_price?: string | null;
+  ecommerce_payment_status?: string | null;
+
+  drop_and_ship_warehouse_address?: Warehouse | null;
+  total_price: number | null;
+  total_quantity: number | null;
 }
 
-interface ShipmentItem {
+type ShipmentItem = {
+  shipment_item_id: number;
   shipment_id: string;
-  shipment_item_id: string;
-  description?: string;
-  declared_value?: number;
-  purpose?: string;
-}
+  source: string;
+  description: string;
+  purpose: string;
+  declared_value: number;
+  name: string;
+  image_urls: string; // This seems like a JSON string of array
+  total_price: string;
+  quantity: number;
+  product_price: string | null;
+  product_id: string | null;
+  drop_and_ship_product_url: string;
+};
 
 interface TrackingEvent {
   status: string;
@@ -128,13 +195,6 @@ interface PaymentCardProps {
   shipment: Shipment;
   onPaymentUpdate: () => void;
 }
-
-// Add type for toast
-type ToastProps = {
-  title?: string;
-  description: string;
-  variant?: "default" | "destructive";
-};
 
 // Add Razorpay types
 declare global {
@@ -206,19 +266,19 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
     );
   };
 
-  // Update toast calls to use the correct Sonner signature
+  // Update toast calls to use the correct Sonner si  gnature
   const showToast = (props: {
     title?: string;
     description: string;
     variant?: "default" | "destructive";
   }) => {
     const { title, description, variant } = props;
-    const options: ExternalToast = { description, variant };
+    const options: ExternalToast = { description };
     if (title) {
       sonnerToast(title, options);
     } else {
       // If no title, use description as the main message in Sonner
-      sonnerToast(description, { variant });
+      sonnerToast(description);
     }
   };
 
@@ -562,7 +622,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
             <Select
               value={paymentMethod}
               onValueChange={setPaymentMethod}
-              disabled={isPaymentProcessed}
+              disabled={Boolean(isPaymentProcessed)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
@@ -609,7 +669,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     onChange={handleFileSelect}
-                    disabled={isUploading || isPaymentProcessed}
+                    disabled={Boolean(isUploading || isPaymentProcessed)}
                   />
                   {filePreview && !shipment.payment_proof_url && (
                     <div className="mt-2">
@@ -629,7 +689,9 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                   <Button
                     onClick={handleProofUpload}
                     disabled={Boolean(
-                      !selectedFile || isUploading || isPaymentProcessed
+                      Boolean(
+                        !selectedFile || isUploading || isPaymentProcessed
+                      )
                     )}
                     className="w-full"
                   >
@@ -790,7 +852,7 @@ export default function ShipmentDetailsPage() {
           .from("shipments")
           .select("*")
           .eq("shipment_id", id)
-          .eq("user_id", user.id)
+          .eq("user_id", user?.id)
           .single();
 
         const qr = await generateBarcode(
@@ -817,6 +879,7 @@ export default function ShipmentDetailsPage() {
             .from("shipment_items")
             .select("*")
             .eq("shipment_id", id); // Use string id directly
+          console.log({ itemsData });
 
           if (itemsError) {
             console.error("Error fetching shipment items:", itemsError);
@@ -839,29 +902,6 @@ export default function ShipmentDetailsPage() {
 
     fetchShipmentDetails();
   }, [id, user]);
-
-  useEffect(() => {
-    async function fetchCourierServices() {
-      try {
-        const { data, error } = await supabase
-          .from("courier_services")
-          .select("*");
-        if (error) throw error;
-        setCourierServices(data || []);
-      } catch (err) {
-        console.error("Error fetching courier services:", err);
-      }
-    }
-    fetchCourierServices();
-  }, []);
-
-  // Helper function to get courier name
-  const getCourierName = (courierId: string) => {
-    const courier = courierServices.find(
-      (c) => c.courier_service_id === courierId
-    );
-    return courier ? courier.name : "Unknown Courier";
-  };
 
   if (loading) {
     return (
@@ -971,7 +1011,7 @@ export default function ShipmentDetailsPage() {
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Shipment {shipment.shipment_id}
                 </h1>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex items-center gap-2 mt-2">
                   <StatusBadge status={shipment.current_status} />
                   {shipment.order_id && (
                     <Badge variant="secondary">
@@ -1060,12 +1100,12 @@ export default function ShipmentDetailsPage() {
                     </div>
                     <div>
                       <h3 className="text-xs font-medium text-muted-foreground">
-                        Courier
+                        Expected Receiving Date
                       </h3>
                       <p className="text-sm">
-                        {shipment.shipment_courier_service_id
-                          ? getCourierName(shipment.shipment_courier_service_id)
-                          : "Not specified"}
+                        {formatDate(
+                          shipment.drop_and_ship_expected_receiving_date
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1143,13 +1183,23 @@ export default function ShipmentDetailsPage() {
                       {shipment.receiver_email || "N/A"}
                     </p>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-medium text-muted-foreground">
-                      Company
-                    </h3>
-                    <p className="text-sm">
-                      {shipment.receiver_company || "N/A"}
-                    </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground">
+                        Company
+                      </h3>
+                      <p className="text-sm">
+                        {shipment.receiver_company || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground">
+                        VAT/TAX
+                      </h3>
+                      <p className="text-sm">
+                        {shipment.receiver_tax || "N/A"}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1165,41 +1215,113 @@ export default function ShipmentDetailsPage() {
                 <CardContent className="p-4 space-y-4">
                   {items.length > 0 ? (
                     <>
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground">
-                          Items
-                        </h3>
-                        <div className="flex items-center gap-1">
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-                            {items.length}
-                          </span>
-                          <span className="text-sm">items</span>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        {items.map((item, index) => (
-                          <div
-                            key={item.shipment_item_id || index}
-                            className="border-t pt-2"
-                          >
-                            <div className="flex justify-between">
-                              <h3 className="text-xs font-medium text-muted-foreground">
-                                Item #{index + 1}
-                              </h3>
-                              <span className="text-xs font-medium">
-                                ₹{item.declared_value || 0}
-                              </span>
-                            </div>
-                            <p className="text-sm font-medium">
-                              {item.description}
-                            </p>
-                            {item.purpose && (
-                              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full capitalize">
-                                {item.purpose}
-                              </span>
-                            )}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <h3 className="text-xs font-medium text-muted-foreground">
+                            Items
+                          </h3>
+                          <div className="flex items-center gap-1">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                              {items.length}
+                            </span>
+                            <span className="text-sm">items</span>
                           </div>
-                        ))}
+                        </div>
+                        {shipment.drop_and_ship_purchase_date && (
+                          <div>
+                            <h3 className="text-xs font-medium text-muted-foreground">
+                              Purchased Date
+                            </h3>
+                            <p className="text-sm">
+                              {formatDate(shipment.drop_and_ship_purchase_date)}
+                            </p>
+                          </div>
+                        )}
+                        {shipment.drop_and_ship_purchase_site && (
+                          <div>
+                            <h3 className="text-xs font-medium text-muted-foreground">
+                              Purchased Site
+                            </h3>
+                            <p className="text-sm">
+                              {shipment.drop_and_ship_purchase_site || ""}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left text-xs font-medium text-muted-foreground py-2">
+                                Name
+                              </th>
+                              <th className="text-right text-xs font-medium text-muted-foreground py-2">
+                                Price
+                              </th>
+                              <th className="text-right text-xs font-medium text-muted-foreground py-2">
+                                Quantity
+                              </th>
+                              <th className="text-right text-xs font-medium text-muted-foreground py-2">
+                                Total Price
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item, index) => (
+                              <tr
+                                key={item.shipment_item_id || index}
+                                className="border-b last:border-b-0"
+                              >
+                                <td className="text-sm py-2">
+                                  {item.name && item.name.length > 25 ? (
+                                    <TooltipProvider>
+                                      <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                          <Link
+                                            href={
+                                              item.drop_and_ship_product_url ||
+                                              ""
+                                            }
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                          >
+                                            {item.name.substring(0, 25)}...
+                                          </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{item.name}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : (
+                                    <Link
+                                      href={
+                                        item.drop_and_ship_product_url || ""
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {item.name}
+                                    </Link>
+                                  )}
+                                </td>
+                                <td className="text-sm text-right py-2">
+                                  ₹{item.declared_value || 0}
+                                </td>
+                                <td className="text-sm text-right py-2">
+                                  {item.quantity || 1}
+                                </td>
+                                <td className="text-sm font-medium text-right py-2">
+                                  ₹
+                                  {(
+                                    (Number(item.declared_value) || 0) *
+                                    (item.quantity || 1)
+                                  ).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </>
                   ) : (
@@ -1208,148 +1330,111 @@ export default function ShipmentDetailsPage() {
                     </p>
                   )}
 
-                  {shipment.special_instructions && (
+                  {shipment.drop_and_ship_note && (
                     <div>
                       <h3 className="text-xs font-medium text-muted-foreground">
                         Special Instructions
                       </h3>
-                      <p className="text-sm">{shipment.special_instructions}</p>
+                      <p className="text-sm">{shipment.drop_and_ship_note}</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Card 4: Package Information */}
+              {/* Card 4: Warehouse Information */}
               <Card className="transition-all hover:shadow-md">
                 <CardHeader className="bg-muted/30 pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Package className="h-5 w-5 text-primary" />
-                    Package Information
+                    <Truck className="h-5 w-5 text-primary" />
+                    Warehouse Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground">
-                        Package Type
-                      </h3>
-                      <div className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary capitalize">
-                        {shipment.package_type || "Standard"}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground">
-                        Weight
-                      </h3>
-                      <p className="text-sm font-medium">
-                        {shipment.shipment_total_weight || 0} g
-                      </p>
-                    </div>
-                  </div>
-                  {shipment.package_type !== "envelope" && (
+                  {shipment.drop_and_ship_warehouse_address ? (
                     <>
                       <div>
                         <h3 className="text-xs font-medium text-muted-foreground">
-                          Dimensions
+                          Warehouse Name
                         </h3>
-                        <p className="text-sm">
-                          {shipment.package_lenght || 0} ×{" "}
-                          {shipment.package_width || 0} ×{" "}
-                          {shipment.package_height || 0} cm
+                        <p className="text-sm font-medium">
+                          {shipment.drop_and_ship_warehouse_address.name ||
+                            "N/A"}
                         </p>
                       </div>
                       <div>
                         <h3 className="text-xs font-medium text-muted-foreground">
-                          Dimensional Volume
+                          Address
                         </h3>
-                        <p className="text-sm">
-                          {shipment.package_volume ||
-                            shipment.package_lenght *
-                              shipment.package_width *
-                              shipment.package_height ||
-                            0}{" "}
-                          cm³
-                        </p>
+                        <div className="space-y-1 mt-1">
+                          <p className="text-sm">
+                            {
+                              shipment.drop_and_ship_warehouse_address
+                                .address_line1
+                            }{" "}
+                            ,
+                          </p>
+                          <p className="text-sm">
+                            {shipment.drop_and_ship_warehouse_address
+                              .address_line2 && (
+                              <>
+                                {
+                                  shipment.drop_and_ship_warehouse_address
+                                    .address_line2
+                                }
+                              </>
+                            )}
+                          </p>
+                          <p className="text-sm">
+                            {shipment.drop_and_ship_warehouse_address
+                              .address_line3 && (
+                              <>
+                                {
+                                  shipment.drop_and_ship_warehouse_address
+                                    .address_line3
+                                }
+                              </>
+                            )}
+                            {shipment.drop_and_ship_warehouse_address
+                              .address_line4 && (
+                              <>
+                                ,{" "}
+                                {
+                                  shipment.drop_and_ship_warehouse_address
+                                    .address_line4
+                                }
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <h3 className="text-xs font-medium text-muted-foreground">
+                            Country
+                          </h3>
+                          <p className="text-sm font-medium">
+                            {shipment.drop_and_ship_warehouse_address.country ||
+                              "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-medium text-muted-foreground">
+                            Postal Code
+                          </h3>
+                          <p className="text-sm font-medium">
+                            {shipment.drop_and_ship_warehouse_address
+                              .postal_code || "N/A"}
+                          </p>
+                        </div>
                       </div>
                     </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No warehouse information available
+                    </p>
                   )}
                 </CardContent>
               </Card>
-
-              {/* Card 5: Pickup Information - Only show if pickup is enabled */}
-              {shipment.is_pickup_needed && (
-                <Card className="transition-all hover:shadow-md md:col-span-2">
-                  <CardHeader className="bg-muted/30 pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Truck className="h-5 w-5 text-primary" />
-                      Pickup Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-xs font-medium text-muted-foreground">
-                            Pickup Address
-                          </h3>
-                          <div className="space-y-1 mt-1 text-sm">
-                            <p>
-                              {shipment.pickup_address_line1 ||
-                                "No address specified"}
-                            </p>
-                            {shipment.pickup_address_line2 && (
-                              <p>{shipment.pickup_address_line2}</p>
-                            )}
-                            {shipment.pickup_address_line3 && (
-                              <p>{shipment.pickup_address_line3}</p>
-                            )}
-                            {shipment.pickup_address_line4 && (
-                              <p>{shipment.pickup_address_line4}</p>
-                            )}
-                            <p>
-                              {shipment.pickup_postalcode},{" "}
-                              {shipment.pickup_country?.toUpperCase() ||
-                                shipment.shipment_country_code?.toUpperCase()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="text-xs font-medium text-muted-foreground">
-                            Phone Number
-                          </h3>
-                          <p className="text-sm">
-                            +{shipment.pickup_phone_code || ""}{" "}
-                            {shipment.pickup_phonenumber || "N/A"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-xs font-medium text-muted-foreground">
-                            Pickup Date
-                          </h3>
-                          <p className="text-sm">
-                            {formatDate(shipment.pickup_date)}
-                          </p>
-                        </div>
-
-                        {shipment.pickup_instructions && (
-                          <div>
-                            <h3 className="text-xs font-medium text-muted-foreground">
-                              Pickup Instructions
-                            </h3>
-                            <p className="text-sm">
-                              {shipment.pickup_instructions}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Right Column - Tracking History */}
@@ -1485,7 +1570,12 @@ function StatusBadge({ status }: { status: string }) {
       Rejected: { label: "Rejected", variant: "destructive" },
     };
 
-    return statusMap[status] || { label: status, variant: "outline" };
+    return (
+      statusMap[status as keyof typeof statusMap] || {
+        label: status,
+        variant: "outline",
+      }
+    );
   };
 
   const { label, variant } = getStatusConfig(status);

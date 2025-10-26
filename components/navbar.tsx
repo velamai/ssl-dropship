@@ -78,7 +78,16 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/auth-context";
-import { FileText, Home, MapPin, Menu, Package, User } from "lucide-react";
+import {
+  FileText,
+  Home,
+  MapPin,
+  Menu,
+  Package,
+  Truck,
+  User,
+  WarehouseIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type React from "react";
@@ -115,7 +124,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
-        <Link href={user ? "/dashboard" : "/"} className="flex items-center">
+        <Link href={user ? "/shipments" : "/"} className="flex items-center">
           <div className="h-7 w-7 mr-2">
             <svg
               viewBox="0 0 40 40"
@@ -135,29 +144,29 @@ export function Navbar({ activePage }: { activePage?: string }) {
           {user && (
             <>
               <NavItem
-                href="/dashboard"
-                icon={<Home size={18} className="mr-1.5" />}
-                label="Dashboard"
+                href="/shipments"
+                icon={<Truck size={18} className="mr-1.5" />}
+                label="Shipments"
                 isActive={
-                  pathname === "/dashboard" ||
-                  pathname.startsWith("/dashboard/")
+                  pathname === "/shipments" ||
+                  pathname.startsWith("/shipments/")
                 }
               />
               <NavItem
-                href="/addresses"
-                icon={<MapPin size={18} className="mr-1.5" />}
-                label="Addresses"
+                href="/warehouses"
+                icon={<WarehouseIcon size={18} className="mr-1.5" />}
+                label="Warehouses"
                 isActive={
-                  pathname === "/addresses" ||
-                  pathname.startsWith("/addresses/")
+                  pathname === "/warehouses" ||
+                  pathname.startsWith("/warehouses/")
                 }
               />
-              <NavItem
+              {/* <NavItem
                 href="/orders"
                 icon={<FileText size={18} className="mr-1.5" />}
                 label="Orders"
                 isActive={pathname === "/orders"}
-              />
+              /> */}
               <NavItem
                 href="/account"
                 icon={<User size={18} className="mr-1.5" />}
@@ -179,7 +188,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
             <SheetContent side="right" className="p-0">
               <div className="px-4 py-3 border-b">
                 <Link
-                  href={user ? "/dashboard" : "/"}
+                  href={user ? "/shipments" : "/"}
                   className="flex items-center"
                 >
                   <div className="h-7 w-7 mr-2">
@@ -199,27 +208,28 @@ export function Navbar({ activePage }: { activePage?: string }) {
               {user && (
                 <div className="flex flex-col p-2">
                   <Link
-                    href="/dashboard"
+                    href="/shipments"
                     className={`flex items-center px-3 py-3 text-base rounded-md ${
-                      pathname === "/dashboard" ||
-                      pathname.startsWith("/dashboard/")
+                      pathname === "/shipments" ||
+                      pathname.startsWith("/shipments/")
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    <Package size={18} className="mr-2" />
-                    Dashboard
+                    <Truck size={18} className="mr-2" />
+                    Shipments
                   </Link>
                   <Link
-                    href="/orders"
+                    href="/warehouses"
                     className={`flex items-center px-3 py-3 text-base rounded-md ${
-                      pathname === "/orders"
+                      pathname === "/warehouses" ||
+                      pathname.startsWith("/warehouses/")
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     <Package size={18} className="mr-2" />
-                    Orders
+                    Warehouses
                   </Link>
                   <Link
                     href="/account"

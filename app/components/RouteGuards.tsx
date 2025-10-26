@@ -12,7 +12,10 @@ interface RouteGuardProps {
  * HOC for protecting routes that require authentication
  * Redirects to login if user is not authenticated
  */
-export function ProtectedRoute({ children, redirectPath = "/login" }: RouteGuardProps) {
+export function ProtectedRoute({
+  children,
+  redirectPath = "/login",
+}: RouteGuardProps) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
@@ -35,7 +38,10 @@ export function ProtectedRoute({ children, redirectPath = "/login" }: RouteGuard
  * HOC for public routes that should not be accessible when authenticated
  * Redirects to dashboard if user is already authenticated
  */
-export function PublicRoute({ children, redirectPath = "/dashboard" }: RouteGuardProps) {
+export function PublicRoute({
+  children,
+  redirectPath = "/shipments",
+}: RouteGuardProps) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 

@@ -7,6 +7,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { HelpCircle } from "lucide-react";
 import type { PriceCalculationResult } from "@/lib/price-calculator";
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { FileText, Package, Truck, Upload, X } from "lucide-react";
@@ -196,23 +204,72 @@ export function ShipmentDetailsTab({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor={`shipments.${index}.shipmentType`}>
-              Order Type
-            </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor={`shipments.${index}.shipmentType`}>
+                Order Type
+              </Label>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md">
+                    <div className="space-y-2">
+                      <p className="font-semibold">Service Options:</p>
+                      <div className="space-y-1 text-sm">
+                        <p>
+                          <strong>(a) Warehouse Service:</strong> Order products
+                          from any online store and send them to our warehouse
+                          in the selected country. Once received, we forward the
+                          parcel to your destination address.
+                        </p>
+                        <p>
+                          <strong>(b) Link-to-Ship Service:</strong> Share a
+                          product link (e.g., Amazon, eBay, AliExpress), and we
+                          will purchase the item on your behalf and ship it
+                          directly to your destination.
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Controller
               name={`shipments.${index}.shipmentType`}
               control={control}
               defaultValue="link"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger id={`shipments.${index}.shipmentType`}>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="link">Link to Ship service</SelectItem>
-                    <SelectItem value="warehouse">Warehouse service</SelectItem>
-                  </SelectContent>
-                </Select>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem
+                      value="link"
+                      id={`shipments.${index}.shipmentType-link`}
+                    />
+                    <Label
+                      htmlFor={`shipments.${index}.shipmentType-link`}
+                      className="cursor-pointer font-normal"
+                    >
+                      Link to Ship service
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem
+                      value="warehouse"
+                      id={`shipments.${index}.shipmentType-warehouse`}
+                    />
+                    <Label
+                      htmlFor={`shipments.${index}.shipmentType-warehouse`}
+                      className="cursor-pointer font-normal"
+                    >
+                      Warehouse service
+                    </Label>
+                  </div>
+                </RadioGroup>
               )}
             />
             <ErrorMessage error={errors.shipments?.[index]?.shipmentType} />
@@ -295,6 +352,7 @@ export function ShipmentDetailsTab({
                   date={field.value}
                   setDate={field.onChange}
                   name={field.name}
+                  disabledDate={(date) => date < new Date()}
                   required
                 />
               )}

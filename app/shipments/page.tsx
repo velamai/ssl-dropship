@@ -1,5 +1,12 @@
 "use client";
-import { Package, ShoppingBag, Truck, User } from "lucide-react";
+import {
+  MapPin,
+  Package,
+  ShoppingBag,
+  Truck,
+  User,
+  Warehouse,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -29,39 +36,111 @@ const supabase = getSupabaseBrowserClient();
 
 // Define the shipment type based on your database schema
 interface Shipment {
+  idx: number;
   shipment_id: string;
+  user_id: string;
+  current_status: string;
+  current_status_updated_at: string;
+  status_timeline: string; // JSON string of status history
+  source: string;
+  shipment_type: string;
   shipment_country_code: string;
   shipment_total_weight: number;
+
+  // Price and totals
+  shipment_weight_price: string;
+  shipment_dimentional_price: string;
+  shipment_price: string;
+  grand_total: string;
+
+  // Package details
   package_type: string;
-  current_status: string;
-  created_at: string;
+  package_length: number;
+  package_width: number;
+  package_height: number;
+  package_volume: string;
+
+  // Receiver info
   receiver_first_name: string;
   receiver_last_name: string;
+  receiver_company: string;
+  receiver_tax: string;
+  receiver_phone: string;
+  receiver_email: string;
   receiver_address_line1: string;
-  receiver_city?: string;
+  receiver_address_line2: string;
+  receiver_address_line3: string;
+  receiver_address_line4: string;
   receiver_postal_code: string;
-  shipment_courier_service_id: string;
-  shipment_price: number;
-  order_id: string;
-  user_id: string;
-  courier_service?: { name: string } | null;
+  receiver_phone_code: string;
+
+  // Drop and Ship
+  drop_and_ship_product_invoice_url: string; // JSON string of URLs
+  drop_and_ship_warehouse_id: string;
+  drop_and_ship_note: string;
+  drop_and_ship_expected_receiving_date: string;
+  drop_and_ship_order_id: string;
+  drop_and_ship_order_type: string;
+
+  // Meta
+  created_at: string;
+  updated_at: string;
+
+  // Optional / Nullable fields
+  order_id?: string | null;
+  price_details_quantity?: number;
+  price_details_tracking_id?: string | null;
+  price_details_other_charges?: string | null;
+  price_details_packing_charges?: string | null;
+  price_details_arrears_amount?: string | null;
+  price_details_tax?: string | null;
+  price_details_discount?: string | null;
+  price_details_advance_paid?: string | null;
+
+  confirmed_invoice_id?: string | null;
+  confirmed_invoice_url?: string | null;
+
+  payment_method?: string | null;
+  payment_information?: string | null;
+  payment_remarks?: string | null;
+  payment_approved_by?: string | null;
+  payment_proof_url?: string | null;
+  payment_proof_status?: string | null;
+  payment_proof_submitted_at?: string | null;
+  payment_proof_approved_at?: string | null;
+  payment_proof_rejection_reason?: string | null;
+  payment_charges?: string | null;
+  payment_id?: string | null;
+  paid_at?: string | null;
+  payment_details?: string | null;
+
+  ecommerce_order_total_price?: string | null;
+  ecommerce_order_id?: string | null;
+  ecommerce_shipment_cost?: string | null;
+  ecommerce_regular_price?: string | null;
+  ecommerce_sales_price?: string | null;
+  ecommerce_total_price?: string | null;
+  ecommerce_payment_status?: string | null;
+
+  drop_and_ship_warehouse_address?: { name: string | null } | null;
+  total_price: number | null;
+  total_quantity: number | null;
 }
 
-interface ShipmentWithExtras extends Shipment {
-  itemCount?: number;
-  courierName?: string;
-}
-
-// Define courier service type
-interface CourierService {
-  courier_service_id: string;
-  name: string;
-}
+type ShipmentWithRelations = Shipment & {
+  warehouse: {
+    name: string;
+  } | null;
+  shipment_items: {
+    total_price: number | null;
+    quantity: number | null;
+  }[];
+};
 
 export default function ShipmentsPage() {
-  const [shipments, setShipments] = useState<ShipmentWithExtras[]>([]);
+  const [shipments, setShipments] = useState<ShipmentWithRelations[]>([]);
   const [filteredShipments, setFilteredShipments] = useState<
-    ShipmentWithExtras[]
+    ShipmentWithRelations[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,63 +150,37 @@ export default function ShipmentsPage() {
   const [itemsPerPage] = useState(10);
   const router = useRouter();
   const { user } = useAuth();
-  const [courierServices, setCourierServices] = useState<CourierService[]>([]);
 
   console.log("[Shipments Page] Initial user state:", user);
 
-  // Fetch courier services
-  useEffect(() => {
-    async function fetchCourierServices() {
-      try {
-        const { data, error } = await supabase
-          .from("courier_services")
-          .select<"*", CourierService>("*");
-
-        if (error) {
-          console.error("Error fetching courier services:", error);
-        } else {
-          setCourierServices(data || []);
-        }
-      } catch (error) {
-        console.error("Unexpected error fetching courier services:", error);
-      }
-    }
-
-    fetchCourierServices();
-  }, []);
-
   // Helper function to get courier name
-  const getCourierName = useCallback(
-    (courierId: string | null | undefined): string => {
-      if (!courierId) return "Unknown";
-      const courier = courierServices.find(
-        (c) => c.courier_service_id === courierId
-      );
-      return courier ? courier.name : "Unknown";
-    },
-    [courierServices]
-  );
 
   // Load shipments with item counts
   useEffect(() => {
     console.log("[Shipments Page] User state in useEffect:", user);
-    if (!user) return;
+
+    // Guard clause: don't proceed if user is not loaded
+    if (!user || !user.id) {
+      console.log("[Shipments Page] No user found, skipping shipment load");
+      setLoading(false);
+      return;
+    }
 
     async function loadShipments() {
       setLoading(true);
       try {
+        // let query = supabase
+        //   .from("shipments")
+        //   .select<string, Shipment>("*", { count: "estimated" })
+        //   .eq("user_id", user?.id)
+        //   .not("drop_and_ship_order_id", "is", null)
+        //   .order("created_at", { ascending: false });
+
         let query = supabase
           .from("shipments")
-          .select<string, Shipment>(
-            `
-            *,
-            courier_service:shipment_courier_service_id(
-              name
-            )
-          `,
-            { count: "exact" }
-          )
-          .eq("user_id", user!.id)
+          .select("*", { count: "estimated" })
+          .eq("user_id", user?.id)
+          .not("drop_and_ship_order_id", "is", null)
           .order("created_at", { ascending: false });
 
         if (statusFilter !== "all") {
@@ -147,35 +200,32 @@ export default function ShipmentsPage() {
         }
 
         // Process shipments with courier names
-        const shipmentsWithExtras: ShipmentWithExtras[] = await Promise.all(
+        const shipmentsWithExtras: ShipmentWithRelations[] = await Promise.all(
           (data || []).map(async (shipment) => {
             // Get item count
-            const { count: itemCount, error: itemCountError } = await supabase
+            const { data: itemData } = await supabase
               .from("shipment_items")
-              .select("*", { count: "exact", head: true }) // Use head: true for count only
+              .select("total_price, quantity") // Use head: true for count only
               .eq("shipment_id", shipment.shipment_id);
-
-            if (itemCountError) {
-              console.error(
-                "Error fetching item count for shipment:",
-                shipment.shipment_id,
-                itemCountError
-              );
-            }
 
             return {
               ...shipment,
-              itemCount: itemCount || 0,
-              // Access nested courier name safely, falling back to getCourierName
-              courierName:
-                shipment.courier_service?.name ||
-                getCourierName(shipment.shipment_courier_service_id),
+              total_price:
+                itemData?.reduce(
+                  (acc, item) => acc + (item.total_price || 0),
+                  0
+                ) || 0,
+              total_quantity:
+                itemData?.reduce(
+                  (acc, item) => acc + (item.quantity || 0),
+                  0
+                ) || 0,
             };
           })
         );
+        console.log({ shipmentsWithExtras });
 
-        setShipments(shipmentsWithExtras);
-        setFilteredShipments(shipmentsWithExtras);
+        setShipments(shipmentsWithExtras || []);
       } catch (error: any) {
         // Catch error as any for broader compatibility
         console.error("Failed to load shipments:", error);
@@ -203,7 +253,9 @@ export default function ShipmentsPage() {
     const filtered = shipments.filter(
       (shipment) =>
         shipment.shipment_id.toLowerCase().includes(lowerCaseSearch) ||
-        shipment.order_id.toLowerCase().includes(lowerCaseSearch) ||
+        shipment.drop_and_ship_order_id
+          ?.toLowerCase()
+          .includes(lowerCaseSearch) ||
         `${shipment.receiver_first_name} ${shipment.receiver_last_name}`
           .toLowerCase()
           .includes(lowerCaseSearch) ||
@@ -211,9 +263,7 @@ export default function ShipmentsPage() {
         (shipment.receiver_address_line1 &&
           shipment.receiver_address_line1
             .toLowerCase()
-            .includes(lowerCaseSearch)) ||
-        (shipment.courierName &&
-          shipment.courierName.toLowerCase().includes(lowerCaseSearch))
+            .includes(lowerCaseSearch))
     );
 
     setFilteredShipments(filtered);
@@ -247,10 +297,9 @@ export default function ShipmentsPage() {
   };
 
   // Helper function to format destination from address
-  const formatDestination = (shipment: ShipmentWithExtras): string => {
+  const formatDestination = (shipment: ShipmentWithRelations): string => {
     // Add parameter type and return type
     const parts = [];
-    if (shipment.receiver_city) parts.push(shipment.receiver_city);
     if (shipment.receiver_postal_code)
       parts.push(shipment.receiver_postal_code);
     if (shipment.shipment_country_code)
@@ -277,7 +326,7 @@ export default function ShipmentsPage() {
   };
 
   // Helper function to get recipient full name
-  const getRecipientName = (shipment: ShipmentWithExtras): string => {
+  const getRecipientName = (shipment: ShipmentWithRelations): string => {
     // Add parameter type and return type
     return (
       `${shipment.receiver_first_name || ""} ${
@@ -442,7 +491,7 @@ export default function ShipmentsPage() {
                       <CardHeader className="pb-2 flex justify-between items-start bg-white border-b">
                         <div>
                           <CardTitle className="text-base text-dark">
-                            {shipment.order_id}
+                            {shipment.drop_and_ship_order_id}
                           </CardTitle>
                           <CardDescription className="text-sm">
                             <span className="text-text-subtle">Shipment: </span>
@@ -459,10 +508,14 @@ export default function ShipmentsPage() {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-text-subtle text-xs mb-1">
-                                Destination
+                                {/* Destination */}
+                                Expected Receiving Date
                               </p>
                               <p className="font-medium text-dark text-sm">
-                                {formatDestination(shipment)}
+                                {/* {formatDestination(shipment)} */}
+                                {formatDate(
+                                  shipment.drop_and_ship_expected_receiving_date
+                                )}
                               </p>
                             </div>
                             <div className="text-right">
@@ -481,13 +534,14 @@ export default function ShipmentsPage() {
                               <Package className="h-4 w-4 text-primary/70" />
                               <span className="text-text-subtle">Type:</span>
                               <span className="capitalize font-medium">
-                                {shipment.package_type}
+                                {shipment.drop_and_ship_order_type || "Unknown"}
                               </span>
                             </div>
-                            <div>
-                              <span className="text-text-subtle">Weight:</span>
+                            <div className="flex items-center ">
+                              <MapPin className="h-4 w-4 text-primary/70" />
                               <span className="font-medium ml-1">
-                                {shipment.shipment_total_weight}g
+                                {formatDestination(shipment)}
+                                {/* {shipment.receiver_country_code || "Unknown"} */}
                               </span>
                             </div>
                           </div>
@@ -503,20 +557,21 @@ export default function ShipmentsPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <ShoppingBag className="h-4 w-4 text-primary/70" />
-                              <span>{shipment.itemCount || 0} items</span>
+                              <span>{shipment.total_quantity || 0} items</span>
                             </div>
                           </div>
 
                           {/* Price and Courier */}
                           <div className="flex items-center justify-between text-sm pt-3 border-t">
                             <div className="flex items-center gap-2">
-                              <Truck className="h-4 w-4 text-primary/70" />
+                              <Warehouse className="h-4 w-4 text-primary/70" />
                               <span className="font-medium">
-                                {shipment.courierName}
+                                {shipment.drop_and_ship_warehouse_address
+                                  ?.name || "Unknown"}
                               </span>
                             </div>
                             <div className="font-medium text-primary">
-                              ₹{(shipment.shipment_price || 0).toFixed(2)}
+                              ₹{shipment.total_price || 0} /-
                             </div>
                           </div>
                         </div>
@@ -678,7 +733,7 @@ function StatusBadge({ status }: { status: string }) {
     };
 
     return (
-      statusMap[status] || {
+      statusMap[status as keyof typeof statusMap] || {
         label: status,
         variant: "outline",
         color: "bg-gray-100 text-gray-800 border-gray-200",

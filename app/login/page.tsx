@@ -50,7 +50,7 @@ export default function SignInPage() {
       });
 
       // Redirect to shipments page after successful sign-in
-      router.push("/dashboard");
+      router.push("/shipments");
     } catch (err: any) {
       console.error("Login error:", err);
       setError(

@@ -71,18 +71,18 @@ export default function AddressesPage() {
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col">
-        <Navbar activePage="addresses" />
+        <Navbar activePage="warehouses" />
 
         <main className="flex-1 bg-gradient-to-br from-slate-50 to-purple-50/30 px-4 py-8 md:px-6 lg:px-8">
           <div className="container mx-auto max-w-7xl">
             {/* Mobile Back Button */}
             <div className="mb-6 block md:hidden">
               <Link
-                href="/dashboard"
+                href="/shipments"
                 className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ChevronLeft size={16} className="mr-1" />
-                Back to Dashboard
+                Back to Shipments
               </Link>
             </div>
 

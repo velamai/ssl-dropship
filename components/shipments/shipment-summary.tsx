@@ -38,7 +38,7 @@ export function ShipmentSummary({
           <span className="font-medium text-lg text-left">{title}</span>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <div className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 flex items-center">
-              <span className="font-medium mr-1">Country:</span>
+              <span className="font-medium mr-1">Receiving Country:</span>
               <span>{countryName || "Select Country"}</span>
             </div>
             {/* {weight && (
@@ -46,10 +46,10 @@ export function ShipmentSummary({
                 <span className="font-medium mr-1">Weight:</span> {weight} g
               </div>
             )} */}
-            <div className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 flex items-center">
+            {/* <div className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 flex items-center">
               <span className="font-medium mr-1">Courier:</span>
               <span>{courierName || "Select Courier"}</span>
-            </div>
+            </div> */}
             <div className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 flex items-center">
               <span className="font-medium mr-1">Items:</span>
               <span>{itemCount}</span>
