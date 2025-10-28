@@ -43,6 +43,7 @@ interface ShipmentCardProps {
   toggleItemExpansion: (itemUuid: string) => void;
   priceCalculationResult: PriceCalculationResult | undefined;
   onRemove: () => void;
+  onPriceChange?: () => void;
 }
 
 export function ShipmentCard({
@@ -64,6 +65,7 @@ export function ShipmentCard({
   toggleItemExpansion,
   priceCalculationResult,
   onRemove,
+  onPriceChange,
 }: ShipmentCardProps) {
   const watchedShipment = watch(`shipments.${index}`);
   const countryName =
@@ -77,7 +79,7 @@ export function ShipmentCard({
     priceCalculationResult?.transportable &&
     priceCalculationResult?.prices?.[0]?.finalPrice
       ? priceCalculationResult.prices[0].finalPrice.toFixed(2)
-      : "N/A";
+      : "";
   const isTransportable =
     !priceCalculationResult || priceCalculationResult.transportable;
   const itemCount = watchedShipment?.items?.length ?? 0;
@@ -188,6 +190,7 @@ export function ShipmentCard({
               setValue={setValue}
               expandedItems={expandedItems}
               toggleItemExpansion={toggleItemExpansion}
+              onPriceChange={onPriceChange}
             />
           </TabsContent>
         </Tabs>

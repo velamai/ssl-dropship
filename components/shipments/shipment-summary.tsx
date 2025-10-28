@@ -58,12 +58,12 @@ export function ShipmentSummary({
         </div>
       </div>
       <div className="flex items-center">
-        <span className="font-medium text-primary">₹{price}</span>
-        {!isTransportable && (
+        {/* <span className="font-medium text-primary">₹{price}</span> */}
+        {/* {!isTransportable && (
           <div className="text-red-500 text-xs ml-2">
             Cannot ship with current parameters
           </div>
-        )}
+        )} */}
         {!isDefault && (
           <div
             role="button"

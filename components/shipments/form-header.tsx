@@ -20,6 +20,7 @@ export function FormHeader({
   const handlePlaceOrder = () => {
     setShowTermsDialog(true);
   };
+  console.log("totalPrice", totalPrice);
 
   const handleAcceptTerms = () => {
     onSubmit();
@@ -37,17 +38,10 @@ export function FormHeader({
           </p>
         </div>
         <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-end sm:gap-6 md:w-auto">
-          {/* <div className="flex flex-col items-start sm:items-end">
+          <div className="flex flex-col items-start sm:items-end">
             <span className="text-sm text-muted-foreground">Total Amount</span>
-            <span className="text-lg md:text-xl font-bold">
-              ₹{totalPrice}
-              {hasNonTransportableShipments && (
-                <span className="text-xs text-red-500 ml-2">
-                  (Some orders cannot be transported)
-                </span>
-              )}
-            </span>
-          </div> */}
+            <span className="text-lg md:text-xl font-bold">₹{totalPrice}</span>
+          </div>
           <Button
             type="button"
             onClick={handlePlaceOrder}

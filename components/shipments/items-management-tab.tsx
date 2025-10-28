@@ -31,6 +31,7 @@ interface ItemsManagementTabProps {
   setValue: UseFormSetValue<OrderFormData>;
   expandedItems: { [key: string]: string | null };
   toggleItemExpansion: (itemUuid: string) => void;
+  onPriceChange?: () => void;
 }
 
 export function ItemsManagementTab({
@@ -42,6 +43,7 @@ export function ItemsManagementTab({
   setValue,
   expandedItems,
   toggleItemExpansion,
+  onPriceChange,
 }: ItemsManagementTabProps) {
   const {
     fields: itemFields,
@@ -62,11 +64,19 @@ export function ItemsManagementTab({
       price: undefined,
       quantity: undefined,
     });
+    // Trigger price calculation after adding item
+    if (onPriceChange) {
+      setTimeout(onPriceChange, 0);
+    }
   };
 
   const handleRemoveItem = (itemIndex: number) => {
     if (itemFields.length > 1) {
       removeItem(itemIndex);
+      // Trigger price calculation after removing item
+      if (onPriceChange) {
+        setTimeout(onPriceChange, 0);
+      }
     }
   };
 

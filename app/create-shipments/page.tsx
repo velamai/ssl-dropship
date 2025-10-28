@@ -30,6 +30,7 @@ import {
   type PriceCalculationResult,
 } from "@/lib/price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { formatDistanceStrict } from "date-fns";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -48,16 +49,13 @@ export default function CreateShipmentPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // --- React Hook Form Setup ---
-  // MUST call useForm *before* useFieldArray because useFieldArray needs 'control'
   const {
     register,
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     watch,
     setValue,
-    reset,
     getValues,
     trigger,
   } = useForm<OrderFormData>({
@@ -68,7 +66,6 @@ export default function CreateShipmentPage() {
         {
           shipmentType: "export",
           country: "",
-          courierService: "",
           packageType: "box",
           dimensions: {
             length: undefined,
@@ -88,34 +85,82 @@ export default function CreateShipmentPage() {
             instructions: "",
           },
           receiver: {
-            firstName: "",
-            lastName: "",
-            company: "",
+            firstName: "Test 1",
+            lastName: "Test 1",
+            company: "Test 1",
             vatTax: "",
-            phone: "",
-            phoneCode: "",
-            email: "",
-            addressLine1: "",
-            addressLine2: "",
+            phone: "8787878787",
+            phoneCode: "+91",
+            email: "asdna@bsj.ju",
+            addressLine1: "asdnakjsdna absdaj",
+            addressLine2: "asdnakjsdna absdaj",
             addressLine3: "",
             addressLine4: "",
-            postalCode: "",
+            postalCode: "434343",
           },
           items: [
             {
               uuid: generateUUID(),
-              productUrl: "",
-              productName: "",
-              productNote: "",
-              price: undefined,
-              quantity: undefined,
+              productUrl: "https://www.google.com",
+              productName: "Test 1",
+              productNote: "Test 1",
+              price: 100,
+              quantity: 1,
             },
           ],
         },
       ],
     },
   });
-
+  //  shipments: [
+  //       {
+  //         shipmentType: "export",
+  //         country: "",
+  //         courierService: "",
+  // packageType: "box",
+  // dimensions: {
+  //   length: undefined,
+  //   width: undefined,
+  //   height: undefined,
+  // },
+  // isPickupNeeded: false,
+  // pickup: {
+  //   addressLine1: "",
+  //   addressLine2: "",
+  //   addressLine3: "",
+  //   addressLine4: "",
+  //   postalCode: "",
+  //   date: undefined,
+  //   phoneNumber: "",
+  //   phoneCode: "",
+  //   instructions: "",
+  // },
+  //         receiver: {
+  //           firstName: "",
+  //           lastName: "",
+  //           company: "",
+  //           vatTax: "",
+  //           phone: "",
+  //           phoneCode: "",
+  //           email: "",
+  //           addressLine1: "",
+  //           addressLine2: "",
+  //           addressLine3: "",
+  //           addressLine4: "",
+  //           postalCode: "",
+  //         },
+  //         items: [
+  //           {
+  //             uuid: generateUUID(),
+  //             productUrl: "",
+  //             productName: "",
+  //             productNote: "",
+  //             price: undefined,
+  //             quantity: undefined,
+  //           },
+  //         ],
+  //       },
+  //     ],
   // Field Array for managing dynamic shipments - uses 'control' from useForm
   const {
     fields: shipmentFields,
@@ -143,6 +188,43 @@ export default function CreateShipmentPage() {
     [key: string]: PriceCalculationResult;
   }>({});
   const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // Calculate total price from all product items
+  const calculateTotalPrice = useCallback(() => {
+    const formData = getValues();
+    let total = 0;
+
+    formData.shipments.forEach((shipment) => {
+      if (shipment.items) {
+        shipment.items.forEach((item) => {
+          if (item.price && item.quantity) {
+            total += item.price * item.quantity;
+          }
+        });
+      }
+    });
+
+    setTotalPrice(total);
+  }, [getValues]);
+
+  // Watch for changes in product items and update total price
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      // Check if the change is related to product items (price or quantity)
+      if (name && (name.includes(".price") || name.includes(".quantity"))) {
+        calculateTotalPrice();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, calculateTotalPrice]);
+
+  // Calculate initial total price
+  useEffect(() => {
+    calculateTotalPrice();
+  }, [calculateTotalPrice]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -186,14 +268,7 @@ export default function CreateShipmentPage() {
           { code: "au", name: "Australia" },
         ];
 
-        const defaultCourierServices = [
-          { id: "fedex", name: "FedEx" },
-          { id: "dhl", name: "DHL" },
-          { id: "ups", name: "UPS" },
-        ];
-
         setCountries(defaultCountries);
-        setCourierServices(defaultCourierServices);
 
         setValue("shipments.0.country", "us", { shouldValidate: true });
         setValue("shipments.0.courierService", "fedex", {
@@ -488,9 +563,7 @@ export default function CreateShipmentPage() {
     }
 
     try {
-      const token = (await supabase.auth.getSession()).data.session
-        ?.access_token;
-
+      setIsSubmitting(true);
       setShowTermsDialog(true); // Close dialog on success
       const transformedShipment = transformShipmentData(data.shipments[0]);
 
@@ -522,6 +595,8 @@ export default function CreateShipmentPage() {
         variant: "destructive",
       });
       setShowTermsDialog(false); // Close dialog on error
+    } finally {
+      setIsSubmitting(false);
     }
   };
   // --- End Submit Handler ---
@@ -547,12 +622,11 @@ export default function CreateShipmentPage() {
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
           <FormHeader
-            totalPrice="1000.00"
+            totalPrice={totalPrice.toFixed(2)}
             isSubmitting={isSubmitting}
             showTermsDialog={showTermsDialog}
             setShowTermsDialog={setShowTermsDialog}
             onSubmit={() => {
-              // Programmatically trigger form submission
               const form = document.getElementById(
                 "order-form"
               ) as HTMLFormElement;
@@ -675,6 +749,7 @@ export default function CreateShipmentPage() {
                       priceCalculationResults[field.fieldId]
                     }
                     onRemove={() => handleRemoveShipment(index)}
+                    onPriceChange={calculateTotalPrice}
                   />
                 ))}
               </Accordion>
