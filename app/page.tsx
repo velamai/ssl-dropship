@@ -17,6 +17,7 @@ import {
   Send,
 } from "lucide-react";
 import Link from "next/link";
+import Footer from "@/components/footer";
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -101,9 +102,12 @@ export default function Home() {
                   <span>Get Started</span>
                   <ArrowRight size={20} />
                 </Link>
-                <button className="px-8 py-4 rounded-full border-2 border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 transition-all duration-300">
+                <Link
+                  href="/login"
+                  className="px-8 py-4 rounded-full border-2 border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 transition-all duration-300"
+                >
                   How It Works
-                </button>
+                </Link>
               </div>
 
               {/* Stats */}
@@ -241,9 +245,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <button className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105">
+                <Link
+                  href="/login"
+                  className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                >
                   Start Shopping
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -291,9 +298,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <button className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105">
+                <Link
+                  href="/login"
+                  className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                >
                   Submit Product Link
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -574,7 +584,9 @@ export default function Home() {
                 <Mail size={28} className="text-white" />
               </div>
               <h3 className="text-xl font-bold mb-2 text-foreground">Email</h3>
-              <p className="text-muted-foreground mb-4">support@buy2send.com</p>
+              <p className="text-muted-foreground mb-4">
+                administrator@universalmail.in
+              </p>
               <p className="text-sm text-muted-foreground">
                 We respond within 24 hours
               </p>
@@ -585,7 +597,7 @@ export default function Home() {
                 <Phone size={28} className="text-white" />
               </div>
               <h3 className="text-xl font-bold mb-2 text-foreground">Phone</h3>
-              <p className="text-muted-foreground mb-4">+1 (800) 123-4567</p>
+              <p className="text-muted-foreground mb-4">+91 63747 93991</p>
               <p className="text-sm text-muted-foreground">Available 24/7</p>
             </div>
 
@@ -593,13 +605,20 @@ export default function Home() {
               <div className="w-16 h-16 rounded-full gradient-purple flex items-center justify-center mx-auto mb-4">
                 <MapPin size={28} className="text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-foreground">
-                Address
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                123 Global Plaza, New York, NY 10001
-              </p>
-              <p className="text-sm text-muted-foreground">Headquarters</p>
+              <div className="">
+                <h3 className="text-lg font-semibold text-foreground mb-2 tracking-tight">
+                  Address
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  GF-4, C Block, Manthra Apartments, <br />
+                  North Boag Road, Chennai - 600017
+                  <br />
+                  <span className="text-muted-foreground/80">
+                    Landmark:
+                  </span>{" "}
+                  Near Residential Towers
+                </p>
+              </div>
             </div>
           </div>
 
@@ -665,72 +684,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-foreground text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
-                  <span className="text-white font-bold">B2S</span>
-                </div>
-                <span className="font-bold text-lg">buy2send</span>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Global drop & ship made simple
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Services</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Warehouse Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Product URL Service
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Terms of Service
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2025 buy2send. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
