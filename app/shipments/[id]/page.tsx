@@ -44,6 +44,7 @@ import {
   CheckCircle,
   Clock,
   CreditCard,
+  FileText,
   Loader2,
   MapPin,
   Package,
@@ -184,7 +185,13 @@ type ShipmentItem = {
   product_id: string | null;
   drop_and_ship_product_url: string;
 };
-
+interface BankDetail {
+  id: string;
+  account_number: string;
+  account_name: string;
+  ifsc_code: string;
+  bank_name: string;
+}
 interface TrackingEvent {
   status: string;
   updated_at: string;
@@ -208,13 +215,16 @@ const supabase = getSupabaseBrowserClient();
 
 function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
   const [paymentMethod, setPaymentMethod] = useState<string>(
-    shipment.payment_method || "Online Payment"
+    shipment.payment_method || "Bank Transfer"
   );
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bankDetails, setBankDetails] = useState<BankDetail[] | null>(null);
+  const [isFetchingBank, setIsFetchingBank] = useState(false);
+  const [bankError, setBankError] = useState<string | null>(null);
 
   // Set initial file preview from shipment data
   useEffect(() => {
@@ -224,16 +234,17 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
   }, [shipment.payment_proof_url]);
 
   // Calculate charges for online payment
-  const onlinePaymentCharges = shipment.grand_total * 0.02;
-  const totalWithCharges = shipment.grand_total + onlinePaymentCharges;
+  const onlinePaymentCharges = Number(shipment.grand_total) * 0.02;
+  const totalWithCharges = Number(shipment.grand_total) + onlinePaymentCharges;
 
   // Check if payment is already processed or being reviewed
   const isPaymentProcessed =
     shipment.payment_id ||
     shipment.payment_proof_status === "Submitted" ||
-    shipment.payment_proof_status === "Approved" ||
-    (shipment.payment_method === "Cash" &&
-      shipment.current_status === "Payment Requested");
+    shipment.payment_proof_status === "Approved";
+  //  ||
+  // (shipment.payment_method === "Cash" &&
+  //   shipment.current_status === "Payment Requested");
 
   // Get status chip color and text
   const getStatusChip = (status: string | null | undefined) => {
@@ -266,18 +277,49 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
     );
   };
 
-  // Update toast calls to use the correct Sonner si  gnature
+  // Fetch bank details when Bank Transfer is selected
+  const fetchBankDetails = async () => {
+    setIsFetchingBank(true);
+    setBankError(null);
+    try {
+      const { data, error } = await supabase.from("bank_details").select("*");
+      if (error) throw error;
+      setBankDetails((data || []) as BankDetail[]);
+    } catch (err: any) {
+      console.error("Failed to load bank details:", err);
+      setBankError("Failed to load bank details. Please try again.");
+      setBankDetails(null);
+    } finally {
+      setIsFetchingBank(false);
+    }
+  };
+
+  useEffect(() => {
+    if (paymentMethod === "Bank Transfer") {
+      fetchBankDetails();
+    }
+  }, [paymentMethod]);
+
+  // Update toast calls to use the correct Sonner signature
   const showToast = (props: {
     title?: string;
     description: string;
     variant?: "default" | "destructive";
   }) => {
     const { title, description, variant } = props;
-    const options: ExternalToast = { description };
+    const isError = variant === "destructive";
+    if (isError) {
+      if (title) {
+        sonnerToast.error(title, { description });
+      } else {
+        sonnerToast.error(description);
+      }
+      return;
+    }
+
     if (title) {
-      sonnerToast(title, options);
+      sonnerToast(title, { description });
     } else {
-      // If no title, use description as the main message in Sonner
       sonnerToast(description);
     }
   };
@@ -325,9 +367,9 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
 
     try {
       // Upload file to storage
-      const filename = `invoices/${Date.now()}-${selectedFile.name}`;
+      const filename = `payment-proof/${Date.now()}-${selectedFile.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("universal-storage")
+        .from("colombo-storage")
         .upload(filename, selectedFile);
 
       if (uploadError) throw uploadError;
@@ -335,7 +377,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
       // Get public URL
       const {
         data: { publicUrl },
-      } = supabase.storage.from("universal-storage").getPublicUrl(filename);
+      } = supabase.storage.from("colombo-storage").getPublicUrl(filename);
 
       // Update shipment
       const { error: updateError } = await supabase
@@ -355,6 +397,9 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
         description:
           "Payment proof uploaded successfully. Please wait for admin verification.",
       });
+      // Clear local selected state so button disables and preview resets
+      setSelectedFile(null);
+      // Trigger a refresh to pull latest status and proof URL
       onPaymentUpdate();
     } catch (error) {
       console.error("Error uploading proof:", error);
@@ -577,7 +622,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
             )}
             {shipment.payment_proof_url &&
               (paymentMethod === "Bank Transfer" ||
-                paymentMethod === "Bank Deposit") && (
+                paymentMethod === "Cash") && (
                 <div className="mt-4">
                   <p className="text-sm text-muted-foreground mb-2">
                     Submitted Proof:
@@ -617,22 +662,21 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
         <CardContent className="p-4 space-y-4">
           {renderPaymentStatusMessage()}
 
-          <div>
+          <div className="space-y-1">
             <Label htmlFor="paymentMethod">Payment Method</Label>
             <Select
               value={paymentMethod}
               onValueChange={setPaymentMethod}
-              disabled={Boolean(isPaymentProcessed)}
+              // disabled={Boolean(isPaymentProcessed)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Online Payment">
+                <SelectItem value="Online Payment" disabled={true}>
                   Online Payment (2% additional charge)
                 </SelectItem>
                 <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                <SelectItem value="Bank Deposit">Bank Deposit</SelectItem>
                 <SelectItem value="Cash">Cash</SelectItem>
               </SelectContent>
             </Select>
@@ -641,7 +685,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Amount:</span>
-              <span>{shipment.grand_total.toFixed(2)} INR</span>
+              <span>{Number(shipment.grand_total).toFixed(2)} INR</span>
             </div>
             {paymentMethod === "Online Payment" && (
               <>
@@ -658,8 +702,91 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
             )}
           </div>
 
-          {(paymentMethod === "Bank Transfer" ||
-            paymentMethod === "Bank Deposit") && (
+          {paymentMethod === "Cash" && !isPaymentProcessed && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Pay with Cash at Office</p>
+              </div>
+              <div className="rounded-md border p-3 text-sm">
+                <p className="font-medium mb-1">Office Address</p>
+                <div className="text-muted-foreground">
+                  <p>GF - 4, Manthra Apartments</p>
+                  <p>No.112, North Boag Road, T Nagar</p>
+                  <p>Chennai, Tamil Nadu 600017</p>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Visit our office to make the payment. Please obtain the
+                  payment invoice and upload it below as proof.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {paymentMethod === "Bank Transfer" && !isPaymentProcessed && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Bank Transfer Details</p>
+                {isFetchingBank && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+              {bankError && <p className="text-xs text-red-600">{bankError}</p>}
+              {!bankError &&
+                !isFetchingBank &&
+                bankDetails &&
+                bankDetails.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No bank details available.
+                  </p>
+                )}
+              {!bankError && bankDetails && bankDetails.length > 0 && (
+                <div className="space-y-3">
+                  {bankDetails.map((b) => (
+                    <div key={b.id} className="rounded-md border p-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">
+                            Account Name:
+                          </span>{" "}
+                          <span className="font-medium">{b.account_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Account Number:
+                          </span>{" "}
+                          <span className="font-medium">
+                            {b.account_number}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            IFSC Code:
+                          </span>{" "}
+                          <span className="font-medium">{b.ifsc_code}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Bank Name:
+                          </span>{" "}
+                          <span className="font-medium">{b.bank_name}</span>
+                        </div>
+                      </div>
+                      {/* <p className="mt-2 text-xs text-muted-foreground">
+                        Use shipment ID {shipment.shipment_id} as payment
+                        reference.
+                      </p> */}
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground">
+                    After completing the transfer, please submit the payment
+                    proof below.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(paymentMethod === "Bank Transfer" || paymentMethod === "Cash") && (
             <div className="space-y-4">
               {!isPaymentProcessed && (
                 <div className="space-y-2">
@@ -689,9 +816,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                   <Button
                     onClick={handleProofUpload}
                     disabled={Boolean(
-                      Boolean(
-                        !selectedFile || isUploading || isPaymentProcessed
-                      )
+                      !selectedFile || isUploading || isPaymentProcessed
                     )}
                     className="w-full"
                   >
@@ -721,12 +846,6 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
               )}
             </Button>
           )}
-
-          {paymentMethod === "Cash" && !isPaymentProcessed && (
-            <Button onClick={handleCashPayment} className="w-full">
-              Confirm Cash Payment
-            </Button>
-          )}
         </CardContent>
       </Card>
 
@@ -743,7 +862,7 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Amount:</span>
-                <span>{shipment.grand_total.toFixed(2)} INR</span>
+                <span>{Number(shipment.grand_total).toFixed(2)} INR</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Online Payment Charge (2%):</span>
@@ -941,31 +1060,12 @@ export default function ShipmentDetailsPage() {
     );
   }
 
-  // Format receiver name
-  const receiverName =
-    `${shipment.receiver_first_name || ""} ${
-      shipment.receiver_last_name || ""
-    }`.trim() || "Unknown";
-
-  // Format destination address
-  const formatAddress = (s: Shipment) => {
-    const parts = [];
-    if (s.receiver_address_line1) parts.push(s.receiver_address_line1);
-    if (s.receiver_city) parts.push(s.receiver_city);
-    if (s.receiver_postal_code) parts.push(s.receiver_postal_code);
-    if (s.shipment_country_code)
-      parts.push(s.shipment_country_code.toUpperCase());
-
-    return parts.join(", ") || "Unknown location";
-  };
-
   const formatAddressForLabel = (s: Shipment) => {
     const parts = [];
     if (s.receiver_address_line1) parts.push(s.receiver_address_line1);
     if (s.receiver_address_line2) parts.push(s.receiver_address_line2);
     if (s.receiver_address_line3) parts.push(s.receiver_address_line3);
     if (s.receiver_address_line4) parts.push(s.receiver_address_line4);
-    if (s.receiver_city) parts.push(s.receiver_city);
     // if (s.receiver_postal_code) parts.push(s.receiver_postal_code);
 
     sortedCountries.filter((country) => {
@@ -1055,6 +1155,15 @@ export default function ShipmentDetailsPage() {
                   <Truck className="h-4 w-4" />
                   Track Shipment
                 </Button>
+
+                {shipment.confirmed_invoice_url && (
+                  <Button variant="outline" size="sm" className="gap-1" asChild>
+                    <Link href={shipment.confirmed_invoice_url} target="_blank">
+                      <FileText className="h-4 w-4" />
+                      View Invoice
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
