@@ -299,7 +299,7 @@ export default function Home() {
                 </div>
 
                 <Link
-                  href="/login"
+                  href="/product-price-calculator"
                   className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
                 >
                   Submit Product Link

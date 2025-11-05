@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/use-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 // Get the singleton instance
@@ -14,6 +14,7 @@ const supabase = getSupabaseBrowserClient();
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +22,9 @@ export default function SignInPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get redirect parameter from URL
+  const redirectPath = searchParams.get("redirect") || "/shipments";
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -49,8 +53,8 @@ export default function SignInPage() {
         variant: "default",
       });
 
-      // Redirect to shipments page after successful sign-in
-      router.push("/shipments");
+      // Redirect to the specified path (or default to /shipments)
+      router.push(redirectPath);
     } catch (err: any) {
       console.error("Login error:", err);
       setError(
