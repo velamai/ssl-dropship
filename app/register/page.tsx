@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const getPhoneDetails = (phone: string) => {
   if (!phone)
@@ -990,11 +991,11 @@ export default function RegisterPage() {
             </div>
             <div>
               <div className="font-bold leading-tight text-[#3f3f3f]">
-                UNIVERSAL
+                BUY2SEND
               </div>
-              <div className="-mt-1 text-xs font-medium text-[#E53935]">
+              {/* <div className="-mt-1 text-xs font-medium text-[#E53935]">
                 DROP & SHIP
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="mt-1 text-[10px] text-[#545454]">
@@ -1026,6 +1027,14 @@ export default function RegisterPage() {
 
             {/* Large cloud bottom right */}
             <div className="absolute bottom-[80px] right-[40px] h-[30px] w-[110px] rounded-[15px] bg-white"></div>
+
+            <Image
+              src="purple-airplane.png"
+              alt="Login Illustration"
+              width={450}
+              height={450}
+              className="object-contain relative z-10 translate-x-6 -translate-y-6"
+            />
           </div>
         </div>
       </div>
@@ -1056,11 +1065,9 @@ export default function RegisterPage() {
         <div className="mx-auto w-full max-w-[550px]">
           <div className="mb-6 space-y-1.5">
             <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
-              Create Account
+              Create Account{" "}
+              <span className=" font-bold text-[#9c4cd2]">BUY2SEND</span>
             </h1>
-            <h2 className="text-[32px] font-bold text-[#9c4cd2]">
-              Drop & Ship
-            </h2>
             {!registrationSuccess && (
               <p className="text-[14px] text-[#a2a2a2] mt-2">
                 Step {currentStep} of 3:{" "}

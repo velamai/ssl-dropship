@@ -13,24 +13,16 @@ import {
 } from "@/lib/schemas/shipmentSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
 
 import { useRouter } from "next/navigation";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  fetchCountries,
-  fetchCourierServices,
-  fetchCurrencies,
-} from "@/lib/api-client";
-import {
-  calculatePrice,
-  type PriceCalculationResult,
-} from "@/lib/price-calculator";
+import { fetchCountries } from "@/lib/api-client";
+import { type PriceCalculationResult } from "@/lib/price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { formatDistanceStrict } from "date-fns";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -85,83 +77,34 @@ export default function CreateShipmentPage() {
             instructions: "",
           },
           receiver: {
-            firstName: "Test 1",
-            lastName: "Test 1",
-            company: "Test 1",
+            firstName: "",
+            lastName: "",
+            company: "",
             vatTax: "",
-            phone: "8787878787",
-            phoneCode: "+91",
-            email: "asdna@bsj.ju",
-            addressLine1: "asdnakjsdna absdaj",
-            addressLine2: "asdnakjsdna absdaj",
+            phone: "",
+            phoneCode: "",
+            email: "",
+            addressLine1: "",
+            addressLine2: "",
             addressLine3: "",
             addressLine4: "",
-            postalCode: "434343",
+            postalCode: "",
           },
           items: [
             {
               uuid: generateUUID(),
-              productUrl: "https://www.google.com",
-              productName: "Test 1",
-              productNote: "Test 1",
-              price: 100,
-              quantity: 1,
+              productUrl: "",
+              productName: "",
+              productNote: "",
+              price: 0,
+              quantity: 0,
             },
           ],
         },
       ],
     },
   });
-  //  shipments: [
-  //       {
-  //         shipmentType: "export",
-  //         country: "",
-  //         courierService: "",
-  // packageType: "box",
-  // dimensions: {
-  //   length: undefined,
-  //   width: undefined,
-  //   height: undefined,
-  // },
-  // isPickupNeeded: false,
-  // pickup: {
-  //   addressLine1: "",
-  //   addressLine2: "",
-  //   addressLine3: "",
-  //   addressLine4: "",
-  //   postalCode: "",
-  //   date: undefined,
-  //   phoneNumber: "",
-  //   phoneCode: "",
-  //   instructions: "",
-  // },
-  //         receiver: {
-  //           firstName: "",
-  //           lastName: "",
-  //           company: "",
-  //           vatTax: "",
-  //           phone: "",
-  //           phoneCode: "",
-  //           email: "",
-  //           addressLine1: "",
-  //           addressLine2: "",
-  //           addressLine3: "",
-  //           addressLine4: "",
-  //           postalCode: "",
-  //         },
-  //         items: [
-  //           {
-  //             uuid: generateUUID(),
-  //             productUrl: "",
-  //             productName: "",
-  //             productNote: "",
-  //             price: undefined,
-  //             quantity: undefined,
-  //           },
-  //         ],
-  //       },
-  //     ],
-  // Field Array for managing dynamic shipments - uses 'control' from useForm
+
   const {
     fields: shipmentFields,
     append: appendShipment,
@@ -753,18 +696,6 @@ export default function CreateShipmentPage() {
                   />
                 ))}
               </Accordion>
-
-              {/* <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  className="gap-1"
-                  type="button"
-                  onClick={addShipment}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Add Another Shipment
-                </Button>
-              </div> */}
             </div>
           </form>
         </div>
