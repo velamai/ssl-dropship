@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { Suspense } from "react";
 
 import { toast } from "@/components/ui/use-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -13,7 +14,8 @@ import Image from "next/image";
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
 
-export default function SignInPage() {
+// Component that uses useSearchParams - needs to be wrapped in Suspense
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -403,5 +405,23 @@ export default function SignInPage() {
         }
       `}</style>
     </>
+  );
+}
+
+// Loading fallback component
+function SignInLoading() {
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
+  );
+}
+
+// Default export with Suspense boundary
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInForm />
+    </Suspense>
   );
 }
