@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -126,11 +127,11 @@ export default function SignInPage() {
               </div>
               <div>
                 <div className="font-bold leading-tight text-[#3f3f3f]">
-                  UNIVERSAL
+                  BUY2SEND
                 </div>
-                <div className="-mt-1 text-xs font-medium text-[#E53935]">
+                {/* <div className="-mt-1 text-xs font-medium text-[#E53935]">
                   DROP SHIP
-                </div>
+                </div> */}
               </div>
             </div>
             <div className="mt-1 text-[10px] text-[#545454]">
@@ -152,13 +153,13 @@ export default function SignInPage() {
               <div className="absolute bottom-[120px] left-[60px] h-[25px] w-[70px] rounded-[12px] bg-white"></div>
               <div className="absolute bottom-[80px] right-[40px] h-[30px] w-[110px] rounded-[15px] bg-white"></div>
 
-              {/* <Image
-                src="/images/purple-airplane.png"
+              <Image
+                src="purple-airplane.png"
                 alt="Login Illustration"
                 width={450}
                 height={450}
                 className="object-contain relative z-10 translate-x-6 -translate-y-6"
-              /> */}
+              />
             </div>
           </div>
         </div>
@@ -190,12 +191,10 @@ export default function SignInPage() {
 
           <div className="mx-auto w-full max-w-[380px]">
             <div className="mb-6 space-y-1.5">
-              <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
-                Welcome to
+              <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f] md:mt-16">
+                Welcome to{" "}
+                <span className=" font-bold text-[#9c4cd2]">BUY2SEND</span>
               </h1>
-              <h2 className="text-[32px] font-bold text-[#9c4cd2]">
-                Universal Drop Ship
-              </h2>
               <p className="text-[14px] text-[#a2a2a2] mt-2">
                 Please enter your email and password to proceed
               </p>

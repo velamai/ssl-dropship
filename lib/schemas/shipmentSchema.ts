@@ -191,17 +191,15 @@ export const ShipmentSchema = z
     notes: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
-    // Validate warehouse selection for both link and warehouse types
-    if (!data.warehouseId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Warehouse address is required.",
-        path: ["warehouseId"],
-      });
-    }
-
-    // Validate warehouse-specific fields when shipment type is warehouse
+    // Validate warehouse selection only for warehouse shipments
     if (data.shipmentType === "warehouse") {
+      if (!data.warehouseId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Warehouse address is required.",
+          path: ["warehouseId"],
+        });
+      }
       if (!data.purchasedDate) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PriceCalculationResult } from "@/lib/price-calculator";
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
-import { MapPin, Package, ShoppingBag, Warehouse } from "lucide-react";
+import { MapPin, Package, ShoppingBag } from "lucide-react";
 import type {
   Control,
   FieldErrors,
@@ -22,7 +22,6 @@ import { ItemsManagementTab } from "./items-management-tab";
 import { ReceiverInfoTab } from "./receiver-info-tab";
 import { ShipmentDetailsTab } from "./shipment-details-tab";
 import { ShipmentSummary } from "./shipment-summary";
-import { WarehouseSelectionTab } from "./warehouse-selection-tab";
 
 interface ShipmentCardProps {
   index: number;
@@ -112,20 +111,13 @@ export function ShipmentCard({
           }
           className="w-full"
         >
-          <TabsList className=" hidden  mb-6 sm:grid w-full grid-cols-4 gap-2">
+          <TabsList className=" hidden  mb-6 sm:grid w-full grid-cols-3 gap-2">
             <TabsTrigger
               value="details"
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
               <Package className="h-4 w-4 mr-2" />
               Shipment Details
-            </TabsTrigger>
-            <TabsTrigger
-              value="warehouse"
-              className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-            >
-              <Warehouse className="h-4 w-4 mr-2" />
-              Warehouse
             </TabsTrigger>
             <TabsTrigger
               value="receiver"
@@ -157,17 +149,7 @@ export function ShipmentCard({
               courierServices={courierServices}
               shipmentType={shipmentType}
               priceCalculationResult={priceCalculationResult}
-            />
-          </TabsContent>
-
-          <TabsContent value="warehouse">
-            <WarehouseSelectionTab
-              index={index}
-              control={control}
-              errors={errors}
-              watch={watch}
-              setValue={setValue}
-              getValues={getValues}
+              trigger={trigger}
             />
           </TabsContent>
 
@@ -200,12 +182,7 @@ export function ShipmentCard({
             type="button"
             variant="outline"
             onClick={() => {
-              const order = [
-                "details",
-                "warehouse",
-                "receiver",
-                "items",
-              ] as const;
+              const order = ["details", "receiver", "items"] as const;
               const currentIndex = order.indexOf(activeTab as any);
               const prev = order[Math.max(0, currentIndex - 1)];
               setActiveTab((prevTabs) => ({ ...prevTabs, [fieldId]: prev }));
@@ -220,12 +197,7 @@ export function ShipmentCard({
             <Button
               type="button"
               onClick={async () => {
-                const order = [
-                  "details",
-                  "warehouse",
-                  "receiver",
-                  "items",
-                ] as const;
+                const order = ["details", "receiver", "items"] as const;
                 const currentIndex = order.indexOf(activeTab as any);
                 // Fields to validate per step
                 const fieldsByStep: Record<string, string[]> = {
@@ -234,9 +206,8 @@ export function ShipmentCard({
                     `shipments.${index}.country`,
                     `shipments.${index}.receivingDate`,
                     `shipments.${index}.notes`,
-                    // warehouse-specific fields validated conditionally by schema if needed
+                    `shipments.${index}.warehouseId`,
                   ],
-                  warehouse: [`shipments.${index}.warehouseId`],
                   receiver: [
                     `shipments.${index}.receiver.firstName`,
                     `shipments.${index}.receiver.lastName`,

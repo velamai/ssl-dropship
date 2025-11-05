@@ -136,7 +136,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
               <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
             </svg>
           </div>
-          <span className="font-bold text-lg">UNIVERSAL MAIL</span>
+          <span className="font-bold text-lg">BUY2SEND</span>
         </Link>
 
         {/* Desktop Navigation Links */}
@@ -202,7 +202,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
                       <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
                     </svg>
                   </div>
-                  <span className="font-bold text-lg">UNIVERSAL MAIL</span>
+                  <span className="font-bold text-lg">BUY2SEND</span>
                 </Link>
               </div>
               {user && (
