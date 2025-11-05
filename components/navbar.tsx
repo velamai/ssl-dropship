@@ -217,7 +217,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
                     }`}
                   >
                     <Truck size={18} className="mr-2" />
-                    Shipments
+                    Orders
                   </Link>
                   <Link
                     href="/warehouses"

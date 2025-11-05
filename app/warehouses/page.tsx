@@ -82,7 +82,7 @@ export default function AddressesPage() {
                 className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ChevronLeft size={16} className="mr-1" />
-                Back to Shipments
+                Back to Orders
               </Link>
             </div>
 

@@ -55,7 +55,7 @@ export default function NewShipmentPage() {
               Dashboard
             </Button>
             <Button variant="ghost" size="sm" className="font-medium">
-              Shipments
+              Orders
             </Button>
             <Button variant="ghost" size="sm">
               Reports
@@ -75,7 +75,7 @@ export default function NewShipmentPage() {
               className="mb-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Shipments
+              Back to Orders
             </Link>
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
@@ -89,7 +89,7 @@ export default function NewShipmentPage() {
                 </Button>
                 <Button type="submit" form="shipment-form" className="gap-1">
                   <Send className="h-4 w-4" />
-                  Create Shipment
+                  Create Orders
                 </Button>
               </div>
             </div>

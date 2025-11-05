@@ -212,7 +212,7 @@ export default function Home() {
                 <p className="text-muted-foreground mb-6 leading-relaxed">
                   Get exclusive warehouse addresses in 50+ countries. Shop from
                   international e-commerce sites using our addresses, and we'll
-                  forward your packages to your doorstep.
+                  forward packages to your doorstep.
                 </p>
 
                 <div className="space-y-3 mb-8">
@@ -302,7 +302,7 @@ export default function Home() {
                   href="/product-price-calculator"
                   className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
                 >
-                  Submit Product Link
+                  Calculate Shipping Price
                 </Link>
               </div>
             </div>

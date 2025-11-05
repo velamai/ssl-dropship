@@ -1029,7 +1029,7 @@ export default function ShipmentDetailsPage() {
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p>Loading shipment details...</p>
+            <p>Loading Order details...</p>
           </div>
         </div>
       </div>
@@ -1051,7 +1051,7 @@ export default function ShipmentDetailsPage() {
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/shipments">Return to Shipments</Link>
+                <Link href="/shipments">Return to Orders</Link>
               </Button>
             </CardContent>
           </Card>
@@ -1104,7 +1104,7 @@ export default function ShipmentDetailsPage() {
               className="mb-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Shipments
+              Back to Orders
             </Link>
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
@@ -1176,7 +1176,7 @@ export default function ShipmentDetailsPage() {
                 <CardHeader className="bg-muted/30 pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MapPin className="h-5 w-5 text-primary" />
-                    Shipment Details
+                    Order Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">

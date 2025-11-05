@@ -394,17 +394,17 @@ export default function ShipmentsPage() {
           <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-dark">
-                Shipments
+                Orders
               </h2>
               <p className="text-text-subtle">
-                Manage and track all your shipments in one place.
+                Manage and track all your orders in one place.
               </p>
             </div>
             <Button
               onClick={() => router.push("/create-shipments")}
               className="gap-2"
             >
-              Create Shipment
+              Create Orders
             </Button>
           </div>
 
@@ -474,7 +474,7 @@ export default function ShipmentsPage() {
               </p>
               {!searchTerm && statusFilter === "all" && (
                 <Button onClick={() => router.push("/create-shipments")}>
-                  Create Shipment
+                  Create Orders
                 </Button>
               )}
             </div>

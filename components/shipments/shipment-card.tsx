@@ -117,7 +117,7 @@ export function ShipmentCard({
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
               <Package className="h-4 w-4 mr-2" />
-              Shipment Details
+              Order Details
             </TabsTrigger>
             <TabsTrigger
               value="receiver"
@@ -125,14 +125,14 @@ export function ShipmentCard({
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
               <MapPin className="h-4 w-4 mr-2" />
-              Receiver
+              Receiver Details
             </TabsTrigger>
             <TabsTrigger
               value="items"
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
               <ShoppingBag className="h-4 w-4 mr-2" />
-              Items
+              Product Details
             </TabsTrigger>
           </TabsList>
 

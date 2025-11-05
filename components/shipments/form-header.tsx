@@ -31,10 +31,10 @@ export function FormHeader({
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-            Create New Order
+            Place an New Order
           </h2>
           <p className="text-muted-foreground">
-            Fill out the form below to create a new order
+            Fill out the form below to place an new order
           </p>
         </div>
         <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-end sm:gap-6 md:w-auto">
