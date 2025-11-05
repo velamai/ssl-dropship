@@ -2,8 +2,8 @@ import { z } from "zod";
 
 // Proof types enum for better type safety
 export const PROOF_TYPES = [
-  { value: "aadhaar", label: "Aadhaar Card", requiresBack: true },
-  { value: "passport", label: "Passport", requiresBack: false },
+  { value: "gov-id", label: "Government ID", requiresBack: true },
+  { value: "passport", label: "Passport", requiresBack: true },
   { value: "driving_license", label: "Driving License", requiresBack: true },
 ] as const;
 
@@ -30,7 +30,7 @@ const fileSchema = z
 
 // Base identity verification schema
 const baseSchema = z.object({
-  proofType: z.enum(["aadhaar", "passport", "driving_license"], {
+  proofType: z.enum(["passport", "driving_license", "gov-id"], {
     required_error: "Please select a document type",
     invalid_type_error: "Invalid document type selected",
   }),
