@@ -193,7 +193,7 @@ const validateStep3 = (formData: FormData): { [key: string]: string } => {
   }
 
   // Check if back image is required based on proof type
-  const requiresBackImage = ["aadhaar", "driving_license"].includes(
+  const requiresBackImage = ["gov-id", "driving_license", "passport"].includes(
     formData.identityVerification.proofType
   );
   if (requiresBackImage && !formData.identityVerification.backImage) {
@@ -550,9 +550,11 @@ export default function RegisterPage() {
 
     // Validate identity inputs at submit time
     const { proofType, frontImage, backImage } = formData.identityVerification;
-    const requiresBackImage = ["aadhaar", "driving_license"].includes(
-      proofType
-    );
+    const requiresBackImage = [
+      "passport",
+      "driving_license",
+      "gov-id",
+    ].includes(proofType);
     if (!proofType || !frontImage || (requiresBackImage && !backImage)) {
       setValidationErrors((prev) => ({
         ...prev,

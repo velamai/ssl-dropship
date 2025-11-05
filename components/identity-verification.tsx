@@ -28,9 +28,9 @@ interface IdentityVerificationProps {
   }) => void;
 }
 
-const PROOF_TYPES = [
-  { value: "aadhaar", label: "Aadhaar Card", requiresBack: true },
-  { value: "passport", label: "Passport", requiresBack: false },
+export const PROOF_TYPES = [
+  { value: "gov-id", label: "Government ID", requiresBack: true },
+  { value: "passport", label: "Passport", requiresBack: true },
   { value: "driving_license", label: "Driving License", requiresBack: true },
 ] as const;
 
