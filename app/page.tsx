@@ -200,9 +200,9 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Warehouse Service */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300 overflow-hidden">
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300 overflow-hidden flex flex-col">
               <div className="absolute inset-0 gradient-purple opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="relative">
+              <div className="relative flex flex-col flex-1">
                 <div className="w-16 h-16 rounded-xl gradient-purple flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Globe size={32} className="text-white" />
                 </div>
@@ -215,7 +215,7 @@ export default function Home() {
                   forward packages to your doorstep.
                 </p>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-8 flex-1">
                   <div className="flex items-start gap-3">
                     <Zap
                       size={20}
@@ -247,17 +247,16 @@ export default function Home() {
 
                 <Link
                   href="/login"
-                  className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                  className="w-fit px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
                 >
                   Start Shopping
                 </Link>
               </div>
             </div>
 
-            {/* Product URL Service */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300 overflow-hidden">
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300 overflow-hidden flex flex-col">
               <div className="absolute inset-0 gradient-purple opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="relative">
+              <div className="relative flex flex-col flex-1">
                 <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Package size={32} className="text-white" />
                 </div>
@@ -270,7 +269,7 @@ export default function Home() {
                   to your address.
                 </p>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-8 flex-1">
                   <div className="flex items-start gap-3">
                     <Zap
                       size={20}
@@ -300,7 +299,7 @@ export default function Home() {
 
                 <Link
                   href="/product-price-calculator"
-                  className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                  className="w-fit px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
                 >
                   Calculate Shipping Price
                 </Link>
