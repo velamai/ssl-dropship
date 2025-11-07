@@ -9,7 +9,25 @@ const supabase = getSupabaseBrowserClient();
 
 export const warehouseApi = {
   // Get all warehouses
-  async getWarehouses(): Promise<Warehouse[]> {
+  async getWarehouses(
+    userId: string
+  ): Promise<{ data: Warehouse[]; userWarehouseId: string }> {
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("user_warehouse_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user:", userError);
+      throw new Error(`Failed to fetch user: ${userError.message}`);
+    }
+
+    if (!userData) {
+      console.error("User not found");
+      throw new Error("User not found");
+    }
+
     const { data, error } = await supabase
       .from("warehouses")
       .select("*")
@@ -20,7 +38,7 @@ export const warehouseApi = {
       throw new Error(`Failed to fetch warehouses: ${error.message}`);
     }
 
-    return data || [];
+    return { data: data || [], userWarehouseId: userData.user_warehouse_id };
   },
 
   // Get a single warehouse by ID

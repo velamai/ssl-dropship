@@ -1,5 +1,6 @@
+import { useAuth } from "@/contexts/auth-context";
 import { warehouseApi } from "@/lib/api/warehouses";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 // Query keys
 export const warehouseKeys = {
@@ -13,11 +14,13 @@ export const warehouseKeys = {
 
 // Get all warehouses
 export function useWarehouses() {
+  const { user } = useAuth();
   return useQuery({
     queryKey: warehouseKeys.lists(),
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(user?.id || ""),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!user?.id,
   });
 }
 

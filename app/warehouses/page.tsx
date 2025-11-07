@@ -41,9 +41,9 @@ export default function AddressesPage() {
 
   // Filter warehouses based on search query
   const filteredWarehouses = useMemo(() => {
-    if (!warehouses) return [];
+    if (!warehouses?.data) return [];
 
-    return warehouses.filter((warehouse) => {
+    return warehouses.data.filter((warehouse) => {
       const searchLower = searchQuery.toLowerCase();
       return (
         (warehouse.name?.toLowerCase().includes(searchLower) ?? false) ||
@@ -54,7 +54,7 @@ export default function AddressesPage() {
         warehouse.postal_code.toLowerCase().includes(searchLower)
       );
     });
-  }, [warehouses, searchQuery]);
+  }, [warehouses?.data, searchQuery]);
 
   // Helper function to get the first non-null address line for city display
   const getCityFromAddress = (warehouse: Warehouse): string => {
@@ -168,12 +168,13 @@ export default function AddressesPage() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between group/item">
                           <p className="text-sm text-slate-700 font-medium">
-                            {warehouse.address_line1}
+                            {warehouse.address_line1}, {` `}
+                            {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
                           </p>
                           <button
                             onClick={() =>
                               copyToClipboard(
-                                warehouse.address_line1,
+                                `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
                                 `${warehouse.warehouse_id}-line1`
                               )
                             }
@@ -295,7 +296,7 @@ export default function AddressesPage() {
                           className="w-full border-slate-300 text-slate-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 font-medium"
                           onClick={() => {
                             const fullAddress = [
-                              warehouse.address_line1,
+                              `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
                               warehouse.address_line2,
                               warehouse.address_line3,
                               warehouse.address_line4,

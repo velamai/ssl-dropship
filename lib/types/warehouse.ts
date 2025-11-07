@@ -1,4 +1,5 @@
 export interface Warehouse {
+  country_code: string;
   warehouse_id: string;
   name: string | null;
   address_line1: string;
