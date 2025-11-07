@@ -6,12 +6,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, Plane, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Package,
+  Plane,
+  AlertCircle,
+  MessageCircle,
+  Mail,
+} from "lucide-react";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { CategorySelector } from "@/components/product-price-calculator/category-selector";
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
-import { fetchProductData, validateProductUrl, type ProductData } from "@/lib/product-scraper";
-import { calculateProductPrice, type PriceCalculationInput } from "@/lib/product-price-calculator";
+import {
+  fetchProductData,
+  validateProductUrl,
+  type ProductData,
+} from "@/lib/product-scraper";
+import {
+  calculateProductPrice,
+  type PriceCalculationInput,
+} from "@/lib/product-price-calculator";
 import type { ProductCategory } from "@/lib/shipping-rates";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,7 +35,9 @@ export default function ProductPriceCalculatorPage() {
   // Form state
   const [productUrl, setProductUrl] = useState("");
   const [destinationCountry, setDestinationCountry] = useState("LK"); // Sri Lanka only
-  const [category, setCategory] = useState<ProductCategory | undefined>(undefined);
+  const [category, setCategory] = useState<ProductCategory | undefined>(
+    undefined
+  );
   const [quantity, setQuantity] = useState(1);
 
   // Product data state
@@ -30,7 +46,9 @@ export default function ProductPriceCalculatorPage() {
   const [productError, setProductError] = useState<string | null>(null);
 
   // Price calculation state
-  const [priceBreakdown, setPriceBreakdown] = useState<ReturnType<typeof calculateProductPrice> | null>(null);
+  const [priceBreakdown, setPriceBreakdown] = useState<ReturnType<
+    typeof calculateProductPrice
+  > | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
@@ -60,7 +78,11 @@ export default function ProductPriceCalculatorPage() {
       const data = await fetchProductData(url);
       setProductData(data);
     } catch (error) {
-      setProductError(error instanceof Error ? error.message : "Failed to fetch product details");
+      setProductError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch product details"
+      );
     } finally {
       setIsLoadingProduct(false);
     }
@@ -69,12 +91,16 @@ export default function ProductPriceCalculatorPage() {
   // Handle price calculation
   const handleCalculatePrice = () => {
     if (!productData || !category) {
-      setCalculationError("Please ensure product URL and category are selected");
+      setCalculationError(
+        "Please ensure product URL and category are selected"
+      );
       return;
     }
 
     if (!productData.weight || productData.weight <= 0) {
-      setCalculationError("Product weight is required. Please enter weight manually if not detected.");
+      setCalculationError(
+        "Product weight is required. Please enter weight manually if not detected."
+      );
       return;
     }
 
@@ -93,7 +119,9 @@ export default function ProductPriceCalculatorPage() {
       const breakdown = calculateProductPrice(input);
       setPriceBreakdown(breakdown);
     } catch (error) {
-      setCalculationError(error instanceof Error ? error.message : "Failed to calculate price");
+      setCalculationError(
+        error instanceof Error ? error.message : "Failed to calculate price"
+      );
     } finally {
       setIsCalculating(false);
     }
@@ -128,7 +156,8 @@ export default function ProductPriceCalculatorPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Product Price Calculator</h1>
           <p className="text-muted-foreground">
-            Enter a product URL from Amazon or eBay to calculate total shipping costs
+            Enter a product URL from Amazon or eBay to calculate total shipping
+            costs
           </p>
         </div>
 
@@ -152,7 +181,8 @@ export default function ProductPriceCalculatorPage() {
                     disabled={isLoadingProduct}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Supported: Amazon (.com, .in, .ae, .com.my) and eBay (.com, .in)
+                    Supported: Amazon (.com, .in, .ae, .com.my) and eBay (.com,
+                    .in)
                   </p>
                 </div>
 
@@ -167,8 +197,45 @@ export default function ProductPriceCalculatorPage() {
                 {/* Error State */}
                 {productError && (
                   <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{productError}</AlertDescription>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <AlertDescription className="mb-3">
+                            {productError}
+                          </AlertDescription>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Need help?
+                            </span>
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  "https://wa.me/918220586721?text=Hi, I need help with the product price calculator",
+                                  "_blank"
+                                )
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5 " />
+                              WhatsApp
+                            </button>
+                            <button
+                              onClick={() =>
+                                (window.location.href =
+                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Email
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </Alert>
                 )}
 
@@ -187,9 +254,15 @@ export default function ProductPriceCalculatorPage() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm line-clamp-2">{productData.title}</h3>
+                        <h3 className="font-semibold text-sm line-clamp-2">
+                          {productData.title}
+                        </h3>
                         <p className="text-lg font-bold text-purple-600 mt-1">
-                          {productData.currency} {productData.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {productData.currency}{" "}
+                          {productData.price.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </p>
                       </div>
                     </div>
@@ -210,12 +283,20 @@ export default function ProductPriceCalculatorPage() {
                       onChange={(e) => {
                         const weight = parseFloat(e.target.value);
                         if (weight > 0 || e.target.value === "") {
-                          setProductData((prev) => (prev ? { ...prev, weight: weight > 0 ? weight : undefined } : null));
+                          setProductData((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  weight: weight > 0 ? weight : undefined,
+                                }
+                              : null
+                          );
                         }
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Weight is required to calculate shipping costs. You can edit the fetched weight if needed.
+                      Weight is required to calculate shipping costs. You can
+                      edit the fetched weight if needed.
                     </p>
                   </div>
                 )}
@@ -227,8 +308,14 @@ export default function ProductPriceCalculatorPage() {
                     <AlertDescription className="text-amber-800">
                       <p className="font-semibold mb-1">Important Notice:</p>
                       <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Weight may change or will be recalculated when received at the warehouse.</li>
-                        <li>If dimensions are bigger, dimensional pricing will be applied instead of weight-based pricing.</li>
+                        <li>
+                          Weight may change or will be recalculated when
+                          received at the warehouse.
+                        </li>
+                        <li>
+                          If dimensions are bigger, dimensional pricing will be
+                          applied instead of weight-based pricing.
+                        </li>
                       </ul>
                     </AlertDescription>
                   </Alert>
@@ -237,14 +324,22 @@ export default function ProductPriceCalculatorPage() {
                 {/* Destination Country */}
                 <div className="space-y-2">
                   <Label>Receiving Country</Label>
-                  <CountrySelector value={destinationCountry} onValueChange={setDestinationCountry} />
-                  <p className="text-xs text-muted-foreground">Currently only Sri Lanka is supported</p>
+                  <CountrySelector
+                    value={destinationCountry}
+                    onValueChange={setDestinationCountry}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Currently only Sri Lanka is supported
+                  </p>
                 </div>
 
                 {/* Product Category */}
                 <div className="space-y-2">
                   <Label>Product Category</Label>
-                  <CategorySelector value={category} onValueChange={setCategory} />
+                  <CategorySelector
+                    value={category}
+                    onValueChange={setCategory}
+                  />
                   <p className="text-xs text-muted-foreground">
                     Category affects shipping rates
                   </p>
@@ -258,7 +353,9 @@ export default function ProductPriceCalculatorPage() {
                     type="number"
                     min="1"
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) ||1 ))}
+                    onChange={(e) =>
+                      setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                    }
                   />
                 </div>
 
@@ -268,7 +365,9 @@ export default function ProductPriceCalculatorPage() {
                     <Plane className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-sm">Shipping Method</p>
-                      <p className="text-sm text-muted-foreground">Air Freight, 7-10 working days</p>
+                      <p className="text-sm text-muted-foreground">
+                        Air Freight, 7-10 working days
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -276,7 +375,12 @@ export default function ProductPriceCalculatorPage() {
                 {/* Calculate Button */}
                 <Button
                   onClick={handleCalculatePrice}
-                  disabled={!productData || !category || isCalculating || !productData.weight}
+                  disabled={
+                    !productData ||
+                    !category ||
+                    isCalculating ||
+                    !productData.weight
+                  }
                   className="w-full"
                   size="lg"
                 >
@@ -296,8 +400,45 @@ export default function ProductPriceCalculatorPage() {
                 {/* Calculation Error */}
                 {calculationError && (
                   <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{calculationError}</AlertDescription>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <AlertDescription className="mb-3">
+                            {calculationError}
+                          </AlertDescription>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Need help?
+                            </span>
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  "https://wa.me/918220586721?text=Hi, I need help with the product price calculator",
+                                  "_blank"
+                                )
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-medium transition-colors"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              WhatsApp
+                            </button>
+                            <button
+                              onClick={() =>
+                                (window.location.href =
+                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-medium transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Email
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </Alert>
                 )}
               </CardContent>
@@ -318,7 +459,8 @@ export default function ProductPriceCalculatorPage() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    Enter a product URL and click "Check Price" to see the breakdown
+                    Enter a product URL and click "Check Price" to see the
+                    breakdown
                   </p>
                 </CardContent>
               </Card>
@@ -331,4 +473,3 @@ export default function ProductPriceCalculatorPage() {
     </main>
   );
 }
-

@@ -69,7 +69,10 @@ export async function fetchProductData(url: string): Promise<ProductData> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch product data: ${response.statusText}`);
+      throw new Error(
+        errorData.error ||
+          `Failed to fetch product data: ${response.statusText}`
+      );
     }
 
     const data = await response.json();
@@ -90,14 +93,19 @@ export async function fetchProductData(url: string): Promise<ProductData> {
     console.error("Error fetching product data:", error);
     throw error instanceof Error
       ? error
-      : new Error("Failed to fetch product details. Please check the URL and try again.");
+      : new Error(
+          "Failed to fetch product details. Please check the URL and try again."
+        );
   }
 }
 
 /**
  * Validate product URL
  */
-export function validateProductUrl(url: string): { valid: boolean; error?: string } {
+export function validateProductUrl(url: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (!url || url.trim() === "") {
     return { valid: false, error: "Product URL is required" };
   }
@@ -116,12 +124,15 @@ export function validateProductUrl(url: string): { valid: boolean; error?: strin
       "ebay.in",
     ];
 
-    const isSupported = supportedDomains.some((domain) => hostname.includes(domain));
+    const isSupported = supportedDomains.some((domain) =>
+      hostname.includes(domain)
+    );
 
     if (!isSupported) {
       return {
         valid: false,
-        error: "Unsupported domain. Please use Amazon or eBay URLs.",
+        error:
+          "Unable to fetch product details from this website. Please contact administrator for assistance.",
       };
     }
 
@@ -130,4 +141,3 @@ export function validateProductUrl(url: string): { valid: boolean; error?: strin
     return { valid: false, error: "Invalid URL format" };
   }
 }
-
