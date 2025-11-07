@@ -257,7 +257,6 @@ export default function CreateShipmentPage() {
         courierServices[0]?.courier_service_id || courierServices[0]?.id || "",
       purchasedDate: undefined,
       purchasedSite: undefined,
-      receivingDate: new Date(),
       packageType: "box",
       dimensions: {
         length: undefined,
@@ -360,7 +359,6 @@ export default function CreateShipmentPage() {
         warehouse_id: shipmentData.warehouseId,
         purchased_date: shipmentData.purchasedDate?.toISOString(),
         purchased_site: shipmentData.purchasedSite,
-        receiving_date: shipmentData.receivingDate?.toISOString(),
         notes: shipmentData.notes,
 
         receiver_first_name: shipmentData.receiver.firstName,
@@ -378,7 +376,7 @@ export default function CreateShipmentPage() {
 
         status_timeline: statusTimeline,
         invoice_urls: shipmentData.invoiceUrls || [],
-
+        product_image_urls: shipmentData.productImageUrls || [],
         products: shipmentData.items.map((item) => ({
           url: item.productUrl,
           name: item.productName,
@@ -597,8 +595,8 @@ export default function CreateShipmentPage() {
                     warehouseId: shipment.warehouseId,
                     purchasedDate: shipment.purchasedDate,
                     purchasedSite: shipment.purchasedSite,
-                    receivingDate: shipment.receivingDate,
                     notes: shipment.notes,
+                    productImageUrls: shipment.productImageUrls,
                     courierService: shipment.courierService,
                     receiver: shipment.receiver,
                     items: shipment.items,

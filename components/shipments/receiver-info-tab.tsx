@@ -175,7 +175,7 @@ export function ReceiverInfoTab({
           </div>
           <div className="space-y-2">
             <Label htmlFor={`shipments.${index}.receiver.postalCode`}>
-              Postal/ZIP Code *
+              Postal/ZIP Code (Optional)
             </Label>
             <Input
               id={`shipments.${index}.receiver.postalCode`}

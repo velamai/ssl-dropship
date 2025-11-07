@@ -149,7 +149,7 @@ export const ReceiverSchema = z.object({
   addressLine2: z.string().trim().min(1, "Receiver Address Line 2 is required"),
   addressLine3: z.string().optional(),
   addressLine4: z.string().optional(),
-  postalCode: z.string().trim().min(1, "Receiver Postal Code is required"),
+  postalCode: z.string().trim().optional(),
 });
 
 // Schema for a single shipment
@@ -169,11 +169,6 @@ export const ShipmentSchema = z
       .trim()
       .url({ message: "Purchased site must be a valid URL" })
       .optional(),
-    receivingDate: z.preprocess((arg) => {
-      if (!arg) return undefined;
-      if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
-      return undefined;
-    }, z.date({ required_error: "Receiving date is required" })),
     packageType: z.enum(["box", "envelope"], {
       required_error: "Package type is required",
       invalid_type_error: "Package type must be either 'box' or 'envelope'",
@@ -186,6 +181,11 @@ export const ShipmentSchema = z
     // Optional production invoice URLs uploaded via signed URL flow
     invoiceUrls: z
       .array(z.string().url({ message: "Invoice URL must be a valid URL" }))
+      .optional(),
+    // Optional product image URLs (max 10 images)
+    productImageUrls: z
+      .array(z.string().url({ message: "Image URL must be a valid URL" }))
+      .max(10, "Maximum 10 product images allowed")
       .optional(),
     // Optional free-form notes for the shipment
     notes: z.string().trim().optional(),

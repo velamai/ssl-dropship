@@ -1,7 +1,7 @@
 "use client";
 
-import { PriceDetails } from "@/components/price-details";
 import { CountryFlag } from "@/components/country-flag";
+import { PriceDetails } from "@/components/price-details";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -16,19 +16,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Textarea } from "@/components/ui/textarea";
-import { HelpCircle, Warehouse } from "lucide-react";
+import { useWarehouses } from "@/lib/hooks/useWarehouses";
 import type { PriceCalculationResult } from "@/lib/price-calculator";
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
-import { FileText, Package, Truck, Upload, X } from "lucide-react";
-import { useWarehouses } from "@/lib/hooks/useWarehouses";
 import { getCountryCode } from "@/lib/utils";
+import {
+  FileText,
+  HelpCircle,
+  Package,
+  Truck,
+  Upload,
+  Warehouse,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type {
   Control,
@@ -96,6 +103,9 @@ export function ShipmentDetailsTab({
     [key: string]: string;
   }>({});
   const [imageFiles, setImageFiles] = useState<{ [key: string]: boolean }>({});
+  const [productImagePreviews, setProductImagePreviews] = useState<{
+    [key: string]: string;
+  }>({});
 
   // Fetch warehouses for selection
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
@@ -334,25 +344,6 @@ export function ShipmentDetailsTab({
                 </div>
               </>
             )}
-            <div className="space-y-2">
-              <Label htmlFor={`shipments.${index}.receivingDate`}>
-                Expected Receiving Date *
-              </Label>
-              <Controller
-                name={`shipments.${index}.receivingDate`}
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    date={field.value}
-                    setDate={field.onChange}
-                    name={field.name}
-                    disabledDate={(date) => date < new Date()}
-                    required
-                  />
-                )}
-              />
-              <ErrorMessage error={errors.shipments?.[index]?.receivingDate} />
-            </div>
 
             <div className="space-y-2">
               {priceCalculationResult && (
@@ -637,6 +628,245 @@ export function ShipmentDetailsTab({
         </Card>
       </div>
 
+      {/* Product Images Upload Card */}
+      {watchedShipmentType === "warehouse" && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <Package className="h-4 w-4 mr-2 text-primary" />
+              Product Images (Max 10)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="mt-6 border-t border-border pt-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor={`shipments.${index}.productImageFile`}
+                  className="text-sm font-semibold text-foreground"
+                >
+                  Upload Product Images
+                </Label>
+
+                {(getValues(`shipments.${index}.productImageUrls`) || [])
+                  .length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      setValue(`shipments.${index}.productImageUrls`, [], {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                      setProductImagePreviews({});
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              <div className="relative group">
+                {/* Dropzone-like area */}
+                <label
+                  htmlFor={`shipments.${index}.productImageFile`}
+                  className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
+                >
+                  {/* Background image with blur effect */}
+                  {Object.keys(productImagePreviews).length > 0 && (
+                    <div className="absolute inset-0">
+                      {Object.values(productImagePreviews).map(
+                        (preview, idx) => (
+                          <img
+                            key={idx}
+                            src={preview}
+                            alt="Preview"
+                            className="w-full h-full object-cover filter blur-sm opacity-30"
+                          />
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {/* Content overlay */}
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                    <span className="text-sm text-muted-foreground group-hover:text-primary">
+                      {Object.keys(productImagePreviews).length > 0
+                        ? `${
+                            Object.keys(productImagePreviews).length
+                          }/10 images - Click to add more`
+                        : "Click to upload or drag images here (Max 10)"}
+                    </span>
+                  </div>
+                  <Input
+                    id={`shipments.${index}.productImageFile`}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
+
+                      const currentUrls =
+                        getValues(`shipments.${index}.productImageUrls`) || [];
+                      const totalImages = currentUrls.length + files.length;
+
+                      if (totalImages > 10) {
+                        alert(
+                          `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`
+                        );
+                        return;
+                      }
+
+                      // Set local previews for images
+                      const newPreviews = { ...productImagePreviews };
+
+                      for (const file of files) {
+                        const fileId = `${file.name}-${
+                          file.size
+                        }-${Date.now()}`;
+
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          newPreviews[fileId] = e.target?.result as string;
+                          setProductImagePreviews(newPreviews);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+
+                      try {
+                        // Get signed URLs for all files
+                        const fileTypes = files.map(
+                          (file) => file.type || "image/jpeg"
+                        );
+                        const res = await fetch("/api/invoice-signed-url", {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            fileTypes,
+                            uploadType: "product-images",
+                          }),
+                        });
+                        if (!res.ok)
+                          throw new Error("Failed to get signed URLs");
+                        const { results } = await res.json();
+
+                        // Upload all files
+                        const uploadPromises = files.map(async (file, idx) => {
+                          const { signedUrl, publicUrl } = results[idx];
+                          const putRes = await fetch(signedUrl, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": file.type || "image/jpeg",
+                            },
+                            body: file,
+                          });
+                          if (!putRes.ok)
+                            throw new Error(
+                              `Failed to upload file: ${file.name}`
+                            );
+                          return publicUrl;
+                        });
+
+                        const uploadedUrls = await Promise.all(uploadPromises);
+
+                        // Update form with all URLs
+                        const updatedUrls = [...currentUrls, ...uploadedUrls];
+                        setValue(
+                          `shipments.${index}.productImageUrls`,
+                          updatedUrls,
+                          {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          }
+                        );
+                      } catch (err) {
+                        console.error(err);
+                        // Clear previews on error
+                        setProductImagePreviews({});
+                      } finally {
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </label>
+
+                {/* Preview area */}
+                {(getValues(`shipments.${index}.productImageUrls`) || [])
+                  .length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {getValues(`shipments.${index}.productImageUrls`)?.map(
+                      (url: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-border bg-muted/30"
+                        >
+                          {Object.values(productImagePreviews).length > idx ? (
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={Object.values(productImagePreviews)[idx]}
+                                alt="Product image preview"
+                                className="size-20 object-cover rounded border"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={url}
+                                alt="Product image"
+                                className="size-20 object-cover rounded border"
+                              />
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  const currentUrls =
+                                    getValues(
+                                      `shipments.${index}.productImageUrls`
+                                    ) || [];
+                                  const newUrls = currentUrls.filter(
+                                    (_, i) => i !== idx
+                                  );
+                                  setValue(
+                                    `shipments.${index}.productImageUrls`,
+                                    newUrls,
+                                    {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    }
+                                  );
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {`${
+                  (getValues(`shipments.${index}.productImageUrls`) || [])
+                    .length
+                }/10 images uploaded`}
+              </p>
+              <ErrorMessage
+                error={errors.shipments?.[index]?.productImageUrls}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Warehouse Selection Card */}
       {watchedShipmentType === "warehouse" && (
         <Card>
@@ -653,9 +883,9 @@ export function ShipmentDetailsTab({
                   Loading warehouses...
                 </div>
               </div>
-            ) : warehouses && warehouses.length > 0 ? (
+            ) : warehouses && warehouses.data.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {warehouses.map((warehouse) => (
+                {warehouses.data.map((warehouse: any) => (
                   <div
                     key={warehouse.warehouse_id}
                     className={`relative border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
@@ -702,7 +932,8 @@ export function ShipmentDetailsTab({
                         </p>
                         <div className="space-y-1">
                           <p className="text-xs text-foreground">
-                            {warehouse.address_line1}
+                            {warehouse.address_line1}{" "}
+                            {`${warehouse.country_code}${warehouses.userWarehouseId}`}
                           </p>
                           {warehouse.address_line2 && (
                             <p className="text-xs text-muted-foreground">

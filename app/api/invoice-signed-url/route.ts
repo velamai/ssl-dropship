@@ -14,6 +14,8 @@ const s3 = new S3Client({
 });
 
 const BUCKET_NAME = "ssl-drop-and-ship";
+const INVOICE_FOLDER = "invoices";
+const PRODUCT_IMAGES_FOLDER = "product-images";
 
 function getFileExtension(mimeType: string): string {
   switch (mimeType) {
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
 // New endpoint for multiple file uploads
 export async function PUT(request: NextRequest) {
   try {
-    const { fileTypes } = await request.json();
+    const { fileTypes, uploadType = "invoice" } = await request.json();
 
     if (!Array.isArray(fileTypes) || fileTypes.length === 0) {
       return NextResponse.json(
@@ -103,7 +105,27 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const allowedTypes = [
+    // Validate upload type
+    if (!["invoice", "product-images"].includes(uploadType)) {
+      return NextResponse.json(
+        {
+          error: "Invalid uploadType. Must be 'invoice' or 'product-images'.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // For product images, check max limit
+    if (uploadType === "product-images" && fileTypes.length > 10) {
+      return NextResponse.json(
+        {
+          error: "Maximum 10 product images allowed per upload.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const allowedTypesForInvoice = [
       "application/pdf",
       "image/jpeg",
       "image/jpg",
@@ -112,12 +134,29 @@ export async function PUT(request: NextRequest) {
       "image/webp",
     ];
 
+    const allowedTypesForImages = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+
+    const allowedTypes =
+      uploadType === "product-images"
+        ? allowedTypesForImages
+        : allowedTypesForInvoice;
+
     // Validate all file types
     for (const fileType of fileTypes) {
       if (!allowedTypes.includes(fileType)) {
         return NextResponse.json(
           {
-            error: `Invalid file type: ${fileType}. Only PDF and image files are allowed.`,
+            error: `Invalid file type: ${fileType}. ${
+              uploadType === "product-images"
+                ? "Only image files are allowed."
+                : "Only PDF and image files are allowed."
+            }`,
           },
           { status: 400 }
         );
@@ -125,6 +164,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const results = [];
+    const folder =
+      uploadType === "product-images" ? PRODUCT_IMAGES_FOLDER : INVOICE_FOLDER;
 
     for (const fileType of fileTypes) {
       const uuid = uuidv4();
@@ -132,7 +173,7 @@ export async function PUT(request: NextRequest) {
       const extension = getFileExtension(fileType);
       const generatedFileName = `${uuid}-${timestamp}.${extension}`;
 
-      const key = `production-invoices/${new Date().getFullYear()}/${generatedFileName}`;
+      const key = `${folder}/${new Date().getFullYear()}/${generatedFileName}`;
 
       const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
