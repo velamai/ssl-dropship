@@ -372,7 +372,7 @@ export function ShipmentDetailsTab({
                     htmlFor={`shipments.${index}.invoiceUrl`}
                     className="text-sm font-semibold text-foreground"
                   >
-                    Product Invoice (PDF/Images)
+                    Product Invoice
                   </Label>
 
                   {(getValues(`shipments.${index}.invoiceUrls`) || []).length >
