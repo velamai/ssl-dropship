@@ -159,6 +159,7 @@ export function ShipmentCard({
               control={control}
               register={register}
               errors={errors}
+              setValue={setValue}
             />
           </TabsContent>
 
