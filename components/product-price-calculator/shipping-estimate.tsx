@@ -235,7 +235,7 @@ export function ShippingEstimate({
                   <span className="font-semibold text-sm">Shipping Estimate</span>
                 </div>
 
-                {estimate.volumeWeight && (
+                {estimate.volumeWeight && estimate.volumeWeight > 0 && (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Volume Metric Weight: </span>
                     <span className="font-medium">{formatNumber(estimate.volumeWeight, 2)} kg</span>
@@ -246,15 +246,6 @@ export function ShippingEstimate({
                 )}
 
                 <div className="space-y-2 text-sm">
-                  {estimate.volumeWeight && (
-                    <div>
-                      <span className="text-muted-foreground">Volume-based International: </span>
-                      <span className="font-medium">
-                        {destinationCurrency} {formatNumber(estimate.volumeBasedInternational, 2)}
-                      </span>
-                    </div>
-                  )}
-                  
                   <div className="flex justify-between font-semibold pt-1 border-t">
                     <span>International Shipping (includes service charge):</span>
                     <span>
