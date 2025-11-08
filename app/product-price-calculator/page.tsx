@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,6 +121,19 @@ export default function ProductPriceCalculatorPage() {
     }
   };
 
+  // Auto-recalculate when quantity or category changes after first calculation
+  useEffect(() => {
+    // Only recalculate if:
+    // 1. Price breakdown already exists (first calculation was done)
+    // 2. Product data exists
+    // 3. Category is selected
+    // 4. Not currently calculating (prevent infinite loops)
+    if (priceBreakdown && productData && category && !isCalculating) {
+      handleCalculatePrice();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantity, category]);
+
   return (
     <main className="min-h-screen bg-[#f8f8f8]">
       {/* Header */}
@@ -150,8 +163,7 @@ export default function ProductPriceCalculatorPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Product Price Calculator</h1>
           <p className="text-muted-foreground">
-            Enter a product URL from Amazon or eBay to calculate total shipping
-            costs
+            Enter a product URL from e-commerce sites in India, Sri Lanka, UAE, Malaysia, Singapore, or USA to calculate total shipping costs
           </p>
         </div>
 
@@ -169,14 +181,13 @@ export default function ProductPriceCalculatorPage() {
                   <Input
                     id="product-url"
                     type="url"
-                    placeholder="https://www.amazon.in/... or https://www.ebay.com/..."
+                    placeholder="Enter any e-commerce product URL..."
                     value={productUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     disabled={isLoadingProduct}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Supported: Amazon (.com, .in, .ae, .com.my) and eBay (.com,
-                    .in)
+                    Supported: E-commerce sites from India, Sri Lanka, UAE, Malaysia, Singapore, and USA
                   </p>
                 </div>
 

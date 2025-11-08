@@ -148,10 +148,12 @@ export function PriceBreakdown({ breakdown, productName, quantity, originCountry
         <Alert className="border-blue-200 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <p className="font-semibold mb-1">Price Calculation:</p>
-            <p className="text-sm">
-              The base price includes item cost, domestic shipping charges, and warehouse handling charges. International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions. You can use our shipping calculator below to estimate shipping costs.
-            </p>
+            <p className="font-semibold mb-2">Price Calculation:</p>
+            <ul className="text-sm space-y-1 list-disc list-inside">
+              <li>The base price includes item cost, domestic shipping charges, and warehouse handling charges.</li>
+              <li>International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions.</li>
+              <li className="font-semibold">You can use our shipping calculator below to estimate shipping costs.</li>
+            </ul>
           </AlertDescription>
         </Alert>
 

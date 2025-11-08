@@ -1,7 +1,7 @@
 // Shipping rates and exchange rates configuration for product price calculator
 // All rates are specific to Sri Lanka (LKR) as destination
 
-export type OriginCountry = "india" | "malaysia" | "dubai" | "us";
+export type OriginCountry = "india" | "malaysia" | "dubai" | "us" | "srilanka" | "singapore";
 
 export type ProductCategory = "clothes" | "laptop" | "watch" | "medicine" | "electronics" | "others";
 
@@ -11,6 +11,8 @@ export const EXCHANGE_RATES: Record<OriginCountry, number> = {
   malaysia: 80, // 1 MYR = 80 LKR
   dubai: 90, // 1 AED = 90 LKR
   us: 302.0, // 1 USD = 302.0 LKR (example rate, adjust as needed)
+  srilanka: 1.0, // 1 LKR = 1 LKR (same currency)
+  singapore: 250.0, // 1 SGD = 250 LKR (example rate, adjust as needed)
 };
 
 // Fixed domestic charges (courier + warehouse handling)
@@ -33,6 +35,16 @@ export const DOMESTIC_CHARGES: Record<OriginCountry, { currency: string; courier
   us: {
     currency: "USD",
     courier: 40, // Same as India rates
+    handlingPercent: 10,
+  },
+  srilanka: {
+    currency: "LKR",
+    courier: 500, // Local courier charge in LKR
+    handlingPercent: 10,
+  },
+  singapore: {
+    currency: "SGD",
+    courier: 15, // Similar to Malaysia rates
     handlingPercent: 10,
   },
 };
@@ -91,6 +103,24 @@ export const SHIPPING_RATES: Record<OriginCountry, Record<ProductCategory | "def
     watch: 5500, // Default to Others rate
     electronics: 5500, // Default to Others rate
     default: 5500, // Default rate for Others category
+  },
+  srilanka: {
+    default: 0, // No international shipping for local products
+    clothes: 0,
+    laptop: 0,
+    watch: 0,
+    medicine: 0,
+    electronics: 0,
+    others: 0,
+  },
+  singapore: {
+    default: 6000, // LKR per kg (similar to Malaysia, slightly higher)
+    clothes: 6000,
+    laptop: 6000,
+    watch: 6000,
+    medicine: 6000,
+    electronics: 6000,
+    others: 6000,
   },
 };
 
