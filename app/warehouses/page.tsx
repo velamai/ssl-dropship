@@ -56,11 +56,24 @@ export default function AddressesPage() {
         warehouse.address_line1.toLowerCase().includes(searchLower) ||
         (warehouse.address_line2?.toLowerCase().includes(searchLower) ??
           false) ||
+        (warehouse.address_line3?.toLowerCase().includes(searchLower) ??
+          false) ||
+        (warehouse.address_line4?.toLowerCase().includes(searchLower) ??
+          false) ||
         warehouse.country.toLowerCase().includes(searchLower) ||
-        warehouse.postal_code.toLowerCase().includes(searchLower)
+        (warehouse.postal_code &&
+          warehouse.postal_code.toLowerCase().includes(searchLower)) ||
+        (warehouses?.userFirstName?.toLowerCase().includes(searchLower) ??
+          false) ||
+        (warehouses?.userLastName?.toLowerCase().includes(searchLower) ?? false)
       );
     });
-  }, [warehouses?.data, searchQuery]);
+  }, [
+    warehouses?.data,
+    warehouses?.userFirstName,
+    warehouses?.userLastName,
+    searchQuery,
+  ]);
 
   // Helper function to get the first non-null address line for city display
   const getCityFromAddress = (warehouse: Warehouse): string => {
