@@ -7,22 +7,27 @@ import { formatNumber } from "@/lib/product-price-calculator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Info } from "lucide-react";
+import { ShippingEstimate } from "./shipping-estimate";
+import type { ProductCategory } from "@/lib/shipping-rates";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PriceBreakdownProps {
   breakdown: PriceBreakdownType;
   productName: string;
-  weight: number;
   quantity: number;
+  originCountry: "india" | "malaysia" | "dubai" | "us";
+  category: ProductCategory;
 }
 
-export function PriceBreakdown({ breakdown, productName, weight, quantity }: PriceBreakdownProps) {
+export function PriceBreakdown({ breakdown, productName, quantity, originCountry, category }: PriceBreakdownProps) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const {
     productPriceOrigin,
     productPriceLKR,
-    shippingAndHandlingLKR,
+    domesticCourier,
+    warehouseHandling,
     totalPriceLKR,
     totalPriceOrigin,
     exchangeRate,
@@ -60,10 +65,6 @@ export function PriceBreakdown({ breakdown, productName, weight, quantity }: Pri
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Weight (Kg)</span>
-              <p className="font-medium">{formatNumber(weight, 2)}</p>
-            </div>
-            <div>
               <span className="text-muted-foreground">Item Quantity</span>
               <p className="font-medium">{quantity}</p>
             </div>
@@ -89,16 +90,33 @@ export function PriceBreakdown({ breakdown, productName, weight, quantity }: Pri
 
         <Separator />
 
-        {/* Shipping + Duties + Handling */}
+        {/* Domestic Courier Charge */}
         <div className="space-y-1">
           <div className="flex justify-between items-center">
-            <span className="font-medium">Shipping + Duties + Handling</span>
+            <span className="font-medium">Domestic Courier Charge</span>
             <div className="text-right">
               <p className="font-semibold">
-                {originCurrency} {formatNumber(shippingAndHandlingLKR / breakdown.exchangeRate, 2)}
+                {originCurrency} {formatNumber(domesticCourier, 2)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {destinationCurrency} {formatNumber(shippingAndHandlingLKR, 2)}
+                {destinationCurrency} {formatNumber(domesticCourier * exchangeRate, 2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Warehouse Handling Charges */}
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Warehouse Handling Charges</span>
+            <div className="text-right">
+              <p className="font-semibold">
+                {originCurrency} {formatNumber(warehouseHandling, 2)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {destinationCurrency} {formatNumber(warehouseHandling * exchangeRate, 2)}
               </p>
             </div>
           </div>
@@ -109,7 +127,7 @@ export function PriceBreakdown({ breakdown, productName, weight, quantity }: Pri
         {/* Total Price */}
         <div className="space-y-1">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-lg">Total Price</span>
+            <span className="font-semibold text-lg">Total Price (before shipping)</span>
             <div className="text-right">
               <p className="font-bold text-lg">
                 {originCurrency} {formatNumber(totalPriceOrigin, 2)}
@@ -135,7 +153,30 @@ export function PriceBreakdown({ breakdown, productName, weight, quantity }: Pri
           <ShoppingCart className="mr-2 h-5 w-5" />
           Place Order
         </Button>
+
+        {/* Notification */}
+        <Alert className="border-blue-200 bg-blue-50 mt-4">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <p className="font-semibold mb-1">Price Calculation:</p>
+            <p className="text-sm">
+              The base price includes item cost and warehouse handling charges. International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions.
+            </p>
+          </AlertDescription>
+        </Alert>
       </CardContent>
+
+      {/* Shipping Estimate Component */}
+      <div className="px-6 pb-6">
+        <ShippingEstimate
+          originCountry={originCountry}
+          category={category}
+          exchangeRate={exchangeRate}
+          originCurrency={originCurrency}
+          destinationCurrency={destinationCurrency}
+          priceCalculatorTotalLKR={breakdown.priceCalculatorTotalLKR}
+        />
+      </div>
     </Card>
   );
 }

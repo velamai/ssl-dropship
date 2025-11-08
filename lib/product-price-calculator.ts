@@ -3,45 +3,51 @@
 import type { OriginCountry, ProductCategory } from "./shipping-rates";
 import {
   EXCHANGE_RATES,
-  getFixedDomesticCharges,
   getDomesticCourier,
-  getDomesticHandling,
   getShippingRate,
   COLOMBO_SERVICE_CHARGE_PERCENT,
   getCurrencyCode,
+  getDomesticShippingDestination,
 } from "./shipping-rates";
 
 export interface PriceCalculationInput {
   originCountry: OriginCountry;
   category: ProductCategory;
   productPrice: number; // in origin currency
-  weight: number; // in kg
+  weight?: number; // in kg - optional, only used for shipping estimate
   quantity: number; // default 1
+  deliveryOption?: "delivery" | "pickup"; // delivery or pickup from office
 }
 
 export interface PriceBreakdown {
   // Product details
-  productPriceOrigin: number; // Product price in origin currency
+  productPriceOrigin: number; // Product price in origin currency (Item Cost)
   productPriceLKR: number; // Product price converted to LKR
 
-  // Fixed domestic charges (in origin currency)
-  domesticCourier: number;
-  domesticHandling: number;
-  totalDomesticChargesOrigin: number;
+  // Price Calculator Total components (in origin currency)
+  domesticCourier: number; // Domestic Courier Charge
+  warehouseHandling: number; // Warehouse Handling = (Item Cost + Domestic Courier) × 10%
+  priceCalculatorTotalOrigin: number; // Item Cost + Domestic Courier + Warehouse Handling
 
-  // Fixed domestic charges converted to LKR
-  totalDomesticChargesLKR: number;
+  // Price Calculator Total in LKR
+  priceCalculatorTotalLKR: number;
 
-  // International shipping (in LKR)
-  shippingRatePerKg: number; // LKR per kg
-  shippingLKR: number; // Total shipping cost in LKR
+  // Shipping Rate components (in LKR)
+  internationalShippingLKR?: number; // Weight × Shipping Rate per kg (if weight provided)
+  domesticShippingDestinationLKR: number; // Fixed domestic shipping in destination country
+  shippingRateLKR?: number; // International Shipping + Domestic Shipping (if weight provided)
 
-  // Colombo Mail Service Charge (15% of converted fixed domestic charges)
-  serviceChargeLKR: number;
+  // Colombo Mail Service Charge (15% of Shipping Rate + Price Calculator Total in LKR)
+  colomboServiceChargeLKR?: number;
 
-  // Totals
-  shippingAndHandlingLKR: number; // Shipping + Service Charge
-  totalPriceLKR: number; // Product Price + Shipping + Service Charge
+  // Shipping Total (Shipping Rate + Colombo Service Charge)
+  shippingTotalLKR?: number;
+
+  // Warehouse Handling Charges (for display - this is the price calculator total)
+  warehouseHandlingChargesLKR: number; // Same as priceCalculatorTotalLKR
+
+  // Grand Total (Price Calculator Total + Shipping Total)
+  totalPriceLKR: number;
   totalPriceOrigin: number; // Total in origin currency
 
   // Exchange rate
@@ -52,55 +58,86 @@ export interface PriceBreakdown {
 
 /**
  * Calculate complete price breakdown for a product
+ * New Formula:
+ * 1. Price Calculator Total (Origin Currency) = Item Cost + Domestic Courier + Warehouse Handling
+ *    Warehouse Handling = (Item Cost + Domestic Courier) × 10%
+ * 2. Shipping Rate (LKR) = International Shipping + Domestic Shipping (if delivery)
+ * 3. Colombo Service Charge (LKR) = (Shipping Rate + Price Calculator Total in LKR) × 15%
+ * 4. Shipping Total (LKR) = Shipping Rate + Colombo Service Charge
  */
 export function calculateProductPrice(input: PriceCalculationInput): PriceBreakdown {
-  const { originCountry, category, productPrice, weight, quantity } = input;
+  const { originCountry, category, productPrice, weight, quantity, deliveryOption = "delivery" } = input;
 
   // Get exchange rate
   const exchangeRate = EXCHANGE_RATES[originCountry];
   const originCurrency = getCurrencyCode(originCountry);
   const destinationCurrency = "LKR";
 
-  // 1. Convert product price to LKR
-  const productPriceLKR = productPrice * exchangeRate * quantity;
-
-  // 2. Get fixed domestic charges (in origin currency)
+  // 1. Price Calculator Total (in Origin Currency)
+  // Item Cost (Origin Currency)
+  const itemCostOrigin = productPrice * quantity;
+  
+  // Domestic Courier Charge (Origin Currency)
   const domesticCourier = getDomesticCourier(originCountry);
-  const domesticHandling = getDomesticHandling(originCountry);
-  const totalDomesticChargesOrigin = getFixedDomesticCharges(originCountry);
+  
+  // Warehouse Handling (Origin Currency) = (Item Cost + Domestic Courier) × 10%
+  const warehouseHandling = (itemCostOrigin + domesticCourier) * 0.1;
+  
+  // Price Calculator Total (Origin Currency) = Item Cost + Domestic Courier + Warehouse Handling
+  const priceCalculatorTotalOrigin = itemCostOrigin + domesticCourier + warehouseHandling;
 
-  // Convert fixed domestic charges to LKR
-  const totalDomesticChargesLKR = totalDomesticChargesOrigin * exchangeRate;
+  // Convert Price Calculator Total to LKR
+  const priceCalculatorTotalLKR = priceCalculatorTotalOrigin * exchangeRate;
 
-  // 3. Calculate international shipping (in LKR)
-  const shippingRatePerKg = getShippingRate(originCountry, category);
-  const shippingLKR = weight * shippingRatePerKg;
+  // 2. Shipping Rate (in LKR)
+  let internationalShippingLKR: number | undefined;
+  let shippingRateLKR: number | undefined;
+  const domesticShippingDestinationLKR = deliveryOption === "delivery" 
+    ? getDomesticShippingDestination() 
+    : 0; // No domestic shipping charge if pickup
 
-  // 4. Calculate Colombo Mail Service Charge (15% of converted fixed domestic charges)
-  // Note: This is 15% of the converted fixed charges, NOT the product price
-  const serviceChargeLKR = (totalDomesticChargesLKR * COLOMBO_SERVICE_CHARGE_PERCENT) / 100;
+  if (weight && weight > 0) {
+    // International Shipping Charge (LKR) = Weight × Shipping Rate per kg
+    const shippingRatePerKg = getShippingRate(originCountry, category);
+    internationalShippingLKR = weight * shippingRatePerKg;
+    
+    // Shipping Rate (LKR) = International Shipping + Domestic Shipping
+    shippingRateLKR = internationalShippingLKR + domesticShippingDestinationLKR;
+  }
 
-  // 5. Calculate shipping + handling (service charge)
-  const shippingAndHandlingLKR = shippingLKR + serviceChargeLKR;
+  // 3. Colombo Mail Service Charge (LKR) = (Shipping Rate + Price Calculator Total in LKR) × 15%
+  let colomboServiceChargeLKR: number | undefined;
+  let shippingTotalLKR: number | undefined;
 
-  // 6. Calculate total price in LKR
-  // Total = Product Price (LKR) + Shipping (LKR) + Service Charge (LKR)
-  const totalPriceLKR = productPriceLKR + shippingAndHandlingLKR;
+  if (shippingRateLKR !== undefined) {
+    colomboServiceChargeLKR = (shippingRateLKR + priceCalculatorTotalLKR) * (COLOMBO_SERVICE_CHARGE_PERCENT / 100);
+    
+    // 4. Shipping Total (LKR) = Shipping Rate + Colombo Service Charge
+    shippingTotalLKR = shippingRateLKR + colomboServiceChargeLKR;
+  }
 
-  // 7. Convert total back to origin currency for reference
+  // Warehouse Handling Charges (for display) = Price Calculator Total
+  const warehouseHandlingChargesLKR = priceCalculatorTotalLKR;
+
+  // Grand Total (LKR) = Price Calculator Total + Shipping Total (if calculated)
+  const totalPriceLKR = priceCalculatorTotalLKR + (shippingTotalLKR || 0);
+
+  // Convert total back to origin currency for reference
   const totalPriceOrigin = totalPriceLKR / exchangeRate;
 
   return {
-    productPriceOrigin: productPrice * quantity,
-    productPriceLKR,
+    productPriceOrigin: itemCostOrigin,
+    productPriceLKR: itemCostOrigin * exchangeRate,
     domesticCourier,
-    domesticHandling,
-    totalDomesticChargesOrigin,
-    totalDomesticChargesLKR,
-    shippingRatePerKg,
-    shippingLKR,
-    serviceChargeLKR,
-    shippingAndHandlingLKR,
+    warehouseHandling,
+    priceCalculatorTotalOrigin,
+    priceCalculatorTotalLKR,
+    internationalShippingLKR,
+    domesticShippingDestinationLKR,
+    shippingRateLKR,
+    colomboServiceChargeLKR,
+    shippingTotalLKR,
+    warehouseHandlingChargesLKR,
     totalPriceLKR,
     totalPriceOrigin,
     exchangeRate,

@@ -108,3 +108,12 @@ export function getCurrencyCode(originCountry: OriginCountry): string {
   return DOMESTIC_CHARGES[originCountry].currency;
 }
 
+// Domestic shipping in destination country (Sri Lanka) - Fixed charge
+// TODO: Replace with actual rate when available
+export const DOMESTIC_SHIPPING_DESTINATION = 500; // LKR
+
+// Get domestic shipping charge in destination country
+export function getDomesticShippingDestination(): number {
+  return DOMESTIC_SHIPPING_DESTINATION;
+}
+

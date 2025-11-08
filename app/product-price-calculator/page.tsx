@@ -97,13 +97,7 @@ export default function ProductPriceCalculatorPage() {
       return;
     }
 
-    if (!productData.weight || productData.weight <= 0) {
-      setCalculationError(
-        "Product weight is required. Please enter weight manually if not detected."
-      );
-      return;
-    }
-
+    // Weight is no longer required - calculation works without it
     setIsCalculating(true);
     setCalculationError(null);
 
@@ -112,8 +106,8 @@ export default function ProductPriceCalculatorPage() {
         originCountry: productData.originCountry,
         category,
         productPrice: productData.price,
-        weight: productData.weight,
         quantity,
+        deliveryOption: "delivery", // Default to delivery in main calculation
       };
 
       const breakdown = calculateProductPrice(input);
@@ -269,58 +263,6 @@ export default function ProductPriceCalculatorPage() {
                   </div>
                 )}
 
-                {/* Weight Input - Always shown when product data is available */}
-                {productData && (
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (Kg) - Required</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="Enter product weight in kg"
-                      value={productData.weight || ""}
-                      onChange={(e) => {
-                        const weight = parseFloat(e.target.value);
-                        if (weight > 0 || e.target.value === "") {
-                          setProductData((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  weight: weight > 0 ? weight : undefined,
-                                }
-                              : null
-                          );
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Weight is required to calculate shipping costs. You can
-                      edit the fetched weight if needed.
-                    </p>
-                  </div>
-                )}
-
-                {/* Warning Alert */}
-                {productData && (
-                  <Alert className="border-amber-200 bg-amber-50">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800">
-                      <p className="font-semibold mb-1">Important Notice:</p>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>
-                          Weight may change or will be recalculated when
-                          received at the warehouse.
-                        </li>
-                        <li>
-                          If dimensions are bigger, dimensional pricing will be
-                          applied instead of weight-based pricing.
-                        </li>
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
                 {/* Destination Country */}
                 <div className="space-y-2">
                   <Label>Receiving Country</Label>
@@ -378,8 +320,7 @@ export default function ProductPriceCalculatorPage() {
                   disabled={
                     !productData ||
                     !category ||
-                    isCalculating ||
-                    !productData.weight
+                    isCalculating
                   }
                   className="w-full"
                   size="lg"
@@ -447,12 +388,13 @@ export default function ProductPriceCalculatorPage() {
 
           {/* Right Column - Price Breakdown */}
           <div>
-            {priceBreakdown && productData ? (
+            {priceBreakdown && productData && category ? (
               <PriceBreakdown
                 breakdown={priceBreakdown}
                 productName={productData.title}
-                weight={productData.weight || 0}
                 quantity={quantity}
+                originCountry={productData.originCountry}
+                category={category}
               />
             ) : (
               <Card>

@@ -7,7 +7,6 @@ export interface ProductData {
   price: number;
   currency: string;
   image: string;
-  weight?: number; // in kg
   dimensions?: {
     length?: number;
     width?: number;
@@ -85,7 +84,6 @@ export async function fetchProductData(url: string): Promise<ProductData> {
       price: data.price || 0,
       currency: data.currency || "USD",
       image: data.image || "",
-      weight: data.weight,
       dimensions: data.dimensions,
       originCountry,
     };
