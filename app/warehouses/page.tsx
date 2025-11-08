@@ -35,6 +35,7 @@ export default function AddressesPage() {
   const { data: warehouses, isLoading, error, refetch } = useWarehouses();
 
   const copyToClipboard = (text: string, identifier: string) => {
+    if (text === "") return;
     navigator.clipboard.writeText(text);
     setCopiedAddress(identifier);
 
@@ -308,7 +309,7 @@ export default function AddressesPage() {
                           <button
                             onClick={() =>
                               copyToClipboard(
-                                warehouse.postal_code,
+                                warehouse.postal_code || "",
                                 `${warehouse.warehouse_id}-postal`
                               )
                             }
