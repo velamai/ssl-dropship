@@ -144,6 +144,17 @@ export function PriceBreakdown({ breakdown, productName, quantity, originCountry
 
         <Separator />
 
+        {/* Notification */}
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <p className="font-semibold mb-1">Price Calculation:</p>
+            <p className="text-sm">
+              The base price includes item cost, domestic shipping charges, and warehouse handling charges. International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions. You can use our shipping calculator below to estimate shipping costs.
+            </p>
+          </AlertDescription>
+        </Alert>
+
         {/* Place Order Button */}
         <Button
           onClick={handlePlaceOrder}
@@ -153,17 +164,6 @@ export function PriceBreakdown({ breakdown, productName, quantity, originCountry
           <ShoppingCart className="mr-2 h-5 w-5" />
           Place Order
         </Button>
-
-        {/* Notification */}
-        <Alert className="border-blue-200 bg-blue-50 mt-4">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <p className="font-semibold mb-1">Price Calculation:</p>
-            <p className="text-sm">
-              The base price includes item cost and warehouse handling charges. International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions.
-            </p>
-          </AlertDescription>
-        </Alert>
       </CardContent>
 
       {/* Shipping Estimate Component */}
