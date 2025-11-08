@@ -23,6 +23,12 @@ export const ItemSchema = z.object({
     .url({ message: "Product URL must be a valid URL" }),
   productName: z.string().trim().min(1, "Product name is required"),
   productNote: z.string().trim().optional(),
+  imageUrl: z
+    .union([
+      z.string().url({ message: "Image URL must be a valid URL" }),
+      z.literal(""),
+    ])
+    .optional(),
   price: z.preprocess(
     (val) =>
       val === "" || val === null || val === undefined ? undefined : Number(val),

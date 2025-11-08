@@ -98,7 +98,7 @@ export interface ProductData {
 /**
  * Check if domain matches e-commerce whitelist and return country
  */
-function isEcommerceDomain(hostname: string): { valid: boolean; country?: string; error?: string } {
+export function isEcommerceDomain(hostname: string): { valid: boolean; country?: string; error?: string } {
   const normalizedHostname = hostname.toLowerCase();
 
   // Check each country's domain list

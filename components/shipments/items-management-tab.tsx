@@ -56,14 +56,19 @@ export function ItemsManagementTab({
   });
 
   const handleAddItem = () => {
+    const newUuid = uuidv4();
     appendItem({
-      uuid: uuidv4(),
+      uuid: newUuid,
       productUrl: "",
       productName: "",
       productNote: "",
       price: undefined,
       quantity: undefined,
     });
+    // Expand the newly added item by default
+    setTimeout(() => {
+      toggleItemExpansion(newUuid);
+    }, 0);
     // Trigger price calculation after adding item
     if (onPriceChange) {
       setTimeout(onPriceChange, 0);
