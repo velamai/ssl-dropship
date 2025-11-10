@@ -11,10 +11,15 @@ export const warehouseApi = {
   // Get all warehouses
   async getWarehouses(
     userId: string
-  ): Promise<{ data: Warehouse[]; userWarehouseId: string }> {
+  ): Promise<{
+    data: Warehouse[];
+    userWarehouseId: string;
+    userFirstName: string;
+    userLastName: string;
+  }> {
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("user_warehouse_id")
+      .select("user_warehouse_id,first_name, last_name")
       .eq("user_id", userId)
       .single();
 
@@ -38,7 +43,12 @@ export const warehouseApi = {
       throw new Error(`Failed to fetch warehouses: ${error.message}`);
     }
 
-    return { data: data || [], userWarehouseId: userData.user_warehouse_id };
+    return {
+      data: data || [],
+      userWarehouseId: userData.user_warehouse_id,
+      userFirstName: userData.first_name,
+      userLastName: userData.last_name,
+    };
   },
 
   // Get a single warehouse by ID

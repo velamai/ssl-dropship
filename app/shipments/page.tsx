@@ -259,7 +259,10 @@ export default function ShipmentsPage() {
         `${shipment.receiver_first_name} ${shipment.receiver_last_name}`
           .toLowerCase()
           .includes(lowerCaseSearch) ||
-        shipment.receiver_postal_code.toLowerCase().includes(lowerCaseSearch) ||
+        (shipment.receiver_postal_code &&
+          shipment.receiver_postal_code
+            .toLowerCase()
+            .includes(lowerCaseSearch)) ||
         (shipment.receiver_address_line1 &&
           shipment.receiver_address_line1
             .toLowerCase()

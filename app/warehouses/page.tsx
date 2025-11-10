@@ -13,11 +13,16 @@ import type { Warehouse } from "@/lib/types/warehouse";
 import { getCountryCode } from "@/lib/utils";
 import {
   AlertCircle,
+  Building2,
   CheckCircle2,
   ChevronLeft,
   Copy,
+  Globe,
+  Mail,
   MapPin,
+  Phone,
   Search,
+  User2,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -30,6 +35,7 @@ export default function AddressesPage() {
   const { data: warehouses, isLoading, error, refetch } = useWarehouses();
 
   const copyToClipboard = (text: string, identifier: string) => {
+    if (text === "") return;
     navigator.clipboard.writeText(text);
     setCopiedAddress(identifier);
 
@@ -50,11 +56,24 @@ export default function AddressesPage() {
         warehouse.address_line1.toLowerCase().includes(searchLower) ||
         (warehouse.address_line2?.toLowerCase().includes(searchLower) ??
           false) ||
+        (warehouse.address_line3?.toLowerCase().includes(searchLower) ??
+          false) ||
+        (warehouse.address_line4?.toLowerCase().includes(searchLower) ??
+          false) ||
         warehouse.country.toLowerCase().includes(searchLower) ||
-        warehouse.postal_code.toLowerCase().includes(searchLower)
+        (warehouse.postal_code &&
+          warehouse.postal_code.toLowerCase().includes(searchLower)) ||
+        (warehouses?.userFirstName?.toLowerCase().includes(searchLower) ??
+          false) ||
+        (warehouses?.userLastName?.toLowerCase().includes(searchLower) ?? false)
       );
     });
-  }, [warehouses?.data, searchQuery]);
+  }, [
+    warehouses?.data,
+    warehouses?.userFirstName,
+    warehouses?.userLastName,
+    searchQuery,
+  ]);
 
   // Helper function to get the first non-null address line for city display
   const getCityFromAddress = (warehouse: Warehouse): string => {
@@ -140,37 +159,70 @@ export default function AddressesPage() {
                 {filteredWarehouses.map((warehouse) => (
                   <Card
                     key={warehouse.warehouse_id}
-                    className="group border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 hover:border-purple-300/50"
+                    className="border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-300"
                   >
-                    <CardContent className="p-6">
-                      <div className="mb-4 flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0">
-                            <CountryFlag
-                              countryCode={getCountryCode(warehouse.country)}
-                              size="md"
-                            />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-slate-900 text-lg leading-tight">
+                    <CardContent className="p-6 space-y-4">
+                      {/* Header with warehouse name and country */}
+                      <div className="pb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CountryFlag
+                            countryCode={getCountryCode(warehouse.country)}
+                            size="md"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-slate-900">
                               {warehouse.name || "Unnamed Warehouse"}
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1">
-                              {warehouse.country}
-                            </p>
                           </div>
                         </div>
-                        {/* <div className="flex-shrink-0">
-                          <div className="h-2 w-2 rounded-full"></div>
-                        </div> */}
                       </div>
 
+                      {/* Information rows with icons */}
                       <div className="space-y-3">
+                        {/* Address Line 1 */}
                         <div className="flex items-center justify-between group/item">
-                          <p className="text-sm text-slate-700 font-medium">
-                            {warehouse.address_line1}, {` `}
-                            {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
-                          </p>
+                          <div className="flex items-center gap-3 flex-1">
+                            <User2 className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500">Name:</p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {warehouses?.userFirstName}{" "}
+                                {warehouses?.userLastName}{" "}
+                                {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                `${warehouses?.userFirstName} ${warehouses?.userLastName} ${warehouse.country_code}${warehouses?.userWarehouseId}`,
+                                `${warehouse.warehouse_id}-name`
+                              )
+                            }
+                            className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                            title="Copy"
+                          >
+                            {copiedAddress ===
+                            `${warehouse.warehouse_id}-line1` ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between group/item">
+                          <div className="flex items-center gap-3 flex-1">
+                            <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500">
+                                Address Details:
+                              </p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {warehouse.address_line1}, {` `}
+                                {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             onClick={() =>
                               copyToClipboard(
@@ -178,8 +230,8 @@ export default function AddressesPage() {
                                 `${warehouse.warehouse_id}-line1`
                               )
                             }
-                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
-                            aria-label="Copy address line 1"
+                            className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                            title="Copy"
                           >
                             {copiedAddress ===
                             `${warehouse.warehouse_id}-line1` ? (
@@ -190,11 +242,20 @@ export default function AddressesPage() {
                           </button>
                         </div>
 
+                        {/* Address Line 2 */}
                         {warehouse.address_line2 && (
                           <div className="flex items-center justify-between group/item">
-                            <p className="text-sm text-slate-600">
-                              {warehouse.address_line2}
-                            </p>
+                            <div className="flex items-center gap-3 flex-1">
+                              <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                              <div className="flex-1">
+                                <p className="text-xs text-slate-500">
+                                  Address Details:
+                                </p>
+                                <p className="text-sm text-slate-700">
+                                  {warehouse.address_line2}
+                                </p>
+                              </div>
+                            </div>
                             <button
                               onClick={() =>
                                 copyToClipboard(
@@ -202,12 +263,12 @@ export default function AddressesPage() {
                                   `${warehouse.warehouse_id}-line2`
                                 )
                               }
-                              className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
-                              aria-label="Copy address line 2"
+                              className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                              title="Copy"
                             >
                               {copiedAddress ===
                               `${warehouse.warehouse_id}-line2` ? (
-                                <CheckCircle2 className="h-4 w-4 " />
+                                <CheckCircle2 className="h-4 w-4" />
                               ) : (
                                 <Copy className="h-4 w-4" />
                               )}
@@ -215,61 +276,79 @@ export default function AddressesPage() {
                           </div>
                         )}
 
-                        {warehouse.address_line3 && (
-                          <div className="flex items-center justify-between group/item">
-                            <p className="text-sm text-slate-600">
-                              {warehouse.address_line3}
-                            </p>
-                            <button
-                              onClick={() =>
-                                copyToClipboard(
-                                  warehouse.address_line3!,
-                                  `${warehouse.warehouse_id}-line3`
-                                )
-                              }
-                              className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
-                              aria-label="Copy address line 3"
-                            >
-                              {copiedAddress ===
-                              `${warehouse.warehouse_id}-line3` ? (
-                                <CheckCircle2 className="h-4 w-4 " />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        )}
-
+                        {/* City/State */}
                         <div className="flex items-center justify-between group/item">
-                          <p className="text-sm text-slate-600">
-                            {getCityFromAddress(warehouse)},{" "}
-                            {warehouse.postal_code}
-                          </p>
+                          <div className="flex items-center gap-3 flex-1">
+                            <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500">City:</p>
+                              <p className="text-sm font-medium text-slate-700 capitalize">
+                                {warehouse.address_line3}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             onClick={() =>
                               copyToClipboard(
-                                `${getCityFromAddress(warehouse)}, ${
-                                  warehouse.postal_code
-                                }`,
+                                warehouse.address_line3!,
                                 `${warehouse.warehouse_id}-city`
                               )
                             }
-                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
-                            aria-label="Copy city and postal code"
+                            className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                            title="Copy"
                           >
                             {copiedAddress ===
                             `${warehouse.warehouse_id}-city` ? (
-                              <CheckCircle2 className="h-4 w-4 " />
+                              <CheckCircle2 className="h-4 w-4" />
                             ) : (
                               <Copy className="h-4 w-4" />
                             )}
                           </button>
                         </div>
 
+                        {/* Zip Code */}
                         <div className="flex items-center justify-between group/item">
-                          <p className="text-sm text-slate-600 font-medium">
-                            {warehouse.country}
-                          </p>
+                          <div className="flex items-center gap-3 flex-1">
+                            <Mail className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500">
+                                Zip Code:
+                              </p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {warehouse.postal_code}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                warehouse.postal_code || "",
+                                `${warehouse.warehouse_id}-postal`
+                              )
+                            }
+                            className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                            title="Copy"
+                          >
+                            {copiedAddress ===
+                            `${warehouse.warehouse_id}-postal` ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Country */}
+                        <div className="flex items-center justify-between group/item">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Globe className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500">Country:</p>
+                              <p className="text-sm font-medium text-slate-700">
+                                {warehouse.country}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             onClick={() =>
                               copyToClipboard(
@@ -277,12 +356,12 @@ export default function AddressesPage() {
                                 `${warehouse.warehouse_id}-country`
                               )
                             }
-                            className="opacity-0 group-hover/item:opacity-100 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-purple-600"
-                            aria-label="Copy country"
+                            className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                            title="Copy"
                           >
                             {copiedAddress ===
                             `${warehouse.warehouse_id}-country` ? (
-                              <CheckCircle2 className="h-4 w-4 " />
+                              <CheckCircle2 className="h-4 w-4" />
                             ) : (
                               <Copy className="h-4 w-4" />
                             )}
@@ -290,13 +369,15 @@ export default function AddressesPage() {
                         </div>
                       </div>
 
-                      <div className="mt-6 pt-4 border-t border-slate-100">
+                      {/* Copy Full Address Button */}
+                      <div className="pt-4 border-t border-slate-100">
                         <Button
                           variant="outline"
                           className="w-full border-slate-300 text-slate-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 font-medium"
                           onClick={() => {
                             const fullAddress = [
-                              `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
+                              `${warehouses?.userFirstName} ${warehouses?.userLastName} ${warehouse.country_code}${warehouses?.userWarehouseId}`,
+                              `${warehouse.address_line1},`,
                               warehouse.address_line2,
                               warehouse.address_line3,
                               warehouse.address_line4,
@@ -317,7 +398,7 @@ export default function AddressesPage() {
                           {copiedAddress ===
                           `${warehouse.warehouse_id}-full` ? (
                             <>
-                              <CheckCircle2 className="h-4 w-4 mr-2 " />
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
                               Address Copied!
                             </>
                           ) : (
