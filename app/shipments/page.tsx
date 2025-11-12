@@ -36,6 +36,7 @@ const supabase = getSupabaseBrowserClient();
 
 // Define the shipment type based on your database schema
 interface Shipment {
+  drop_and_ship_add_ons: string[];
   idx: number;
   shipment_id: string;
   user_id: string;
@@ -574,7 +575,11 @@ export default function ShipmentsPage() {
                               </span>
                             </div>
                             <div className="font-medium text-primary">
-                              ₹{shipment.total_price || 0} /-
+                              ₹
+                              {(shipment.total_price || 0) +
+                                (shipment.drop_and_ship_add_ons?.length || 0) *
+                                  100 || 0}{" "}
+                              /-
                             </div>
                           </div>
                         </div>

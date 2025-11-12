@@ -66,6 +66,13 @@ import Script from "next/script";
 import { toast as sonnerToast, type ExternalToast } from "sonner";
 // import { generateBarcode } from "@/lib/barcode";
 
+const DROP_AND_SHIP_ADD_ON_PRICE = 100;
+const DROP_AND_SHIP_ADD_ON_LABELS: Record<string, string> = {
+  "gift-wrapper": "Gift Wrapper",
+  "gift-message": "Gift Message",
+  "extra-packing": "Extra Packing Material",
+};
+
 type Warehouse = {
   name: string;
   country: string;
@@ -77,6 +84,7 @@ type Warehouse = {
 };
 
 interface Shipment {
+  drop_and_ship_add_ons: string[];
   idx: number;
   shipment_id: string;
   user_id: string;
@@ -1085,6 +1093,34 @@ export default function ShipmentDetailsPage() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const formatCurrency = (value: number | null | undefined) => {
+    const numericValue = Number(value) || 0;
+    return `₹${numericValue.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const formatAddOnLabel = (id: string) => {
+    if (DROP_AND_SHIP_ADD_ON_LABELS[id]) {
+      return DROP_AND_SHIP_ADD_ON_LABELS[id];
+    }
+
+    return id
+      .split("-")
+      .map((segment) =>
+        segment.length > 0
+          ? segment[0].toUpperCase() + segment.slice(1).toLowerCase()
+          : segment
+      )
+      .join(" ");
+  };
+
+  const addOnSelections = Array.isArray(shipment.drop_and_ship_add_ons)
+    ? shipment.drop_and_ship_add_ons
+    : [];
+  const addOnsTotal = addOnSelections.length * DROP_AND_SHIP_ADD_ON_PRICE;
+
   // Parse tracking history if available
   const trackingHistory = shipment.status_timeline
     ? typeof shipment.status_timeline === "string"
@@ -1437,6 +1473,37 @@ export default function ShipmentDetailsPage() {
                     <p className="text-sm text-muted-foreground">
                       No items found for this shipment.
                     </p>
+                  )}
+
+                  {addOnSelections.length > 0 && (
+                    <div className="space-y-3 rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Add-ons
+                        </h3>
+                        <span className="text-xs text-muted-foreground">
+                          {formatCurrency(DROP_AND_SHIP_ADD_ON_PRICE)} each
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {addOnSelections.map((addon) => (
+                          <Badge
+                            key={addon}
+                            variant="outline"
+                            className="gap-2 rounded-full px-3 py-1 text-xs font-medium"
+                          >
+                            <span>{formatAddOnLabel(addon)}</span>
+                            <span className="text-muted-foreground">
+                              +{formatCurrency(DROP_AND_SHIP_ADD_ON_PRICE)}
+                            </span>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-sm font-medium">
+                        <span>Total add-on charges</span>
+                        <span>{formatCurrency(addOnsTotal)}</span>
+                      </div>
+                    </div>
                   )}
 
                   {shipment.drop_and_ship_note && (

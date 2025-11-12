@@ -8,6 +8,7 @@ interface FormHeaderProps {
   showTermsDialog: boolean;
   setShowTermsDialog: (show: boolean) => void;
   onSubmit: () => void;
+  onAddOnsChange?: (selectedAddOns: string[], addOnTotal: number) => void;
 }
 
 export function FormHeader({
@@ -16,7 +17,11 @@ export function FormHeader({
   showTermsDialog,
   setShowTermsDialog,
   onSubmit,
+  onAddOnsChange,
 }: FormHeaderProps) {
+  const parsedTotalPrice = Number(totalPrice);
+  const baseAmount = Number.isFinite(parsedTotalPrice) ? parsedTotalPrice : 0;
+
   const handlePlaceOrder = () => {
     setShowTermsDialog(true);
   };
@@ -68,6 +73,8 @@ export function FormHeader({
         onOpenChange={setShowTermsDialog}
         onAccept={handleAcceptTerms}
         isSubmitting={isSubmitting}
+        baseAmount={baseAmount}
+        onAddOnsChange={onAddOnsChange}
       />
     </div>
   );

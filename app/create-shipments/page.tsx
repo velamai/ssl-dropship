@@ -133,6 +133,8 @@ export default function CreateShipmentPage() {
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [addOnTotal, setAddOnTotal] = useState(0);
 
   // Calculate total price from all product items
   const calculateTotalPrice = useCallback(() => {
@@ -334,6 +336,14 @@ export default function CreateShipmentPage() {
     [removeShipment, shipmentFields, toast]
   );
 
+  const handleAddOnsChange = useCallback(
+    (addOns: string[], addOnAmount: number) => {
+      setSelectedAddOns(addOns);
+      setAddOnTotal(addOnAmount);
+    },
+    []
+  );
+
   // Helper function to transform shipment data for Supabase
   const transformShipmentData = useCallback(
     (shipmentData: ShipmentFormData) => {
@@ -507,12 +517,17 @@ export default function CreateShipmentPage() {
       setIsSubmitting(true);
       setShowTermsDialog(true); // Close dialog on success
       const transformedShipment = transformShipmentData(data.shipments[0]);
+      const payload = {
+        ...transformedShipment,
+        drop_and_ship_add_ons: selectedAddOns,
+        drop_and_ship_add_ons_total: addOnTotal,
+      };
 
       const { data: responseData, error } = await supabase.functions.invoke(
         "drop-and-ship-order",
         {
           method: "POST",
-          body: transformedShipment,
+          body: payload,
         }
       );
 
@@ -575,6 +590,7 @@ export default function CreateShipmentPage() {
                 form.requestSubmit();
               }
             }}
+            onAddOnsChange={handleAddOnsChange}
           />
 
           {/* handleSubmit(onSubmitHandler) */}
