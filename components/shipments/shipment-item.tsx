@@ -186,26 +186,6 @@ export function ShipmentItem({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label
-                htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
-              >
-                Product Name *
-              </Label>
-              <Input
-                id={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
-                {...register(
-                  `shipments.${shipmentIndex}.items.${itemIndex}.productName`
-                )}
-                placeholder="Enter product name"
-              />
-              <ErrorMessage
-                error={
-                  errors.shipments?.[shipmentIndex]?.items?.[itemIndex]
-                    ?.productName
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label
                 htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productUrl`}
               >
                 Product URL *
@@ -267,6 +247,26 @@ export function ShipmentItem({
                   </button>
                 </div>
               )}
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
+              >
+                Product Name *
+              </Label>
+              <Input
+                id={`shipments.${shipmentIndex}.items.${itemIndex}.productName`}
+                {...register(
+                  `shipments.${shipmentIndex}.items.${itemIndex}.productName`
+                )}
+                placeholder="Enter product name"
+              />
+              <ErrorMessage
+                error={
+                  errors.shipments?.[shipmentIndex]?.items?.[itemIndex]
+                    ?.productName
+                }
+              />
             </div>
 
             <div className="space-y-2">

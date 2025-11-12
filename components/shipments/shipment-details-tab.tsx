@@ -961,7 +961,7 @@ export function ShipmentDetailsTab({
                           </p>
                           <p className="text-xs font-medium text-foreground break-words">
                             {warehouse.address_line1}{" "}
-                            {`${warehouse.country_code}${warehouses.userWarehouseId}`}
+                            {/* {`${warehouse.country_code}${warehouses.userWarehouseId}`} */}
                           </p>
                         </div>
                       </div>

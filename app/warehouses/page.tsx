@@ -219,14 +219,14 @@ export default function AddressesPage() {
                               </p>
                               <p className="text-sm font-medium text-slate-700">
                                 {warehouse.address_line1}, {` `}
-                                {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
+                                {/* {`${warehouse.country_code}${warehouses?.userWarehouseId}`} */}
                               </p>
                             </div>
                           </div>
                           <button
                             onClick={() =>
                               copyToClipboard(
-                                `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
+                                `${warehouse.address_line1}, `,
                                 `${warehouse.warehouse_id}-line1`
                               )
                             }
