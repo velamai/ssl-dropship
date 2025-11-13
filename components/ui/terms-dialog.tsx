@@ -109,7 +109,7 @@ export function TermsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[87vh] p-6">
+      <DialogContent className="max-w-3xl max-h-[92vh] p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {step === "addons" ? "Choose Add-ons" : "Terms and Conditions"}
@@ -521,7 +521,7 @@ export function TermsDialog({
           </ScrollArea>
         )}
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
           <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
             <Button
               variant="outline"

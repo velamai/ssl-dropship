@@ -415,13 +415,14 @@ export default function AccountPage() {
               <div className="rounded-lg border border-[#e2e2e2] bg-white">
                 {/* Personal Information Tab */}
                 {activeTab === "personal" && (
-                  <div>
+                  <form onSubmit={handleSaveChanges}>
                     <div className="flex items-center justify-between border-b border-[#e2e2e2] p-4">
                       <h2 className="text-lg font-medium text-[#3f3f3f]">
                         Personal Information
                       </h2>
                       {!isEditing ? (
                         <button
+                          type="button"
                           onClick={() => setIsEditing(true)}
                           className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]"
                         >
@@ -431,6 +432,7 @@ export default function AccountPage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => setIsEditing(false)}
                             className="flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-[#3f3f3f]"
                           >
@@ -438,7 +440,7 @@ export default function AccountPage() {
                             Cancel
                           </button>
                           <button
-                            // onClick={(e) => handleSaveChanges(e)}
+                            type="submit"
                             disabled={updateProfileMutation.isPending}
                             className="flex items-center rounded-md bg-[#9c4cd2] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-70"
                           >
@@ -458,102 +460,100 @@ export default function AccountPage() {
                       )}
                     </div>
                     <div className="p-4">
-                      <form onSubmit={handleSaveChanges}>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div className="space-y-1.5">
-                            <label
-                              htmlFor="firstName"
-                              className="block text-[14px] font-medium text-[#3f3f3f]"
-                            >
-                              First Name
-                            </label>
-                            <input
-                              id="firstName"
-                              name="firstName"
-                              type="text"
-                              value={formData.firstName}
-                              onChange={handleInputChange}
-                              disabled={!isEditing}
-                              className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
-                                isEditing
-                                  ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
-                                  : "opacity-80"
-                              }`}
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label
-                              htmlFor="lastName"
-                              className="block text-[14px] font-medium text-[#3f3f3f]"
-                            >
-                              Last Name
-                            </label>
-                            <input
-                              id="lastName"
-                              name="lastName"
-                              type="text"
-                              value={formData.lastName}
-                              onChange={handleInputChange}
-                              disabled={!isEditing}
-                              className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
-                                isEditing
-                                  ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
-                                  : "opacity-80"
-                              }`}
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label
-                              htmlFor="email"
-                              className="block text-[14px] font-medium text-[#3f3f3f]"
-                            >
-                              Email Address
-                            </label>
-                            <input
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={formData.email}
-                              disabled={true}
-                              className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none opacity-80 cursor-not-allowed"
-                            />
-                            <p className="text-[12px] text-[#a2a2a2]">
-                              Email address cannot be changed
-                            </p>
-                          </div>
-                          <div className="space-y-1.5">
-                            <label
-                              htmlFor="phone"
-                              className="block text-[14px] font-medium text-[#3f3f3f]"
-                            >
-                              Phone Number
-                            </label>
-                            {isEditing ? (
-                              <PhoneInput
-                                id="phone"
-                                placeholder="Enter your phone number"
-                                value={formData.phone}
-                                onChange={handlePhoneChange}
-                                defaultCountry="IN"
-                                international
-                                countryCallingCodeEditable={false}
-                                className="[&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] [&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
-                              />
-                            ) : (
-                              <input
-                                id="phone"
-                                name="phone"
-                                type="tel"
-                                value={formData.phone}
-                                disabled={true}
-                                className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none opacity-80"
-                              />
-                            )}
-                          </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="firstName"
+                            className="block text-[14px] font-medium text-[#3f3f3f]"
+                          >
+                            First Name
+                          </label>
+                          <input
+                            id="firstName"
+                            name="firstName"
+                            type="text"
+                            value={formData.firstName}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
+                              isEditing
+                                ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                                : "opacity-80"
+                            }`}
+                          />
                         </div>
-                      </form>
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="lastName"
+                            className="block text-[14px] font-medium text-[#3f3f3f]"
+                          >
+                            Last Name
+                          </label>
+                          <input
+                            id="lastName"
+                            name="lastName"
+                            type="text"
+                            value={formData.lastName}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
+                              isEditing
+                                ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                                : "opacity-80"
+                            }`}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="email"
+                            className="block text-[14px] font-medium text-[#3f3f3f]"
+                          >
+                            Email Address
+                          </label>
+                          <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            disabled={true}
+                            className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none opacity-80 cursor-not-allowed"
+                          />
+                          <p className="text-[12px] text-[#a2a2a2]">
+                            Email address cannot be changed
+                          </p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="phone"
+                            className="block text-[14px] font-medium text-[#3f3f3f]"
+                          >
+                            Phone Number
+                          </label>
+                          {isEditing ? (
+                            <PhoneInput
+                              id="phone"
+                              placeholder="Enter your phone number"
+                              value={formData.phone}
+                              onChange={handlePhoneChange}
+                              defaultCountry="IN"
+                              international
+                              countryCallingCodeEditable={false}
+                              className="[&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] [&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
+                            />
+                          ) : (
+                            <input
+                              id="phone"
+                              name="phone"
+                              type="tel"
+                              value={formData.phone}
+                              disabled={true}
+                              className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none opacity-80"
+                            />
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </form>
                 )}
 
                 {/* Security Tab */}
