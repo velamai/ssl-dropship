@@ -193,27 +193,27 @@ const validateStep2 = (formData: FormData): { [key: string]: string } => {
   return errors;
 };
 
-const validateStep3 = (formData: FormData): { [key: string]: string } => {
-  const errors: { [key: string]: string } = {};
+// const validateStep3 = (formData: FormData): { [key: string]: string } => {
+//   const errors: { [key: string]: string } = {};
 
-  if (!formData.identityVerification.proofType) {
-    errors.proofType = "Please select a document type";
-  }
+//   if (!formData.identityVerification.proofType) {
+//     errors.proofType = "Please select a document type";
+//   }
 
-  if (!formData.identityVerification.frontImage) {
-    errors.frontImage = "Please upload the front side of your document";
-  }
+//   if (!formData.identityVerification.frontImage) {
+//     errors.frontImage = "Please upload the front side of your document";
+//   }
 
-  // Check if back image is required based on proof type
-  const requiresBackImage = ["gov-id", "driving_license"].includes(
-    formData.identityVerification.proofType
-  );
-  if (requiresBackImage && !formData.identityVerification.backImage) {
-    errors.backImage = "Please upload the back side of your document";
-  }
+//   // Check if back image is required based on proof type
+//   const requiresBackImage = ["gov-id", "driving_license"].includes(
+//     formData.identityVerification.proofType
+//   );
+//   if (requiresBackImage && !formData.identityVerification.backImage) {
+//     errors.backImage = "Please upload the back side of your document";
+//   }
 
-  return errors;
-};
+//   return errors;
+// };
 
 // Session storage utilities
 const SESSION_STORAGE_KEY = "registration_form_data";
@@ -539,6 +539,24 @@ export default function RegisterPage() {
     };
     setFormData(updatedData);
     saveToSessionStorage(updatedData);
+
+    setValidationErrors((prev) => {
+      const next = { ...prev };
+      if (!data.proofType) {
+        delete next.proofType;
+        delete next.frontImage;
+        delete next.backImage;
+      } else {
+        delete next.proofType;
+        if (data.frontImage) {
+          delete next.frontImage;
+        }
+        if (data.backImage) {
+          delete next.backImage;
+        }
+      }
+      return next;
+    });
   };
 
   const validateCurrentStep = () => {
@@ -552,7 +570,7 @@ export default function RegisterPage() {
         errors = validateStep2(formData);
         break;
       case 3:
-        errors = validateStep3(formData);
+        // errors = validateStep3(formData);
         break;
     }
 
@@ -580,40 +598,44 @@ export default function RegisterPage() {
     // Validate identity inputs at submit time
     const { proofType, frontImage, backImage } = formData.identityVerification;
     const requiresBackImage = ["driving_license", "gov-id"].includes(proofType);
-    if (!proofType || !frontImage || (requiresBackImage && !backImage)) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        ...(proofType ? {} : { proofType: "Please select a document type" }),
-        ...(frontImage
-          ? {}
-          : { frontImage: "Please upload the front side of your document" }),
-        ...(requiresBackImage && !backImage
-          ? { backImage: "Please upload the back side of your document" }
-          : {}),
-      }));
-      return;
-    }
 
     // Upload documents first
     try {
-      setIsUploadingFiles(true);
-      const frontImageUrl = await uploadFileToR2(frontImage as File);
-      let backImageUrl = "";
-      if (backImage) {
-        backImageUrl = await uploadFileToR2(backImage as File);
+      let payload = { ...formData };
+      if (proofType) {
+        if (!frontImage || (requiresBackImage && !backImage)) {
+          setValidationErrors((prev) => ({
+            ...prev,
+            ...(frontImage
+              ? {}
+              : {
+                  frontImage: "Please upload the front side of your document",
+                }),
+            ...(requiresBackImage && !backImage
+              ? { backImage: "Please upload the back side of your document" }
+              : {}),
+          }));
+          return;
+        }
+        setIsUploadingFiles(true);
+        const frontImageUrl = await uploadFileToR2(frontImage as File);
+        let backImageUrl = "";
+        if (backImage) {
+          backImageUrl = await uploadFileToR2(backImage as File);
+        }
+
+        payload = {
+          ...formData,
+          identityVerification: {
+            ...formData.identityVerification,
+            frontImageUrl,
+            backImageUrl,
+          },
+        };
+
+        setFormData(payload);
       }
-
-      const updatedData = {
-        ...formData,
-        identityVerification: {
-          ...formData.identityVerification,
-          frontImageUrl,
-          backImageUrl,
-        },
-      };
-
-      setFormData(updatedData);
-      registerMutation.mutate(updatedData);
+      registerMutation.mutate(payload);
     } catch (error) {
       console.error("Identity upload failed:", error);
       setIsUploadingFiles(false);
@@ -1173,7 +1195,7 @@ export default function RegisterPage() {
                   ? "Personal Information"
                   : currentStep === 2
                   ? "Address Information"
-                  : "Identity Verification"}
+                  : "Identity Verification (Optional)"}
               </p>
             )}
           </div>

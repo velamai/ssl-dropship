@@ -145,63 +145,15 @@ export function IdentityVerification({
     emitChange({ proofType: value });
   };
 
-  const handleSubmit = async () => {
-    if (!proofType) {
-      toast({
-        title: "Proof Type Required",
-        description: "Please select a proof type",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!frontImage) {
-      toast({
-        title: "Front Image Required",
-        description: "Please upload the front side of your document",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (requiresBackImage && !backImage) {
-      toast({
-        title: "Back Image Required",
-        description: "Please upload the back side of your document",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onVerificationSubmit?.({
-        proofType,
-        frontImage,
-        backImage: backImage || undefined,
-      });
-
-      toast({
-        title: "Verification Submitted",
-        description: "Your identity verification has been submitted for review",
-        variant: "default",
-      });
-
-      // Reset form
-      setProofType("");
-      setFrontImage(null);
-      setBackImage(null);
-      setFrontPreview("");
-      setBackPreview("");
-    } catch (error) {
-      toast({
-        title: "Submission Failed",
-        description: "Failed to submit verification. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const resetIdentityState = () => {
+    setProofType("");
+    setFrontImage(null);
+    setBackImage(null);
+    setFrontPreview("");
+    setBackPreview("");
+    if (frontInputRef.current) frontInputRef.current.value = "";
+    if (backInputRef.current) backInputRef.current.value = "";
+    emitChange({ proofType: "", frontImage: null, backImage: null });
   };
 
   return (
@@ -214,16 +166,31 @@ export function IdentityVerification({
       ) : (
         <div className="w-full max-w-2xl">
           <h4 className="font-medium text-[#3f3f3f] mb-1">
-            Identity Verification
+            Identity Verification{" "}
+            <span className="text-[12px] text-[#a2a2a2]">(Optional)</span>
           </h4>
           <p className="text-sm text-[#a2a2a2] mb-4">
-            Upload a valid government-issued ID. All information is securely
-            processed and encrypted.
+            Upload a valid government-issued ID to verify your account. This is
+            optional but recommended. All information is securely processed and
+            encrypted.
           </p>
           <div className="space-y-6">
             {/* Proof Type Selection */}
             <div className="space-y-2">
-              <Label htmlFor="proof-type">Document Type *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="proof-type">Document Type</Label>
+                {proofType && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-[#9c4cd2] hover:text-[#7a2da6]"
+                    onClick={resetIdentityState}
+                  >
+                    Clear selection
+                  </Button>
+                )}
+              </div>
               <Select value={proofType} onValueChange={handleProofTypeChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select document type" />
@@ -240,7 +207,7 @@ export function IdentityVerification({
 
             {/* Front Image Upload */}
             <div className="space-y-2">
-              <Label>Front Side of Document *</Label>
+              <Label>Front Side of Document</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                 {frontPreview ? (
                   <div className="relative">
@@ -291,7 +258,7 @@ export function IdentityVerification({
             {/* Back Image Upload (conditional) */}
             {requiresBackImage && (
               <div className="space-y-2">
-                <Label>Back Side of Document *</Label>
+                <Label>Back Side of Document</Label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                   {backPreview ? (
                     <div className="relative">

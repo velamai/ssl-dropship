@@ -227,7 +227,6 @@ async function submitIdentityVerification(data: {
 }) {
   try {
     const supabase = getSupabaseBrowserClient();
-
     // Insert into identity_verification table
     const { data: verificationData, error: verificationError } = await supabase
       .from("identity_verification")
@@ -310,7 +309,8 @@ export function IdentityVerificationV2({
 
   // Find if the selected proof type requires back image
   const proofConfig = PROOF_TYPES.find(
-    (type) => type.value === selectedProofType
+    (type: { value: string; requiresBack?: boolean }) =>
+      type.value === selectedProofType
   );
   const requiresBackImage = proofConfig?.requiresBack || false;
 
@@ -544,11 +544,13 @@ export function IdentityVerificationV2({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {PROOF_TYPES.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
+                            {PROOF_TYPES.map(
+                              (type: { value: string; label: string }) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              )
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
