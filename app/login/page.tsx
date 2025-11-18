@@ -25,7 +25,7 @@ function SignInForm() {
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get redirect parameter from URL
   const redirectPath = searchParams.get("redirect") || "/shipments";
 
@@ -116,16 +116,17 @@ function SignInForm() {
           {/* Logo */}
           <div className="absolute left-12 top-12 z-10">
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10">
-                <svg
-                  viewBox="0 0 40 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
-                  <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
-                  <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
-                </svg>
+              <div className="size-16">
+                {/* <svg
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
+                <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
+                <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
+              </svg> */}
+                <Image src="logo.png" width={100} height={100} alt="logo" />
               </div>
               <div>
                 <div className="font-bold leading-tight text-[#3f3f3f]">

@@ -4,9 +4,17 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -15,15 +23,22 @@ import { IdentityVerification } from "@/components/identity-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { fetchCountries } from "@/lib/api-client";
 
 const getPhoneDetails = (phone: string) => {
   if (!phone)
@@ -167,15 +182,12 @@ const validateStep2 = (formData: FormData): { [key: string]: string } => {
   if (!formData.addressLine1.trim()) {
     errors.addressLine1 = "Address line 1 is required";
   }
+  if (!formData.addressLine2.trim()) {
+    errors.addressLine2 = "Address line 2 is required";
+  }
 
   if (!formData.country.trim()) {
     errors.country = "Country is required";
-  }
-
-  if (!formData.pincode.trim()) {
-    errors.pincode = "Pincode is required";
-  } else if (!/^\d{5,6}$/.test(formData.pincode.trim())) {
-    errors.pincode = "Please enter a valid pincode";
   }
 
   return errors;
@@ -383,6 +395,23 @@ export default function RegisterPage() {
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
+  const [isCountrySelectOpen, setIsCountrySelectOpen] = useState(false);
+
+  const {
+    data: countries = [],
+    isLoading: isCountriesLoading,
+    isError: isCountriesError,
+    error: countriesError,
+    refetch: refetchCountries,
+  } = useQuery<Array<{ code: string; name: string }>>({
+    queryKey: ["countries"],
+    queryFn: fetchCountries,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const selectedCountry = countries?.find(
+    (country: { code: string }) => country.code === formData.country
+  );
 
   // Load data and current step from session storage on component mount
   useEffect(() => {
@@ -795,7 +824,7 @@ export default function RegisterPage() {
                 htmlFor="addressLine2"
                 className="text-[14px] font-medium text-[#3f3f3f]"
               >
-                Address Line 2
+                Address Line 2 *
               </Label>
               <Input
                 id="addressLine2"
@@ -803,9 +832,18 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.addressLine2}
                 onChange={handleChange}
-                placeholder="Apartment, suite, etc. (optional)"
-                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                placeholder="Apartment, suite, etc"
+                className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
+                  validationErrors.addressLine2
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                }`}
               />
+              {validationErrors.addressLine2 && (
+                <p className="text-[12px] text-red-600 mt-1">
+                  {validationErrors.addressLine2}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -813,7 +851,7 @@ export default function RegisterPage() {
                 htmlFor="addressLine3"
                 className="text-[14px] font-medium text-[#3f3f3f]"
               >
-                Address Line 3 *
+                Address Line 3
               </Label>
               <Input
                 id="addressLine3"
@@ -821,7 +859,7 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.addressLine3}
                 onChange={handleChange}
-                placeholder="City, state"
+                placeholder="City, state (optional)"
                 className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
               />
             </div>
@@ -852,40 +890,101 @@ export default function RegisterPage() {
                 >
                   Country *
                 </Label>
-                <Select
-                  value={formData.country}
-                  onValueChange={(value) =>
-                    handleSelectChange("country", value)
-                  }
+                <Popover
+                  open={isCountrySelectOpen}
+                  onOpenChange={setIsCountrySelectOpen}
                 >
-                  <SelectTrigger
-                    className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
-                      validationErrors.country
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                        : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                    }`}
-                  >
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IN">India</SelectItem>
-                    <SelectItem value="US">United States</SelectItem>
-                    <SelectItem value="UK">United Kingdom</SelectItem>
-                    <SelectItem value="CA">Canada</SelectItem>
-                    <SelectItem value="AU">Australia</SelectItem>
-                    <SelectItem value="DE">Germany</SelectItem>
-                    <SelectItem value="FR">France</SelectItem>
-                    <SelectItem value="JP">Japan</SelectItem>
-                    <SelectItem value="CN">China</SelectItem>
-                    <SelectItem value="BR">Brazil</SelectItem>
-
-                    {/* {sortedCountries.map((country) => (
-                      <SelectItem key={country.code} value={country.name}>
-                        {country.name}
-                      </SelectItem>
-                    ))} */}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isCountrySelectOpen}
+                      className={cn(
+                        "h-[46px] w-full justify-between bg-[#fcfcfc] text-left text-[14px]",
+                        validationErrors.country
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                          : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                      )}
+                      disabled={isCountriesLoading}
+                    >
+                      {isCountriesLoading ? (
+                        <span className="flex items-center gap-2 text-[#6f6f6f]">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading countries...
+                        </span>
+                      ) : selectedCountry ? (
+                        selectedCountry.name
+                      ) : (
+                        "Select country"
+                      )}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search country..."
+                        disabled={isCountriesLoading}
+                      />
+                      <CommandList>
+                        {isCountriesLoading ? (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                            <p className="mt-2">Loading countries...</p>
+                          </div>
+                        ) : (
+                          <>
+                            <CommandEmpty>No country found.</CommandEmpty>
+                            <CommandGroup>
+                              {countries?.map(
+                                (country: { code: string; name: string }) => (
+                                  <CommandItem
+                                    key={country.code}
+                                    value={`${country.code} ${country.name}`}
+                                    onSelect={() => {
+                                      handleSelectChange(
+                                        "country",
+                                        country.code
+                                      );
+                                      setIsCountrySelectOpen(false);
+                                    }}
+                                  >
+                                    <span className="flex-1">
+                                      {country.name}
+                                    </span>
+                                    <Check
+                                      className={cn(
+                                        "ml-2 h-4 w-4",
+                                        formData.country === country.code
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                  </CommandItem>
+                                )
+                              )}
+                            </CommandGroup>
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {isCountriesError && (
+                  <div className="mt-1 flex items-center justify-between rounded-md bg-red-50 px-3 py-2 text-[12px] text-red-600">
+                    <span className="pr-2">
+                      Unable to load countries. Please try again.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => refetchCountries()}
+                      className="text-[12px] font-medium underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
                 {validationErrors.country && (
                   <p className="text-[12px] text-red-600 mt-1">
                     {validationErrors.country}
@@ -898,7 +997,7 @@ export default function RegisterPage() {
                   htmlFor="pincode"
                   className="text-[14px] font-medium text-[#3f3f3f]"
                 >
-                  Pincode / Zipcode *
+                  Pincode / Zipcode
                 </Label>
                 <Input
                   id="pincode"
@@ -980,8 +1079,8 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="absolute left-12 top-12 z-10">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10">
-              <svg
+            <div className="size-16">
+              {/* <svg
                 viewBox="0 0 40 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -989,7 +1088,8 @@ export default function RegisterPage() {
                 <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
                 <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
                 <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
-              </svg>
+              </svg> */}
+              <Image src="logo.png" width={100} height={100} alt="logo" />
             </div>
             <div>
               <div className="font-bold leading-tight text-[#3f3f3f]">
@@ -1185,7 +1285,7 @@ export default function RegisterPage() {
               <div className="text-center text-[13px] text-[#a2a2a2]">
                 Already have an account?{" "}
                 <Link
-                  href="/"
+                  href="/login"
                   className="text-[#9c4cd2] font-medium hover:underline"
                 >
                   Sign In

@@ -2,7 +2,11 @@ import { z } from "zod";
 
 // Proof types enum for better type safety
 export const PROOF_TYPES = [
-  { value: "gov-id", label: "Government ID", requiresBack: true },
+  {
+    value: "gov-id",
+    label: "Government ID (With Address Proof)",
+    requiresBack: false,
+  },
   { value: "passport", label: "Passport", requiresBack: true },
   { value: "driving_license", label: "Driving License", requiresBack: true },
 ] as const;

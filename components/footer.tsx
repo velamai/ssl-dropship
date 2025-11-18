@@ -13,6 +13,7 @@ import {
   Package,
   Warehouse,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -30,9 +31,7 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
-                <span className="text-white font-bold">B2S</span>
-              </div>
+              <Image src="logo.jpg" width={100} height={100} alt="logo" />
               <span className="text-xl font-bold">buy2send</span>
             </div>
             <p className="text-purple-200">Global drop & ship made simple</p>

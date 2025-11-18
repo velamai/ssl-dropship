@@ -141,9 +141,11 @@ export default function ProductPriceCalculatorPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
+              {/* <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
                 <span className="text-white font-bold text-lg">B2S</span>
-              </div>
+              </div> */}
+              <Image src="logo.png" width={75} height={75} alt="logo" />
+
               <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
                 buy2send
               </span>
