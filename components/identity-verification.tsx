@@ -32,9 +32,9 @@ export const PROOF_TYPES = [
   {
     value: "gov-id",
     label: "Government ID (With Address Proof)",
-    requiresBack: false,
+    requiresBack: true,
   },
-  { value: "passport", label: "Passport", requiresBack: true },
+  { value: "passport", label: "Passport", requiresBack: false },
   { value: "driving_license", label: "Driving License", requiresBack: true },
 ] as const;
 
