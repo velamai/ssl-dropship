@@ -143,9 +143,11 @@ export default function AccountPage() {
   } = useQuery({
     queryKey: ["userData", user?.id],
     queryFn: () => fetchUserData(user?.id || ""),
-    enabled: !!user?.id && !authLoading,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  console.log("userData", userData);
 
   const {
     data: identityVerificationData,

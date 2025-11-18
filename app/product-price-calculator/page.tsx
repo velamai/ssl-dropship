@@ -163,7 +163,8 @@ export default function ProductPriceCalculatorPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Product Price Calculator</h1>
           <p className="text-muted-foreground">
-            Enter a product URL from e-commerce sites in India, Sri Lanka, UAE, Malaysia, Singapore, or USA to calculate total shipping costs
+            Enter a product URL from e-commerce sites in India, Sri Lanka, UAE,
+            Malaysia, Singapore, or USA to calculate total shipping costs
           </p>
         </div>
 
@@ -187,7 +188,8 @@ export default function ProductPriceCalculatorPage() {
                     disabled={isLoadingProduct}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Supported: E-commerce sites from India, Sri Lanka, UAE, Malaysia, Singapore, and USA
+                    Supported: E-commerce sites from India, Sri Lanka, UAE,
+                    Malaysia, Singapore, and USA
                   </p>
                 </div>
 
@@ -216,7 +218,7 @@ export default function ProductPriceCalculatorPage() {
                             <button
                               onClick={() =>
                                 window.open(
-                                  "https://wa.me/918220586721?text=Hi, I need help with the product price calculator",
+                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
                                   "_blank"
                                 )
                               }
@@ -328,11 +330,7 @@ export default function ProductPriceCalculatorPage() {
                 {/* Calculate Button */}
                 <Button
                   onClick={handleCalculatePrice}
-                  disabled={
-                    !productData ||
-                    !category ||
-                    isCalculating
-                  }
+                  disabled={!productData || !category || isCalculating}
                   className="w-full"
                   size="lg"
                 >
@@ -366,7 +364,7 @@ export default function ProductPriceCalculatorPage() {
                             <button
                               onClick={() =>
                                 window.open(
-                                  "https://wa.me/918220586721?text=Hi, I need help with the product price calculator",
+                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
                                   "_blank"
                                 )
                               }
