@@ -158,7 +158,7 @@ export default function ShipmentsPage() {
 
   // Load shipments with item counts
   useEffect(() => {
-    console.log("[Shipments Page] User state in useEffect:", user);
+    console.log("[Shipments Page] User state in useEffect:", user?.id);
 
     // Guard clause: don't proceed if user is not loaded
     if (!user || !user.id) {
@@ -167,20 +167,23 @@ export default function ShipmentsPage() {
       return;
     }
 
+    // Use a ref to track the current user ID to prevent unnecessary reloads
+    const userId = user.id;
+
     async function loadShipments() {
       setLoading(true);
       try {
         // let query = supabase
         //   .from("shipments")
         //   .select<string, Shipment>("*", { count: "estimated" })
-        //   .eq("user_id", user?.id)
+        //   .eq("user_id", userId)
         //   .not("drop_and_ship_order_id", "is", null)
         //   .order("created_at", { ascending: false });
 
         let query = supabase
           .from("shipments")
           .select("*", { count: "estimated" })
-          .eq("user_id", user?.id)
+          .eq("user_id", userId)
           .not("drop_and_ship_order_id", "is", null)
           .order("created_at", { ascending: false });
 
@@ -240,8 +243,8 @@ export default function ShipmentsPage() {
     }
 
     loadShipments();
-    // Ensure user object changes trigger reload if necessary, though id might be sufficient
-  }, [user, statusFilter, currentPage, itemsPerPage]); // REMOVED getCourierName
+    // Use user.id instead of user object to prevent reloads on token refresh
+  }, [user?.id, statusFilter, currentPage, itemsPerPage]); // Changed from 'user' to 'user?.id'
 
   // Filter shipments based on search term
   useEffect(() => {

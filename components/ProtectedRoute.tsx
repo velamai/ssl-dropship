@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
 interface ProtectedRouteProps {
@@ -10,15 +10,26 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading } = useAuth();
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      // Redirect to login page with the current path as redirect parameter
-      const currentPath = window.location.pathname;
-      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+    // Prevent multiple redirects
+    if (hasRedirectedRef.current) {
+      return;
     }
-  }, [user, isLoading, router]);
+
+    if (!isLoading && !user) {
+      hasRedirectedRef.current = true;
+      // Redirect to login page with the current path as redirect parameter
+      const currentPath = pathname || window.location.pathname;
+      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+    } else if (user) {
+      // Reset redirect flag when user is present
+      hasRedirectedRef.current = false;
+    }
+  }, [user, isLoading, router, pathname]);
 
   // Show loading state while checking authentication
   if (isLoading) {

@@ -318,7 +318,7 @@ const registerUser = async (userData: FormData) => {
         country_code: phoneDetails.countryCode,
         source: "BUY2SEND",
       },
-      emailRedirectTo: "https://www.buy2send.com",
+      emailRedirectTo: "https://buy2send.com/auth/callback",
     },
   });
 
