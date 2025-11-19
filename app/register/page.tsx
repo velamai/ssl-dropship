@@ -317,6 +317,7 @@ const registerUser = async (userData: FormData) => {
         phone_number: phoneDetails.nationalNumber,
         country_code: phoneDetails.countryCode,
       },
+      emailRedirectTo: "https://buy2send.com",
     },
   });
 
