@@ -316,8 +316,9 @@ const registerUser = async (userData: FormData) => {
         last_name: userData.lastName.trim(),
         phone_number: phoneDetails.nationalNumber,
         country_code: phoneDetails.countryCode,
+        source: "BUY2SEND",
       },
-      emailRedirectTo: window.location.origin + "/auth/callback",
+      emailRedirectTo: "https://www.buy2send.com",
     },
   });
 
@@ -374,16 +375,16 @@ export default function RegisterPage() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
+    firstName: "asdsasdad",
+    lastName: "asdasdads",
     email: "",
     password: "",
-    phoneNumber: "",
-    addressLine1: "",
-    addressLine2: "",
+    phoneNumber: "+919898989898",
+    addressLine1: "asdsadad",
+    addressLine2: "asdasdasdsad",
     addressLine3: "",
     addressLine4: "",
-    country: "",
+    country: "IN",
     pincode: "",
     identityVerification: {
       proofType: "",
