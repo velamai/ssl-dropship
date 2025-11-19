@@ -375,16 +375,16 @@ export default function RegisterPage() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    firstName: "asdsasdad",
-    lastName: "asdasdads",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
-    phoneNumber: "+919898989898",
-    addressLine1: "asdsadad",
-    addressLine2: "asdasdasdsad",
+    phoneNumber: "",
+    addressLine1: "",
+    addressLine2: "",
     addressLine3: "",
     addressLine4: "",
-    country: "IN",
+    country: "",
     pincode: "",
     identityVerification: {
       proofType: "",
