@@ -1,6 +1,7 @@
 // Example: /auth/callback page (React/Next.js)
+"use client";
 import { useEffect } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export default function AuthCallback() {
