@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -520,52 +521,53 @@ export function TermsDialog({
             </div>
           </ScrollArea>
         )}
-
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
-          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-
-            {step === "terms" ? (
+        <DialogFooter>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+            <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
               <Button
                 variant="outline"
-                onClick={handleBack}
+                onClick={() => handleOpenChange(false)}
                 disabled={isSubmitting}
               >
-                Back
+                Cancel
               </Button>
-            ) : null}
 
-            {step === "addons" ? (
-              <Button onClick={handleNext} disabled={isSubmitting}>
-                Next
-              </Button>
-            ) : (
-              <Button
-                onClick={onAccept}
-                disabled={isSubmitting}
-                className="gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Place Order ({formatCurrency(grandTotal)})
-                  </>
-                )}
-              </Button>
-            )}
+              {step === "terms" ? (
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={isSubmitting}
+                >
+                  Back
+                </Button>
+              ) : null}
+
+              {step === "addons" ? (
+                <Button onClick={handleNext} disabled={isSubmitting}>
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  onClick={onAccept}
+                  disabled={isSubmitting}
+                  className="gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Place Order ({formatCurrency(grandTotal)})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
