@@ -110,7 +110,7 @@ export function TermsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] p-6">
+      <DialogContent className="max-w-3xl min-h-[88vh] p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {step === "addons" ? "Choose Add-ons" : "Terms and Conditions"}
