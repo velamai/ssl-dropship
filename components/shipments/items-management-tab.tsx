@@ -65,10 +65,7 @@ export function ItemsManagementTab({
       price: undefined,
       quantity: undefined,
     });
-    // Expand the newly added item by default
-    setTimeout(() => {
-      toggleItemExpansion(newUuid);
-    }, 0);
+    // Items are expanded by default, so no need to call toggleItemExpansion
     // Trigger price calculation after adding item
     if (onPriceChange) {
       setTimeout(onPriceChange, 0);
@@ -116,6 +113,12 @@ export function ItemsManagementTab({
                 `shipments.${index}.items.${itemIndex}.uuid`
               );
 
+              const isExpanded = itemUuid
+                ? expandedItems[itemUuid] === undefined
+                  ? true
+                  : expandedItems[itemUuid] === itemUuid
+                : false;
+
               return (
                 <ShipmentItem
                   key={itemField.fieldId}
@@ -126,9 +129,7 @@ export function ItemsManagementTab({
                   errors={errors}
                   watch={watch}
                   setValue={setValue}
-                  isExpanded={
-                    itemUuid ? expandedItems[itemUuid] === itemUuid : false
-                  }
+                  isExpanded={isExpanded}
                   onToggleExpand={() =>
                     itemUuid && toggleItemExpansion(itemUuid)
                   }

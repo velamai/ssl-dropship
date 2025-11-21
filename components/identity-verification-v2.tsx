@@ -91,13 +91,12 @@ function FileUpload({
       </div>
 
       <div
-        className={`border-2 border-dashed rounded-lg p-4 ${
-          error
+        className={`border-2 border-dashed rounded-lg p-4 ${error
             ? "border-red-300 bg-red-50"
             : uploadedUrl
-            ? "border-green-300 bg-green-50"
-            : "border-gray-300"
-        }`}
+              ? "border-green-300 bg-green-50"
+              : "border-gray-300"
+          }`}
       >
         {preview ? (
           <div className="relative">
@@ -142,14 +141,12 @@ function FileUpload({
             ) : (
               <>
                 <FileImage
-                  className={`h-12 w-12 mx-auto mb-2 ${
-                    error ? "text-red-400" : "text-gray-400"
-                  }`}
+                  className={`h-12 w-12 mx-auto mb-2 ${error ? "text-red-400" : "text-gray-400"
+                    }`}
                 />
                 <p
-                  className={`text-sm mb-2 ${
-                    error ? "text-red-600" : "text-gray-600"
-                  }`}
+                  className={`text-sm mb-2 ${error ? "text-red-600" : "text-gray-600"
+                    }`}
                 >
                   Click to upload {label.toLowerCase()}
                 </p>
@@ -273,12 +270,17 @@ async function submitIdentityVerification(data: {
   }
 }
 
-export function IdentityVerificationV2({
-  isVerified,
+export function IdentityVerificationDialog({
   userId,
   identityVerificationId,
-  isLoading,
-}: IdentityVerificationProps) {
+  children,
+  onSuccess,
+}: {
+  userId?: string;
+  identityVerificationId?: string;
+  children?: React.ReactNode;
+  onSuccess?: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [frontPreview, setFrontPreview] = useState<string>("");
   const [backPreview, setBackPreview] = useState<string>("");
@@ -329,6 +331,10 @@ export function IdentityVerificationV2({
         queryClient.invalidateQueries({
           queryKey: ["identityVerificationData", userId],
         });
+      }
+
+      if (onSuccess) {
+        onSuccess();
       }
 
       // Reset form and close dialog
@@ -391,9 +397,8 @@ export function IdentityVerificationV2({
 
       toast({
         title: "Upload Complete",
-        description: `${
-          type === "frontImage" ? "Front" : "Back"
-        } image uploaded successfully`,
+        description: `${type === "frontImage" ? "Front" : "Back"
+          } image uploaded successfully`,
         variant: "default",
       });
     } catch (error) {
@@ -471,6 +476,192 @@ export function IdentityVerificationV2({
   };
 
   return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {children ? (
+        <DialogTrigger asChild>{children}</DialogTrigger>
+      ) : identityVerificationId ? (
+        <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1.5 rounded">
+          <Pause className="h-4 w-4 text-yellow-600" />
+          <span className="text-sm font-medium text-yellow-600">
+            Pending Review
+          </span>
+        </div>
+      ) : (
+        <DialogTrigger asChild>
+          <Button className="bg-[#f5e5ff] text-[#9c4cd2] hover:bg-[#ede0ff]">
+            Verify Identity
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Identity Verification</DialogTitle>
+          <DialogDescription>
+            Upload a valid government-issued ID to verify your identity. All
+            information is securely processed and encrypted.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Document Type Selection */}
+            <FormField
+              control={form.control}
+              name="proofType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Document Type *</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setValue("frontImage", undefined as any);
+                      setValue("backImage", undefined);
+                      setFrontPreview("");
+                      setBackPreview("");
+                      setFrontImageUrl("");
+                      setBackImageUrl("");
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select document type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PROOF_TYPES.map(
+                        (type: { value: string; label: string }) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Front Image Upload */}
+            <FormField
+              control={form.control}
+              name="frontImage"
+              render={() => (
+                <FormItem>
+                  <FileUpload
+                    label="Front Side of Document"
+                    isRequired
+                    file={watch("frontImage") || null}
+                    preview={frontPreview}
+                    onFileSelect={(file) =>
+                      handleFileSelect(file, "frontImage")
+                    }
+                    onRemove={() => handleFileRemove("frontImage")}
+                    error={errors.frontImage?.message}
+                    isUploading={frontUploading}
+                    uploadedUrl={frontImageUrl}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Back Image Upload (conditional) */}
+            {requiresBackImage && (
+              <FormField
+                control={form.control}
+                name="backImage"
+                render={() => (
+                  <FormItem>
+                    <FileUpload
+                      label="Back Side of Document"
+                      isRequired
+                      file={watch("backImage") || null}
+                      preview={backPreview}
+                      onFileSelect={(file) =>
+                        handleFileSelect(file, "backImage")
+                      }
+                      onRemove={() => handleFileRemove("backImage")}
+                      error={errors.backImage?.message}
+                      isUploading={backUploading}
+                      uploadedUrl={backImageUrl}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">
+                Important Notes:
+              </h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Ensure all text and details are clearly visible</li>
+                <li>• Images should be well-lit and in focus</li>
+                <li>• Maximum file size: 5MB per image</li>
+                <li>• Accepted formats: PNG, JPG, JPEG, WebP only</li>
+                <li>• Files are securely stored with encrypted naming</li>
+                <li>• Verification usually takes 24-48 hours</li>
+              </ul>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                disabled={verificationMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  verificationMutation.isPending ||
+                  frontUploading ||
+                  backUploading ||
+                  !frontImageUrl ||
+                  (requiresBackImage && !backImageUrl)
+                }
+                className="bg-[#9c4cd2] hover:bg-[#8a44c1]"
+              >
+                {verificationMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : frontUploading || backUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : !frontImageUrl ? (
+                  "Upload Front Image First"
+                ) : requiresBackImage && !backImageUrl ? (
+                  "Upload Back Image First"
+                ) : (
+                  "Submit for Verification"
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function IdentityVerificationV2({
+  isVerified,
+  userId,
+  identityVerificationId,
+  isLoading,
+}: IdentityVerificationProps) {
+  return (
     <div className="rounded-lg border border-[#e2e2e2] p-4">
       <div className="flex items-center justify-between">
         <div>
@@ -490,183 +681,10 @@ export function IdentityVerificationV2({
             <span className="text-sm font-medium text-green-700">Verified</span>
           </div>
         ) : (
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            {identityVerificationId ? (
-              <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1.5 rounded">
-                <Pause className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm font-medium text-yellow-600">
-                  Pending Review
-                </span>
-              </div>
-            ) : (
-              <DialogTrigger asChild>
-                <Button className="bg-[#f5e5ff] text-[#9c4cd2] hover:bg-[#ede0ff]">
-                  Verify Identity
-                </Button>
-              </DialogTrigger>
-            )}
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Identity Verification</DialogTitle>
-                <DialogDescription>
-                  Upload a valid government-issued ID to verify your identity.
-                  All information is securely processed and encrypted.
-                </DialogDescription>
-              </DialogHeader>
-
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  {/* Document Type Selection */}
-                  <FormField
-                    control={form.control}
-                    name="proofType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Document Type *</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            setValue("frontImage", undefined as any);
-                            setValue("backImage", undefined);
-                            setFrontPreview("");
-                            setBackPreview("");
-                            setFrontImageUrl("");
-                            setBackImageUrl("");
-                          }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select document type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {PROOF_TYPES.map(
-                              (type: { value: string; label: string }) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              )
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Front Image Upload */}
-                  <FormField
-                    control={form.control}
-                    name="frontImage"
-                    render={() => (
-                      <FormItem>
-                        <FileUpload
-                          label="Front Side of Document"
-                          isRequired
-                          file={watch("frontImage") || null}
-                          preview={frontPreview}
-                          onFileSelect={(file) =>
-                            handleFileSelect(file, "frontImage")
-                          }
-                          onRemove={() => handleFileRemove("frontImage")}
-                          error={errors.frontImage?.message}
-                          isUploading={frontUploading}
-                          uploadedUrl={frontImageUrl}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Back Image Upload (conditional) */}
-                  {requiresBackImage && (
-                    <FormField
-                      control={form.control}
-                      name="backImage"
-                      render={() => (
-                        <FormItem>
-                          <FileUpload
-                            label="Back Side of Document"
-                            isRequired
-                            file={watch("backImage") || null}
-                            preview={backPreview}
-                            onFileSelect={(file) =>
-                              handleFileSelect(file, "backImage")
-                            }
-                            onRemove={() => handleFileRemove("backImage")}
-                            error={errors.backImage?.message}
-                            isUploading={backUploading}
-                            uploadedUrl={backImageUrl}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {/* Info Box */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">
-                      Important Notes:
-                    </h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Ensure all text and details are clearly visible</li>
-                      <li>• Images should be well-lit and in focus</li>
-                      <li>• Maximum file size: 5MB per image</li>
-                      <li>• Accepted formats: PNG, JPG, JPEG, WebP only</li>
-                      <li>• Files are securely stored with encrypted naming</li>
-                      <li>• Verification usually takes 24-48 hours</li>
-                    </ul>
-                  </div>
-
-                  {/* Submit Buttons */}
-                  <div className="flex justify-end gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsOpen(false)}
-                      disabled={verificationMutation.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={
-                        verificationMutation.isPending ||
-                        frontUploading ||
-                        backUploading ||
-                        !frontImageUrl ||
-                        (requiresBackImage && !backImageUrl)
-                      }
-                      className="bg-[#9c4cd2] hover:bg-[#8a44c1]"
-                    >
-                      {verificationMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : frontUploading || backUploading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : !frontImageUrl ? (
-                        "Upload Front Image First"
-                      ) : requiresBackImage && !backImageUrl ? (
-                        "Upload Back Image First"
-                      ) : (
-                        "Submit for Verification"
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <IdentityVerificationDialog
+            userId={userId}
+            identityVerificationId={identityVerificationId}
+          />
         )}
       </div>
     </div>

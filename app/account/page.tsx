@@ -113,19 +113,7 @@ const updateUserProfile = async (profileData: {
   return { success: true };
 };
 
-const fetchIdentityVerificationData = async (userId: string) => {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("users")
-    .select("identity_verification_id, is_identity_verified")
-    .eq("user_id", userId)
-    .single();
-  if (error) {
-    throw error;
-  }
-
-  return { data };
-};
+import { fetchIdentityVerificationData } from "@/lib/api/identity";
 
 export default function AccountPage() {
   const { user, isLoading: authLoading, signOut } = useAuth();
@@ -356,33 +344,30 @@ export default function AccountPage() {
                 <nav className="p-2">
                   <button
                     onClick={() => setActiveTab("personal")}
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
-                      activeTab === "personal"
+                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${activeTab === "personal"
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
-                    }`}
+                      }`}
                   >
                     <User size={16} className="mr-2" />
                     Personal Information
                   </button>
                   <button
                     onClick={() => setActiveTab("security")}
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
-                      activeTab === "security"
+                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${activeTab === "security"
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
-                    }`}
+                      }`}
                   >
                     <Lock size={16} className="mr-2" />
                     Security
                   </button>
                   <button
                     onClick={() => setActiveTab("notifications")}
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
-                      activeTab === "notifications"
+                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${activeTab === "notifications"
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
-                    }`}
+                      }`}
                   >
                     <Bell size={16} className="mr-2" />
                     Notifications
@@ -390,11 +375,10 @@ export default function AccountPage() {
 
                   <button
                     onClick={() => setActiveTab("address")}
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
-                      activeTab === "address"
+                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${activeTab === "address"
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
-                    }`}
+                      }`}
                   >
                     <MapPin size={16} className="mr-2" />
                     Addresses
@@ -477,11 +461,10 @@ export default function AccountPage() {
                             value={formData.firstName}
                             onChange={handleInputChange}
                             disabled={!isEditing}
-                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
-                              isEditing
+                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${isEditing
                                 ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
                                 : "opacity-80"
-                            }`}
+                              }`}
                           />
                         </div>
                         <div className="space-y-1.5">
@@ -498,11 +481,10 @@ export default function AccountPage() {
                             value={formData.lastName}
                             onChange={handleInputChange}
                             disabled={!isEditing}
-                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
-                              isEditing
+                            className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${isEditing
                                 ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
                                 : "opacity-80"
-                            }`}
+                              }`}
                           />
                         </div>
                         <div className="space-y-1.5">

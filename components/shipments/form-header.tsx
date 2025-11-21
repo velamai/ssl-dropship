@@ -9,6 +9,7 @@ interface FormHeaderProps {
   setShowTermsDialog: (show: boolean) => void;
   onSubmit: () => void;
   onAddOnsChange?: (selectedAddOns: string[], addOnTotal: number) => void;
+  isVerified?: boolean;
 }
 
 export function FormHeader({
@@ -18,6 +19,7 @@ export function FormHeader({
   setShowTermsDialog,
   onSubmit,
   onAddOnsChange,
+  isVerified = true,
 }: FormHeaderProps) {
   const parsedTotalPrice = Number(totalPrice);
   const baseAmount = Number.isFinite(parsedTotalPrice) ? parsedTotalPrice : 0;
@@ -51,7 +53,7 @@ export function FormHeader({
             type="button"
             onClick={handlePlaceOrder}
             className="gap-1 w-full sm:w-auto"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isVerified}
           >
             {isSubmitting ? (
               <>

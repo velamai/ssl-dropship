@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { FormHeader } from "@/components/shipments/form-header";
 import { ShipmentCard } from "@/components/shipments/shipment-card";
 import { Accordion } from "@/components/ui/accordion";
+import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import {
   ItemFormData,
   OrderFormData,
@@ -21,8 +22,12 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchCountries } from "@/lib/api-client";
+import { fetchIdentityVerificationData } from "@/lib/api/identity";
 import { type PriceCalculationResult } from "@/lib/price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -40,6 +45,16 @@ export default function CreateShipmentPage() {
   const { user, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  const { data: identityVerificationData, isLoading: isVerificationLoading } =
+    useQuery({
+      queryKey: ["identityVerificationData", user?.id],
+      queryFn: () => fetchIdentityVerificationData(user?.id || ""),
+      enabled: !!user?.id,
+    });
+
+  const isVerified =
+    identityVerificationData?.data?.is_identity_verified || false;
 
   const {
     register,
@@ -577,6 +592,36 @@ export default function CreateShipmentPage() {
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
+          {!isVerified && !isVerificationLoading && (
+            <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-yellow-900">
+                    Identity Verification Required
+                  </h3>
+                  <p className="mt-1 text-sm text-yellow-700">
+                    You need to verify your identity before you can place a
+                    shipment order. Please complete the KYC verification
+                    process.
+                  </p>
+                  <div className="mt-2">
+                    <IdentityVerificationDialog
+                      userId={user?.id || ""}
+                      identityVerificationId={
+                        identityVerificationData?.data?.identity_verification_id
+                      }
+                    >
+                      <button className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900">
+                        Verify Identity Now
+                      </button>
+                    </IdentityVerificationDialog>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <FormHeader
             totalPrice={totalPrice.toFixed(2)}
             isSubmitting={isSubmitting}
@@ -591,6 +636,7 @@ export default function CreateShipmentPage() {
               }
             }}
             onAddOnsChange={handleAddOnsChange}
+            isVerified={isVerified}
           />
 
           {/* handleSubmit(onSubmitHandler) */}
@@ -707,6 +753,7 @@ export default function CreateShipmentPage() {
                     }
                     onRemove={() => handleRemoveShipment(index)}
                     onPriceChange={calculateTotalPrice}
+                    isVerified={isVerified}
                   />
                 ))}
               </Accordion>
