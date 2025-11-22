@@ -47,11 +47,13 @@ export default function Home() {
             {/* <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
               <span className="text-white font-bold text-lg">B2S</span>
             </div> */}
-            <Image src="logo.png" width={75} height={75} alt="logo" />
+            <Link href="/">
+              <Image src="logo.png" width={75} height={75} alt="logo" />
+            </Link>
 
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+            {/* <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
               buy2send
-            </span>
+            </span> */}
           </div>
 
           <div className="flex items-center gap-4">

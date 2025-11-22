@@ -31,8 +31,10 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Image src="logo.jpg" width={100} height={100} alt="logo" />
-              <span className="text-xl font-bold">buy2send</span>
+              <Link href="/">
+                <Image src="logo.png" width={100} height={100} alt="logo" />
+              </Link>
+              {/* <span className="text-xl font-bold">buy2send</span> */}
             </div>
             <p className="text-purple-200">Global drop & ship made simple</p>
             <div className="flex space-x-4">

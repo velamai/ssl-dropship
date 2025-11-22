@@ -1110,12 +1110,14 @@ export default function RegisterPage() {
                 <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
                 <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
               </svg> */}
-              <Image src="logo.png" width={100} height={100} alt="logo" />
+              <Link href="/">
+                <Image src="logo.png" width={75} height={75} alt="logo" />
+              </Link>
             </div>
             <div>
-              <div className="font-bold leading-tight text-[#3f3f3f]">
+              {/* <div className="font-bold leading-tight text-[#3f3f3f]">
                 BUY2SEND
-              </div>
+              </div> */}
               {/* <div className="-mt-1 text-xs font-medium text-[#E53935]">
                 DROP & SHIP
               </div> */}

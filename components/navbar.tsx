@@ -17,6 +17,7 @@ import {
   User,
   WarehouseIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type React from "react";
@@ -31,10 +32,11 @@ type NavItemProps = {
 const NavItem = ({ href, icon, label, isActive }: NavItemProps) => (
   <Link
     href={href}
-    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${isActive
+    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
+      isActive
         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
         : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-      }`}
+    }`}
   >
     {icon}
     {label}
@@ -64,7 +66,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
     <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
         <Link href={user ? "/shipments" : "/"} className="flex items-center">
-          <div className="h-7 w-7 mr-2">
+          {/* <div className="h-7 w-7 mr-2">
             <svg
               viewBox="0 0 40 40"
               fill="none"
@@ -75,7 +77,14 @@ export function Navbar({ activePage }: { activePage?: string }) {
               <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
             </svg>
           </div>
-          <span className="font-bold text-lg">BUY2SEND</span>
+          <span className="font-bold text-lg">BUY2SEND</span> */}
+          <Image
+            src="logo.png"
+            width={60}
+            height={60}
+            alt="logo"
+            className="py-5"
+          />
         </Link>
 
         {/* Desktop Navigation Links */}
@@ -142,7 +151,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
                   href={user ? "/shipments" : "/"}
                   className="flex items-center"
                 >
-                  <div className="h-7 w-7 mr-2">
+                  {/* <div className="h-7 w-7 mr-2">
                     <svg
                       viewBox="0 0 40 40"
                       fill="none"
@@ -153,39 +162,49 @@ export function Navbar({ activePage }: { activePage?: string }) {
                       <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
                     </svg>
                   </div>
-                  <span className="font-bold text-lg">BUY2SEND</span>
+                  <span className="font-bold text-lg">BUY2SEND</span> */}
+                  <Image
+                    src="logo.png"
+                    width={60}
+                    height={60}
+                    alt="logo"
+                    className="py-5"
+                  />
                 </Link>
               </div>
               {user && (
                 <div className="flex flex-col p-2">
                   <Link
                     href="/shipments"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/shipments" ||
-                        pathname.startsWith("/shipments/")
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/shipments" ||
+                      pathname.startsWith("/shipments/")
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                    }`}
                   >
                     <Truck size={18} className="mr-2" />
                     Orders
                   </Link>
                   <Link
                     href="/warehouses"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/warehouses" ||
-                        pathname.startsWith("/warehouses/")
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/warehouses" ||
+                      pathname.startsWith("/warehouses/")
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                    }`}
                   >
                     <Package size={18} className="mr-2" />
                     Warehouses
                   </Link>
                   <Link
                     href="/account"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/account"
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/account"
                         ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
                         : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                    }`}
                   >
                     <User size={18} className="mr-2" />
                     Account

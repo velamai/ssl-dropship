@@ -145,10 +145,9 @@ export default function ProductPriceCalculatorPage() {
                 <span className="text-white font-bold text-lg">B2S</span>
               </div> */}
               <Image src="logo.png" width={75} height={75} alt="logo" />
-
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+              {/* <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
                 buy2send
-              </span>
+              </span> */}
             </Link>
             <Link
               href="/"
