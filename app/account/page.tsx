@@ -135,8 +135,6 @@ export default function AccountPage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  console.log("userData", userData);
-
   const {
     data: identityVerificationData,
     isLoading: identityVerificationLoading,
