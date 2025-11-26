@@ -453,41 +453,27 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
         key: data.keyId,
         amount: data.amount,
         currency: data.currency,
-        name: "SSL Logistics",
+        name: "Buy2Send",
         description: `Payment for shipment ${shipment.shipment_id}`,
         order_id: data.orderId,
-        handler: async function (response: any) {
-          try {
-            // Update shipment with payment details
-            const { error: updateError } = await supabase
-              .from("shipments")
-              .update({
-                payment_id: response.razorpay_payment_id,
-                payment_method: "Online Payment",
-                paid_at: new Date().toISOString(),
-                payment_details: response,
-              })
-              .eq("shipment_id", shipment.shipment_id);
 
-            if (updateError) throw updateError;
+        // Handler called when payment is successful
+        handler: async function (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          // Show success toast immediately
+          showToast({
+            title: "Payment Successful!",
+            description: `Payment ID: ${response.razorpay_payment_id}. Your shipment will be processed shortly.`,
+          });
 
-            // Payment successful
-            showToast({
-              title: "Payment Successful",
-              description:
-                "Your payment has been processed successfully. Please wait for admin verification.",
-            });
+          setTimeout(() => {
             onPaymentUpdate();
-          } catch (error) {
-            console.error("Error updating payment details:", error);
-            showToast({
-              title: "Error",
-              description:
-                "Payment was successful but failed to update details. Please contact support.",
-              variant: "destructive",
-            });
-          }
+          }, 2000);
         },
+
         modal: {
           ondismiss: function () {
             setIsProcessing(false);
@@ -675,13 +661,13 @@ function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
             <Select
               value={paymentMethod}
               onValueChange={setPaymentMethod}
-              // disabled={Boolean(isPaymentProcessed)}
+              disabled={Boolean(isPaymentProcessed)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Online Payment" disabled={true}>
+                <SelectItem value="Online Payment">
                   Online Payment (2% additional charge)
                 </SelectItem>
                 <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
@@ -947,6 +933,7 @@ export default function ShipmentDetailsPage() {
   const { user } = useAuth();
   const [courierServices, setCourierServices] = useState<any[]>([]);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [isRefetching, setIsRefetching] = useState(false);
 
   const labelData = {
     destinationName: "Chinenye Ezinma",
@@ -967,67 +954,83 @@ export default function ShipmentDetailsPage() {
     barcodeBottomImg: "/barcodes-bottom.png",
     barcodeSideImg: "/barcodes-side.png",
   };
-  useEffect(() => {
+
+  // Fetch shipment details - extracted for reuse
+  const fetchShipmentDetails = async (isInitialLoad = false) => {
     if (!id || !user) return;
 
-    async function fetchShipmentDetails() {
+    if (isInitialLoad) {
       setLoading(true);
-      setError(null);
-      try {
-        // Fetch shipment using the string id directly
-        const { data: shipmentData, error: shipmentError } = await supabase
-          .from("shipments")
-          .select("*")
-          .eq("shipment_id", id)
-          .eq("user_id", user?.id)
-          .single();
+    } else {
+      setIsRefetching(true);
+    }
+    setError(null);
 
+    try {
+      // Fetch shipment using the string id directly
+      const { data: shipmentData, error: shipmentError } = await supabase
+        .from("shipments")
+        .select("*")
+        .eq("shipment_id", id)
+        .eq("user_id", user?.id)
+        .single();
+
+      // Only generate QR code on initial load
+      if (isInitialLoad) {
         const qr = await generateBarcode(
           `https://universalmail.in/shipments/${id}`
         );
         setQrCodeData(qr);
+      }
 
-        if (shipmentError) {
-          if (shipmentError.code === "PGRST116") {
-            // Not found code
-            setError(
-              "Shipment not found or you do not have permission to view it."
-            );
-          } else {
-            throw shipmentError;
-          }
-          setShipment(null);
-          setItems([]);
-        } else if (shipmentData) {
-          setShipment(shipmentData as Shipment);
-
-          // Fetch associated items using the string id
-          const { data: itemsData, error: itemsError } = await supabase
-            .from("shipment_items")
-            .select("*")
-            .eq("shipment_id", id); // Use string id directly
-          console.log({ itemsData });
-
-          if (itemsError) {
-            console.error("Error fetching shipment items:", itemsError);
-            setItems([]); // Set empty items on error, but keep shipment data
-          } else {
-            setItems((itemsData || []) as ShipmentItem[]);
-          }
+      if (shipmentError) {
+        if (shipmentError.code === "PGRST116") {
+          // Not found code
+          setError(
+            "Shipment not found or you do not have permission to view it."
+          );
         } else {
-          setError("Shipment data could not be loaded.");
+          throw shipmentError;
         }
-      } catch (err: any) {
-        console.error("Failed to load shipment details:", err);
-        setError(`Failed to load shipment details: ${err.message}`);
         setShipment(null);
         setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    }
+      } else if (shipmentData) {
+        setShipment(shipmentData as Shipment);
 
-    fetchShipmentDetails();
+        // Fetch associated items using the string id
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("shipment_items")
+          .select("*")
+          .eq("shipment_id", id);
+        console.log({ itemsData });
+
+        if (itemsError) {
+          console.error("Error fetching shipment items:", itemsError);
+          setItems([]);
+        } else {
+          setItems((itemsData || []) as ShipmentItem[]);
+        }
+      } else {
+        setError("Shipment data could not be loaded.");
+      }
+    } catch (err: any) {
+      console.error("Failed to load shipment details:", err);
+      setError(`Failed to load shipment details: ${err.message}`);
+      setShipment(null);
+      setItems([]);
+    } finally {
+      setLoading(false);
+      setIsRefetching(false);
+    }
+  };
+
+  // Refetch shipment data (called after payment success)
+  const refetchShipmentData = () => {
+    fetchShipmentDetails(false);
+  };
+
+  useEffect(() => {
+    fetchShipmentDetails(true);
   }, [id, user]);
 
   if (loading) {
@@ -1652,10 +1655,7 @@ export default function ShipmentDetailsPage() {
               {shipment.current_status === "Payment Requested" && (
                 <PaymentCard
                   shipment={shipment}
-                  onPaymentUpdate={() => {
-                    // Refresh shipment data
-                    router.refresh();
-                  }}
+                  onPaymentUpdate={refetchShipmentData}
                 />
               )}
 
