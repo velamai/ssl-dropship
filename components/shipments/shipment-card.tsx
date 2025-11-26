@@ -78,7 +78,7 @@ export function ShipmentCard({
     )?.name || "Select Courier";
   const calculatedPrice =
     priceCalculationResult?.transportable &&
-      priceCalculationResult?.prices?.[0]?.finalPrice
+    priceCalculationResult?.prices?.[0]?.finalPrice
       ? priceCalculationResult.prices[0].finalPrice.toFixed(2)
       : "";
   const isTransportable =
@@ -123,7 +123,7 @@ export function ShipmentCard({
             </TabsTrigger>
             <TabsTrigger
               value="receiver"
-              disabled={!isVerified}
+              // disabled={!isVerified}
               // className="text-sm data-[state=active]:bg-primary data-[state=active]:text-white"
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
@@ -132,7 +132,7 @@ export function ShipmentCard({
             </TabsTrigger>
             <TabsTrigger
               value="items"
-              disabled={!isVerified}
+              // disabled={!isVerified}
               className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
             >
               <ShoppingBag className="h-4 w-4 mr-2" />
@@ -232,7 +232,7 @@ export function ShipmentCard({
                 setActiveTab((prevTabs) => ({ ...prevTabs, [fieldId]: next }));
               }}
               className="w-full sm:w-auto"
-              disabled={!isVerified}
+              // disabled={!isVerified}
             >
               Next
             </Button>

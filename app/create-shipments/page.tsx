@@ -1,10 +1,10 @@
 "use client";
 
+import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import { Navbar } from "@/components/navbar";
 import { FormHeader } from "@/components/shipments/form-header";
 import { ShipmentCard } from "@/components/shipments/shipment-card";
 import { Accordion } from "@/components/ui/accordion";
-import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import {
   ItemFormData,
   OrderFormData,
@@ -19,6 +19,7 @@ import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
 
 import { useRouter } from "next/navigation";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchCountries } from "@/lib/api-client";
@@ -27,7 +28,6 @@ import { type PriceCalculationResult } from "@/lib/price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
-import Link from "next/link";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -46,15 +46,29 @@ export default function CreateShipmentPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: identityVerificationData, isLoading: isVerificationLoading } =
-    useQuery({
-      queryKey: ["identityVerificationData", user?.id],
-      queryFn: () => fetchIdentityVerificationData(user?.id || ""),
-      enabled: !!user?.id,
-    });
+  const { data: identityVerificationData } = useQuery({
+    queryKey: ["identityVerificationData", user?.id],
+    queryFn: () => fetchIdentityVerificationData(user?.id || ""),
+    enabled: !!user?.id,
+  });
 
   const isVerified =
     identityVerificationData?.data?.is_identity_verified || false;
+  const identityVerificationId =
+    identityVerificationData?.data?.identity_verification_id;
+  const verificationStatus = identityVerificationData?.data
+    ?.identity_verification?.status as
+    | "pending"
+    | "approved"
+    | "rejected"
+    | undefined;
+  const verificationRejectionReason =
+    identityVerificationData?.data?.identity_verification?.rejection_reason;
+
+  // Determine verification state
+  const isPending = identityVerificationId && verificationStatus === "pending";
+  const isRejected =
+    identityVerificationId && verificationStatus === "rejected";
 
   const {
     register,
@@ -592,34 +606,92 @@ export default function CreateShipmentPage() {
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
-          {!isVerified && !isVerificationLoading && (
-            <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-yellow-900">
-                    Identity Verification Required
-                  </h3>
-                  <p className="mt-1 text-sm text-yellow-700">
-                    You need to verify your identity before you can place a
-                    shipment order. Please complete the KYC verification
-                    process.
-                  </p>
-                  <div className="mt-2">
-                    <IdentityVerificationDialog
-                      userId={user?.id || ""}
-                      identityVerificationId={
-                        identityVerificationData?.data?.identity_verification_id
-                      }
+          {/* Identity Verification Banner - Shows for pending or not verified users */}
+          {!isVerified && (
+            <Alert
+              className={`mb-6 rounded-lg border p-4 ${
+                isPending
+                  ? "border-yellow-200 bg-yellow-50"
+                  : isRejected
+                  ? "border-red-200 bg-red-50"
+                  : "border-yellow-200 bg-yellow-50"
+              }`}
+            >
+              <AlertTriangle
+                className={`h-4 w-4 ${
+                  isPending
+                    ? "text-yellow-600"
+                    : isRejected
+                    ? "text-red-600"
+                    : "text-yellow-600"
+                }`}
+              />
+              <AlertTitle
+                className={`font-medium ${
+                  isPending
+                    ? "text-yellow-900"
+                    : isRejected
+                    ? "text-red-900"
+                    : "text-yellow-900"
+                }`}
+              >
+                {isPending
+                  ? "Identity Verification Pending"
+                  : isRejected
+                  ? "Identity Verification Rejected"
+                  : "Identity Verification Required"}
+              </AlertTitle>
+              <AlertDescription
+                className={`flex flex-col gap-1 mt-1 ${
+                  isPending
+                    ? "text-yellow-700"
+                    : isRejected
+                    ? "text-red-700"
+                    : "text-[#D48806]"
+                }`}
+              >
+                <span className="mt-1 text-sm">
+                  {isPending ? (
+                    "Your identity verification is being reviewed. We'll notify you once it's processed. You cannot place orders until your identity is verified."
+                  ) : isRejected ? (
+                    <>
+                      Your identity verification was rejected.
+                      {verificationRejectionReason && (
+                        <span className="block mt-1 font-medium">
+                          Reason: {verificationRejectionReason}
+                        </span>
+                      )}{" "}
+                      Please re-upload valid documents to proceed.
+                    </>
+                  ) : (
+                    "You need to verify your identity before you can place a shipment order. Please complete the KYC verification process."
+                  )}
+                </span>
+                {/* Show verify/re-upload button only for rejected or not submitted states */}
+                {!isPending && (
+                  <IdentityVerificationDialog
+                    userId={user?.id ?? ""}
+                    identityVerificationId={identityVerificationId ?? undefined}
+                    verificationStatus={verificationStatus}
+                    verificationRejectionReason={
+                      verificationRejectionReason ?? undefined
+                    }
+                  >
+                    <button
+                      className={`underline text-sm font-medium w-fit p-0 h-auto ${
+                        isRejected
+                          ? "text-red-800 hover:text-red-900"
+                          : "text-yellow-800 hover:text-yellow-900"
+                      }`}
                     >
-                      <button className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900">
-                        Verify Identity Now
-                      </button>
-                    </IdentityVerificationDialog>
-                  </div>
-                </div>
-              </div>
-            </div>
+                      {isRejected
+                        ? "Re-upload Documents"
+                        : "Verify Identity Now"}
+                    </button>
+                  </IdentityVerificationDialog>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
 
           <FormHeader

@@ -12,6 +12,8 @@ import {
   MapPin,
   Menu,
   Package,
+  Pause,
+  RefreshCcw,
   ShieldCheck,
   Truck,
   User,
@@ -57,6 +59,19 @@ export function Navbar({ activePage }: { activePage?: string }) {
     identityVerificationData?.data?.is_identity_verified || false;
   const identityVerificationId =
     identityVerificationData?.data?.identity_verification_id;
+  const verificationStatus = identityVerificationData?.data
+    ?.identity_verification?.status as
+    | "pending"
+    | "approved"
+    | "rejected"
+    | undefined;
+  const verificationRejectionReason =
+    identityVerificationData?.data?.identity_verification?.rejection_reason;
+
+  // Determine verification state for UI rendering
+  const isPending = identityVerificationId && verificationStatus === "pending";
+  const isRejected =
+    identityVerificationId && verificationStatus === "rejected";
 
   if (pathname === "/login" || pathname === "/register") {
     return null;
@@ -122,17 +137,41 @@ export function Navbar({ activePage }: { activePage?: string }) {
                 isActive={pathname === "/account"}
               />
 
-              {!isVerified && (
-                <IdentityVerificationDialog
-                  userId={user.id}
-                  identityVerificationId={identityVerificationId}
-                >
-                  <button className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors bg-red-50 text-red-600 hover:bg-red-100 font-medium">
-                    <ShieldCheck size={18} className="mr-1.5" />
-                    Verify Identity
-                  </button>
-                </IdentityVerificationDialog>
-              )}
+              {!isVerified &&
+                (isPending ? (
+                  // Pending state - show pending badge, no dialog trigger
+                  <div className="flex items-center px-3 py-1.5 text-sm rounded-md bg-yellow-50 text-yellow-700 font-medium">
+                    <Pause size={18} className="mr-1.5" />
+                    Pending Review
+                  </div>
+                ) : isRejected ? (
+                  // Rejected state - show re-upload button with dialog
+                  <IdentityVerificationDialog
+                    userId={user.id}
+                    identityVerificationId={identityVerificationId ?? undefined}
+                    verificationStatus={verificationStatus}
+                    verificationRejectionReason={
+                      verificationRejectionReason ?? undefined
+                    }
+                  >
+                    <button className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors bg-red-50 text-red-600 hover:bg-red-100 font-medium">
+                      <RefreshCcw size={18} className="mr-1.5" />
+                      Re-verify
+                    </button>
+                  </IdentityVerificationDialog>
+                ) : (
+                  // Not submitted state - show verify button with dialog
+                  <IdentityVerificationDialog
+                    userId={user.id}
+                    identityVerificationId={identityVerificationId ?? undefined}
+                    verificationStatus={verificationStatus}
+                  >
+                    <button className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors bg-red-50 text-red-600 hover:bg-red-100 font-medium">
+                      <ShieldCheck size={18} className="mr-1.5" />
+                      Verify Identity
+                    </button>
+                  </IdentityVerificationDialog>
+                ))}
             </>
           )}
         </nav>
@@ -209,18 +248,45 @@ export function Navbar({ activePage }: { activePage?: string }) {
                     <User size={18} className="mr-2" />
                     Account
                   </Link>
-
-                  {!isVerified && (
-                    <IdentityVerificationDialog
-                      userId={user.id}
-                      identityVerificationId={identityVerificationId}
-                    >
-                      <button className="flex items-center px-3 py-3 text-base rounded-md text-red-600 hover:bg-red-50 w-full text-left">
-                        <ShieldCheck size={18} className="mr-2" />
-                        Verify Identity
-                      </button>
-                    </IdentityVerificationDialog>
-                  )}
+                  {!isVerified &&
+                    (isPending ? (
+                      // Pending state - show pending badge, no dialog trigger
+                      <div className="flex items-center px-3 py-1.5 text-sm rounded-md bg-yellow-50 text-yellow-700 font-medium">
+                        <Pause size={18} className="mr-1.5" />
+                        Pending Review
+                      </div>
+                    ) : isRejected ? (
+                      // Rejected state - show re-upload button with dialog
+                      <IdentityVerificationDialog
+                        userId={user.id}
+                        identityVerificationId={
+                          identityVerificationId ?? undefined
+                        }
+                        verificationStatus={verificationStatus}
+                        verificationRejectionReason={
+                          verificationRejectionReason ?? undefined
+                        }
+                      >
+                        <button className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors bg-red-50 text-red-600 hover:bg-red-100 font-medium">
+                          <RefreshCcw size={18} className="mr-1.5" />
+                          Re-verify
+                        </button>
+                      </IdentityVerificationDialog>
+                    ) : (
+                      // Not submitted state - show verify button with dialog
+                      <IdentityVerificationDialog
+                        userId={user.id}
+                        identityVerificationId={
+                          identityVerificationId ?? undefined
+                        }
+                        verificationStatus={verificationStatus}
+                      >
+                        <button className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors bg-red-50 text-red-600 hover:bg-red-100 font-medium">
+                          <ShieldCheck size={18} className="mr-1.5" />
+                          Verify Identity
+                        </button>
+                      </IdentityVerificationDialog>
+                    ))}
                 </div>
               )}
             </SheetContent>
