@@ -102,7 +102,7 @@ export const PickupSchema = z.object({
   addressLine2: z.string().trim().min(1, "Pickup Address Line 2 is required"),
   addressLine3: z.string().optional(),
   addressLine4: z.string().optional(),
-  postalCode: z.string().trim().min(1, "Pickup Postal Code is required"),
+  postalCode: z.string().trim().optional(),
   // Assuming country is derived from shipment country
   date: z.preprocess((arg) => {
     if (!arg) return undefined;
