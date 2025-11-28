@@ -63,6 +63,7 @@ export function ItemsManagementTab({
       productName: "",
       productNote: "",
       price: undefined,
+      valueCurrency: "INR",
       quantity: undefined,
     });
     // Items are expanded by default, so no need to call toggleItemExpansion

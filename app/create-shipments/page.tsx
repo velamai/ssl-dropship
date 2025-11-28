@@ -13,13 +13,14 @@ import {
   getPhoneDetails,
 } from "@/lib/schemas/shipmentSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
 
 import { useRouter } from "next/navigation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchCountries } from "@/lib/api-client";
@@ -126,6 +127,7 @@ export default function CreateShipmentPage() {
               productName: "",
               productNote: "",
               price: 0,
+              valueCurrency: "INR",
               quantity: 0,
             },
           ],
@@ -327,6 +329,7 @@ export default function CreateShipmentPage() {
           productName: "",
           productNote: "",
           price: undefined,
+          valueCurrency: "INR",
           quantity: undefined,
         },
       ],
@@ -421,6 +424,7 @@ export default function CreateShipmentPage() {
           name: item.productName,
           note: item.productNote || "",
           price: item.price || 0,
+          value_currency: item.valueCurrency || "INR",
           quantity: item.quantity || 1,
         })),
 
@@ -439,6 +443,7 @@ export default function CreateShipmentPage() {
         product_name: item.productName,
         product_note: item.productNote || "",
         declared_value: item.price || 0,
+        value_currency: item.valueCurrency || "INR",
         quantity: item.quantity || 1,
         total_price: item.price || 0,
         source: "drop_and_ship",
@@ -829,6 +834,29 @@ export default function CreateShipmentPage() {
                   />
                 ))}
               </Accordion>
+
+              {/* Bottom Place Order Button */}
+              <div className="flex w-full justify-end">
+                <Button
+                  type="button"
+                  onClick={() => setShowTermsDialog(true)}
+                  className="gap-2 w-full sm:w-auto"
+                  disabled={isSubmitting || !isVerified}
+                  size="sm"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Place Order
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </div>

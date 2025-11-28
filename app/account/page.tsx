@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   User,
   Lock,
   Bell,
@@ -409,14 +415,32 @@ export default function AccountPage() {
                         Personal Information
                       </h2>
                       {!isEditing ? (
-                        <button
-                          type="button"
-                          onClick={() => setIsEditing(true)}
-                          className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]"
-                        >
-                          <Edit size={14} className="mr-1.5" />
-                          Edit
-                        </button>
+                        // <button
+                        //   type="button"
+                        //   onClick={() => setIsEditing(true)}
+                        //   className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]"
+                        // >
+                        //   <Edit size={14} className="mr-1.5" />
+                        //   Edit
+                        // </button>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={150}>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="flex items-center rounded-md bg-[#f2e9ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2] opacity-60 cursor-not-allowed"
+                                type="button"
+                                disabled
+                              >
+                                <Edit size={14} className="mr-1.5" />
+                                Edit
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[300px] rounded-md border border-[#f0dfff] bg-[#fff9ff] px-3 py-2 text-xs font-medium text-[#7940b3] shadow-lg">
+                              Editing profile details is restricted. Please
+                              reach out to your administrator to make updates.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       ) : (
                         <div className="flex items-center gap-2">
                           <button

@@ -3,8 +3,19 @@
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
+import {
+  CURRENCY_OPTIONS,
+  type CurrencyCode,
+  type OrderFormData,
+} from "@/lib/schemas/shipmentSchema";
 import { fetchProductData, isEcommerceDomain } from "@/lib/product-scraper";
 import { AlertTriangle, ChevronDown, Loader2, Trash2, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
@@ -88,7 +99,7 @@ export function ShipmentItem({
       setIsLoadingProduct(true);
       try {
         const productData = await fetchProductData(itemProductUrl);
-        
+
         // Get current field values to check if they're empty
         const currentProductName = watch(
           `shipments.${shipmentIndex}.items.${itemIndex}.productName`
@@ -99,26 +110,36 @@ export function ShipmentItem({
         const currentImageUrl = watch(
           `shipments.${shipmentIndex}.items.${itemIndex}.imageUrl`
         );
-        
+
         // Auto-populate fields only if they are empty
         // This allows scraping to fill empty fields but respects user input
-        if (productData.title && (!currentProductName || currentProductName.trim() === "")) {
+        if (
+          productData.title &&
+          (!currentProductName || currentProductName.trim() === "")
+        ) {
           setValue(
             `shipments.${shipmentIndex}.items.${itemIndex}.productName`,
             productData.title,
             { shouldValidate: true, shouldDirty: true }
           );
         }
-        
-        if (productData.price && productData.price > 0 && (!currentPrice || currentPrice === 0)) {
+
+        if (
+          productData.price &&
+          productData.price > 0 &&
+          (!currentPrice || currentPrice === 0)
+        ) {
           setValue(
             `shipments.${shipmentIndex}.items.${itemIndex}.price`,
             productData.price,
             { shouldValidate: true, shouldDirty: true }
           );
         }
-        
-        if (productData.image && (!currentImageUrl || currentImageUrl.trim() === "")) {
+
+        if (
+          productData.image &&
+          (!currentImageUrl || currentImageUrl.trim() === "")
+        ) {
           setValue(
             `shipments.${shipmentIndex}.items.${itemIndex}.imageUrl`,
             productData.image,
@@ -213,12 +234,17 @@ export function ShipmentItem({
                 }
               />
               {/* Warning for unsupported domain */}
-              {isUnsupportedDomain && itemProductUrl && itemProductUrl.trim() !== "" && (
-                <div className="flex items-start gap-2 mt-1 text-xs text-blue-600 dark:text-blue-500">
-                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                  <span>Please make sure the entered link is a product URL from a supported e-commerce platform.</span>
-                </div>
-              )}
+              {isUnsupportedDomain &&
+                itemProductUrl &&
+                itemProductUrl.trim() !== "" && (
+                  <div className="flex items-start gap-2 mt-1 text-xs text-blue-600 dark:text-blue-500">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      Please make sure the entered link is a product URL from a
+                      supported e-commerce platform.
+                    </span>
+                  </div>
+                )}
               {/* Product Image Display */}
               {itemImageUrl && itemImageUrl.trim() !== "" && (
                 <div className="mt-2 relative inline-block">
@@ -275,16 +301,44 @@ export function ShipmentItem({
               >
                 Price *
               </Label>
-              <Input
-                id={`shipments.${shipmentIndex}.items.${itemIndex}.price`}
-                {...register(
-                  `shipments.${shipmentIndex}.items.${itemIndex}.price`
-                )}
-                type="number"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
+              <div className="flex gap-2">
+                <Select
+                  value={
+                    watch(
+                      `shipments.${shipmentIndex}.items.${itemIndex}.valueCurrency`
+                    ) || "INR"
+                  }
+                  onValueChange={(value: CurrencyCode) =>
+                    setValue(
+                      `shipments.${shipmentIndex}.items.${itemIndex}.valueCurrency`,
+                      value,
+                      { shouldValidate: true, shouldDirty: true }
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_OPTIONS.map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        {currency.value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  id={`shipments.${shipmentIndex}.items.${itemIndex}.price`}
+                  {...register(
+                    `shipments.${shipmentIndex}.items.${itemIndex}.price`
+                  )}
+                  type="number"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className="flex-1"
+                />
+              </div>
               <ErrorMessage
                 error={
                   errors.shipments?.[shipmentIndex]?.items?.[itemIndex]?.price

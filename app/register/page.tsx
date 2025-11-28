@@ -1046,6 +1046,38 @@ export default function RegisterPage() {
       case 3:
         return (
           <div className="space-y-5 ">
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-amber-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-[13px] font-semibold text-amber-800 mb-1">
+                    Important: Name Verification
+                  </h4>
+                  <p className="text-[12px] text-amber-700 leading-relaxed">
+                    The name on your identity document must match exactly with
+                    your account name{" "}
+                    <strong>
+                      ({formData.firstName} {formData.lastName})
+                    </strong>
+                    . Any mismatch may result in verification delays or
+                    rejection.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <IdentityVerification
               isVerified={false}
               onChange={handleIdentityChange}
@@ -1255,6 +1287,16 @@ export default function RegisterPage() {
                   Please verify your email to sign in. Verification email has
                   been sent to your inbox.
                 </p>
+                <p className="text-sm">
+                  After verifying your email, you can{" "}
+                  <Link
+                    href="/login"
+                    className="font-semibold text-[#9c4cd2] underline"
+                  >
+                    log in here
+                  </Link>{" "}
+                  to access your dashboard.
+                </p>
               </div>
             )}
 
@@ -1298,7 +1340,10 @@ export default function RegisterPage() {
                       ? "Creating Account..."
                       : registerMutation.isPending
                       ? "Creating Account..."
-                      : "Create Account"}
+                      : formData.identityVerification.proofType &&
+                        formData.identityVerification.frontImage
+                      ? "Create Account"
+                      : "Skip KYC & Create Account"}
                   </Button>
                 ) : null}
               </div>

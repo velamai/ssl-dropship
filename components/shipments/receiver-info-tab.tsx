@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { MapPin, Loader2 } from "lucide-react";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import type {
   Control,
   FieldErrors,
@@ -22,6 +22,7 @@ import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useUserAddresses, useUserProfile } from "@/lib/hooks/useUserAddresses";
 import { useState } from "react";
+import { Country } from "react-phone-number-input";
 
 interface ReceiverInfoTabProps {
   index: number;
@@ -44,6 +45,11 @@ export function ReceiverInfoTab({
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null
   );
+
+  const shipmentCountry = useWatch({
+    control,
+    name: `shipments.${index}.country`,
+  }) as string | undefined;
 
   const handleAddressSelect = (address: any) => {
     setSelectedAddressId(address.user_address_id);
@@ -238,7 +244,7 @@ export function ReceiverInfoTab({
                   placeholder="Enter phone number"
                   value={value || ""}
                   onChange={onChange}
-                  defaultCountry="IN"
+                  defaultCountry={shipmentCountry as Country}
                   international
                   countryCallingCodeEditable={false}
                   className={`${

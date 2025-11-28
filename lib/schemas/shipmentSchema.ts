@@ -10,6 +10,17 @@ function generateUUID() {
   });
 }
 
+// Supported currency options for item pricing
+export const CURRENCY_OPTIONS = [
+  { value: "INR", label: "INR - Indian Rupee" },
+  { value: "USD", label: "USD - US Dollar" },
+  { value: "GBP", label: "GBP - British Pound" },
+  { value: "EUR", label: "EUR - Euro" },
+  { value: "LKR", label: "LKR - Sri Lankan Rupee" },
+] as const;
+
+export type CurrencyCode = (typeof CURRENCY_OPTIONS)[number]["value"];
+
 // Schema for individual items within a shipment
 export const ItemSchema = z.object({
   uuid: z
@@ -37,6 +48,7 @@ export const ItemSchema = z.object({
       .positive({ message: "Price must be positive" })
       .optional()
   ),
+  valueCurrency: z.enum(["INR", "USD", "GBP", "EUR", "LKR"]).default("INR"), // Default currency is INR
   quantity: z.preprocess(
     (val) =>
       val === "" || val === null || val === undefined ? undefined : Number(val),
