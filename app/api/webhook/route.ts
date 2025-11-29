@@ -25,10 +25,6 @@ export async function POST(req: NextRequest) {
 
   const { shipment_id } = event.payload.payment.entity.notes;
 
-  console.log({ shipment_id });
-
-  console.log({ event });
-
   switch (event.event) {
     case "payment.captured":
       // Handle successful payment
@@ -50,6 +46,7 @@ export async function POST(req: NextRequest) {
           paid_at: new Date().toISOString(),
           payment_id: payment_id,
           current_status: "Paid",
+          payment_method: "Online Payment",
           current_status_updated_at: new Date().toISOString(),
           status_timeline: [
             ...shipmentData.status_timeline,
