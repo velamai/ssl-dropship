@@ -44,10 +44,8 @@ export async function POST(req: NextRequest) {
         .update({
           payment_status: "paid",
           paid_at: new Date().toISOString(),
-          payment_id: payment_id,
-          current_status: "Paid",
-          payment_method: "Online Payment",
           current_status_updated_at: new Date().toISOString(),
+          payment_id: payment_id,
           status_timeline: [
             ...shipmentData.status_timeline,
             {
@@ -56,7 +54,9 @@ export async function POST(req: NextRequest) {
               description: "Payment has been captured",
             },
           ],
+          current_status: "Paid",
           payment_details: event.payload.payment.entity,
+          payment_method: "Online Payment",
         })
         .eq("shipment_id", shipment_id);
       if (updateError) {
