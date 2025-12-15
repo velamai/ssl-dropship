@@ -13,6 +13,7 @@ import { Loader2, Check } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -44,7 +45,8 @@ function generateUUID() {
 type Step = 1 | 2 | 3 | 4 | 5;
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
-export default function CreateShipmentPage() {
+// Component that uses useSearchParams - needs to be wrapped in Suspense
+function CreateShipmentPageContent() {
   const { user, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -736,5 +738,26 @@ export default function CreateShipmentPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function CreateShipmentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col">
+          <Navbar activePage="create-shipments" />
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+              <p>Loading...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <CreateShipmentPageContent />
+    </Suspense>
   );
 }
