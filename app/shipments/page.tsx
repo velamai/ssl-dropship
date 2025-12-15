@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -407,12 +408,10 @@ export default function ShipmentsPage() {
                 Manage and track all your orders in one place.
               </p>
             </div>
-            <Button
-              onClick={() => router.push("/create-shipments")}
-              className="gap-2"
-            >
-              Create Orders
-            </Button>
+
+            <ServiceSelectionDialog>
+              <Button className="gap-2">Create Orders</Button>
+            </ServiceSelectionDialog>
           </div>
 
           <Card className="mb-6 border-text-subtle/20 shadow-sm bg-white">

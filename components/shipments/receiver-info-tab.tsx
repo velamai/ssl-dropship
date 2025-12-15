@@ -10,8 +10,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { MapPin, Loader2 } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { MapPin, Loader2, Globe, Check, ChevronDown } from "lucide-react";
 import { Controller, useWatch } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 import type {
   Control,
   FieldErrors,
@@ -21,7 +37,6 @@ import type {
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useUserAddresses, useUserProfile } from "@/lib/hooks/useUserAddresses";
-import { useState } from "react";
 import { Country } from "react-phone-number-input";
 
 interface ReceiverInfoTabProps {
@@ -30,6 +45,7 @@ interface ReceiverInfoTabProps {
   register: UseFormRegister<OrderFormData>;
   errors: FieldErrors<OrderFormData>;
   setValue: UseFormSetValue<OrderFormData>;
+  countries?: any[];
 }
 
 export function ReceiverInfoTab({
@@ -38,6 +54,7 @@ export function ReceiverInfoTab({
   register,
   errors,
   setValue,
+  countries = [],
 }: ReceiverInfoTabProps) {
   const { data: userAddresses, isLoading: addressesLoading } =
     useUserAddresses();
@@ -45,6 +62,7 @@ export function ReceiverInfoTab({
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null
   );
+  const [isCountrySelectOpen, setIsCountrySelectOpen] = useState(false);
 
   const shipmentCountry = useWatch({
     control,
@@ -185,6 +203,87 @@ export function ReceiverInfoTab({
 
         {/* Form Fields */}
         <div className="grid gap-4 md:grid-cols-2">
+          {/* Receiving Country - Moved to top */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor={`shipments.${index}.receiver.receivingCountry`}>
+              Receiving Country *
+            </Label>
+            <Controller
+              name={`shipments.${index}.receiver.receivingCountry`}
+              control={control}
+              render={({ field }) => {
+                const selectedCountry = countries.find(
+                  (country) => country.code === field.value
+                );
+                return (
+                  <Popover
+                    open={isCountrySelectOpen}
+                    onOpenChange={setIsCountrySelectOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isCountrySelectOpen}
+                        className={cn(
+                          "w-full justify-between h-[46px] bg-[#fcfcfc] text-left text-[14px]",
+                          errors.shipments?.[index]?.receiver?.receivingCountry
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          {selectedCountry ? (
+                            <span>{selectedCountry.name}</span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Select receiving country
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[320px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search country..." />
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup>
+                            {countries.map((country) => (
+                              <CommandItem
+                                key={country.code}
+                                value={`${country.code} ${country.name}`}
+                                onSelect={() => {
+                                  field.onChange(country.code);
+                                  setIsCountrySelectOpen(false);
+                                }}
+                              >
+                                <span className="flex-1">{country.name}</span>
+                                <Check
+                                  className={cn(
+                                    "ml-2 h-4 w-4",
+                                    field.value === country.code
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }}
+            />
+            <ErrorMessage
+              error={errors.shipments?.[index]?.receiver?.receivingCountry}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor={`shipments.${index}.receiver.firstName`}>
               First Name *

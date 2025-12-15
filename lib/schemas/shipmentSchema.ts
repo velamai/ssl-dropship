@@ -168,6 +168,7 @@ export const ReceiverSchema = z.object({
   addressLine3: z.string().optional(),
   addressLine4: z.string().optional(),
   postalCode: z.string().trim().optional(),
+  receivingCountry: z.string().trim().min(1, "Receiving country is required"),
 });
 
 // Schema for a single shipment

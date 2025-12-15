@@ -2,32 +2,33 @@
 
 import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import { Navbar } from "@/components/navbar";
+import { FormHeader } from "@/components/shipments/form-header";
+import { ShipmentCard } from "@/components/shipments/shipment-card";
+import { Accordion } from "@/components/ui/accordion";
 import {
+  ItemFormData,
   OrderFormData,
   OrderSchema,
   ShipmentFormData,
   getPhoneDetails,
 } from "@/lib/schemas/shipmentSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
+
+import { useRouter } from "next/navigation";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchCountries } from "@/lib/api-client";
 import { fetchIdentityVerificationData } from "@/lib/api/identity";
+import { type PriceCalculationResult } from "@/lib/price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ProductsStep } from "@/components/shipments/products-step";
-import { ReceiverInfoTab } from "@/components/shipments/receiver-info-tab";
-import { AddOnsStep } from "@/components/shipments/addons-step";
-import { ReviewStep } from "@/components/shipments/review-step";
-import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
-import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -41,20 +42,10 @@ function generateUUID() {
   });
 }
 
-type Step = 1 | 2 | 3 | 4 | 5;
-type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
-
 export default function CreateShipmentPage() {
   const { user, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-
-  // Get service type from search params (link or warehouse)
-  const serviceType =
-    searchParams.get("type") || searchParams.get("service") || "link";
-  const isLinkService = serviceType === "link";
-  const isWarehouseService = serviceType === "warehouse";
 
   const { data: identityVerificationData } = useQuery({
     queryKey: ["identityVerificationData", user?.id],
@@ -80,12 +71,6 @@ export default function CreateShipmentPage() {
   const isRejected =
     identityVerificationId && verificationStatus === "rejected";
 
-  // Step state
-  const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
-  const [addOnTotal, setAddOnTotal] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const {
     register,
     control,
@@ -96,16 +81,13 @@ export default function CreateShipmentPage() {
     getValues,
     trigger,
   } = useForm<OrderFormData>({
-    mode: "onBlur",
+    mode: "onBlur", // Changed back to onBlur to avoid premature validation
     resolver: zodResolver(OrderSchema),
     defaultValues: {
       shipments: [
         {
-          shipmentType: isLinkService ? "link" : "warehouse",
+          shipmentType: "export",
           country: "",
-          warehouseId: undefined,
-          purchasedDate: undefined,
-          purchasedSite: "",
           packageType: "box",
           dimensions: {
             length: undefined,
@@ -137,7 +119,6 @@ export default function CreateShipmentPage() {
             addressLine3: "",
             addressLine4: "",
             postalCode: "",
-            receivingCountry: "",
           },
           items: [
             {
@@ -150,17 +131,41 @@ export default function CreateShipmentPage() {
               quantity: 0,
             },
           ],
-          invoiceUrls: [],
-          productImageUrls: [],
-          notes: "",
         },
       ],
     },
   });
 
-  // State for fetched data
+  const {
+    fields: shipmentFields,
+    append: appendShipment,
+    remove: removeShipment,
+  } = useFieldArray({
+    control,
+    name: "shipments",
+    keyName: "fieldId",
+  });
+  // --- End React Hook Form Setup ---
+
+  // State for UI interaction and fetched data
+  const [activeTab, setActiveTab] = useState<{ [key: string]: string }>({});
+  const [expandedItems, setExpandedItems] = useState<{
+    [key: string]: string | null;
+  }>({});
   const [countries, setCountries] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [courierServices, setCourierServices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Keep loading state for data fetching
+  const [detailedCourierServices, setDetailedCourierServices] = useState<any[]>(
+    []
+  );
+  const [priceCalculationResults, setPriceCalculationResults] = useState<{
+    [key: string]: PriceCalculationResult;
+  }>({});
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [addOnTotal, setAddOnTotal] = useState(0);
 
   // Calculate total price from all product items
   const calculateTotalPrice = useCallback(() => {
@@ -177,22 +182,25 @@ export default function CreateShipmentPage() {
       }
     });
 
-    return total;
+    setTotalPrice(total);
   }, [getValues]);
-
-  const totalPrice = calculateTotalPrice();
-  const baseAmount = totalPrice;
 
   // Watch for changes in product items and update total price
   useEffect(() => {
     const subscription = watch((value, { name }) => {
+      // Check if the change is related to product items (price or quantity)
       if (name && (name.includes(".price") || name.includes(".quantity"))) {
-        // Total price will be recalculated on next render
+        calculateTotalPrice();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [watch]);
+  }, [watch, calculateTotalPrice]);
+
+  // Calculate initial total price
+  useEffect(() => {
+    calculateTotalPrice();
+  }, [calculateTotalPrice]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -206,12 +214,13 @@ export default function CreateShipmentPage() {
     }
   }, [user, authIsLoading, router, toast]);
 
-  // Fetch countries on component mount
+  // Fetch countries and courier services on component mount
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
         const countriesData = await fetchCountries();
+
         setCountries(countriesData);
 
         if (countriesData.length > 0) {
@@ -223,7 +232,8 @@ export default function CreateShipmentPage() {
         console.error("Error loading initial data:", error);
         toast({
           title: "Error",
-          description: "Failed to load countries. Using default values.",
+          description:
+            "Failed to load countries and courier services. Using default values.",
           variant: "destructive",
         });
 
@@ -235,102 +245,131 @@ export default function CreateShipmentPage() {
         ];
 
         setCountries(defaultCountries);
+
         setValue("shipments.0.country", "us", { shouldValidate: true });
+        setValue("shipments.0.courierService", "fedex", {
+          shouldValidate: true,
+        });
       } finally {
         setIsLoading(false);
       }
     }
 
     loadData();
-  }, [toast, setValue]);
+  }, [toast]);
 
-  // Validate current step before moving forward
-  const validateStep = useCallback(
-    async (step: Step): Promise<boolean> => {
-      const shipmentIndex = 0;
-
-      if (step === 1) {
-        // Validate products
-        const itemsResult = await trigger(`shipments.${shipmentIndex}.items`);
-        if (isWarehouseService) {
-          // Also validate warehouse-specific fields in products step
-          const purchasedDateResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedDate`
-          );
-          const purchasedSiteResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedSite`
-          );
-          return itemsResult && purchasedDateResult && purchasedSiteResult;
-        }
-        return itemsResult;
-      } else if (step === 2) {
-        if (isWarehouseService) {
-          // Validate warehouse selection
-          const warehouseResult = await trigger(
-            `shipments.${shipmentIndex}.warehouseId`
-          );
-          return warehouseResult;
-        } else {
-          // Validate receiver details for link service
-          const receiverResult = await trigger(
-            `shipments.${shipmentIndex}.receiver`
-          );
-          return receiverResult;
-        }
-      } else if (step === 3) {
-        if (isWarehouseService) {
-          // Validate receiver details for warehouse service
-          const receiverResult = await trigger(
-            `shipments.${shipmentIndex}.receiver`
-          );
-          return receiverResult;
-        } else {
-          // Add-ons step doesn't need validation for link service
-          return true;
-        }
-      } else if (step === 4) {
-        if (isWarehouseService) {
-          // Add-ons step doesn't need validation
-          return true;
-        } else {
-          // Review step - validate entire form for link service
-          return await trigger();
-        }
-      } else if (step === 5) {
-        // Review step - validate entire form for warehouse service
-        return await trigger();
+  // Initialize active tab for each shipment
+  useEffect(() => {
+    const initialTabs: { [key: string]: string } = {};
+    shipmentFields.forEach((field) => {
+      if (!activeTab[field.fieldId]) {
+        initialTabs[field.fieldId] = "details";
       }
+    });
 
-      return false;
+    if (Object.keys(initialTabs).length > 0) {
+      setActiveTab((prev) => ({ ...prev, ...initialTabs }));
+    }
+  }, [shipmentFields, activeTab]);
+
+  // Toggle item expansion
+  const toggleItemExpansion = useCallback((itemUuid: string) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [itemUuid]: prev[itemUuid] === itemUuid ? null : itemUuid,
+    }));
+  }, []);
+
+  // Add a new shipment
+  const addShipment = useCallback(() => {
+    appendShipment({
+      shipmentType: "link",
+      country: countries[0]?.code || "",
+      warehouseId: undefined,
+      courierService:
+        courierServices[0]?.courier_service_id || courierServices[0]?.id || "",
+      purchasedDate: undefined,
+      purchasedSite: undefined,
+      packageType: "box",
+      dimensions: {
+        length: undefined,
+        width: undefined,
+        height: undefined,
+      },
+      isPickupNeeded: false,
+      pickup: {
+        addressLine1: "",
+        addressLine2: "",
+        addressLine3: "",
+        addressLine4: "",
+        postalCode: "",
+        date: undefined,
+        phoneNumber: "",
+        phoneCode: "",
+        instructions: "",
+      },
+      receiver: {
+        firstName: "",
+        lastName: "",
+        company: "",
+        vatTax: "",
+        phone: "",
+        phoneCode: "",
+        email: "",
+        addressLine1: "",
+        addressLine2: "",
+        addressLine3: "",
+        addressLine4: "",
+        postalCode: "",
+      },
+      items: [
+        {
+          uuid: generateUUID(),
+          productUrl: "",
+          productName: "",
+          productNote: "",
+          price: undefined,
+          valueCurrency: "INR",
+          quantity: undefined,
+        },
+      ],
+      invoiceUrls: [],
+      notes: "",
+    });
+  }, [appendShipment, countries, courierServices]);
+
+  // Remove a shipment
+  const handleRemoveShipment = useCallback(
+    (index: number) => {
+      if (shipmentFields.length <= 1) {
+        toast({
+          title: "Cannot Remove",
+          description: "You must have at least one shipment.",
+          variant: "destructive",
+        });
+        return;
+      }
+      removeShipment(index);
+
+      const removedFieldId = shipmentFields[index]?.fieldId;
+      if (removedFieldId) {
+        setActiveTab((prev) => {
+          const newTabs = { ...prev };
+          delete newTabs[removedFieldId];
+          return newTabs;
+        });
+        setPriceCalculationResults((prev) => {
+          const newResults = { ...prev };
+          delete newResults[removedFieldId];
+          return newResults;
+        });
+      }
     },
-    [trigger, isWarehouseService]
+    [removeShipment, shipmentFields, toast]
   );
 
-  const handleNext = useCallback(async () => {
-    const isValid = await validateStep(currentStep);
-    if (!isValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const maxStep = isWarehouseService ? 5 : 4;
-    if (currentStep < maxStep) {
-      setCurrentStep((prev) => (prev + 1) as Step);
-    }
-  }, [currentStep, validateStep, toast, isWarehouseService]);
-
-  const handleBack = useCallback(() => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as Step);
-    }
-  }, [currentStep]);
-
   const handleAddOnsChange = useCallback(
-    (addOns: AddOnId[], addOnAmount: number) => {
+    (addOns: string[], addOnAmount: number) => {
       setSelectedAddOns(addOns);
       setAddOnTotal(addOnAmount);
     },
@@ -340,6 +379,7 @@ export default function CreateShipmentPage() {
   // Helper function to transform shipment data for Supabase
   const transformShipmentData = useCallback(
     (shipmentData: ShipmentFormData) => {
+      // Extract phone details
       const phoneDetails = getPhoneDetails(shipmentData.receiver.phone || "");
 
       const initialStatus = shipmentData.isPickupNeeded ? "Pick Up" : "Pending";
@@ -375,7 +415,6 @@ export default function CreateShipmentPage() {
         receiver_address_line3: shipmentData.receiver.addressLine3 || "",
         receiver_address_line4: shipmentData.receiver.addressLine4 || "",
         receiver_postal_code: shipmentData.receiver.postalCode || "",
-        receiver_country: shipmentData.receiver.receivingCountry || "",
 
         status_timeline: statusTimeline,
         invoice_urls: shipmentData.invoiceUrls || [],
@@ -395,7 +434,106 @@ export default function CreateShipmentPage() {
     []
   );
 
-  // Submit Handler
+  // Helper function to transform item data for Supabase
+  const transformItemData = useCallback(
+    (item: ItemFormData, shipmentId: string) => {
+      return {
+        shipment_id: shipmentId,
+        product_url: item.productUrl,
+        product_name: item.productName,
+        product_note: item.productNote || "",
+        declared_value: item.price || 0,
+        value_currency: item.valueCurrency || "INR",
+        quantity: item.quantity || 1,
+        total_price: item.price || 0,
+        source: "drop_and_ship",
+      };
+    },
+    []
+  );
+
+  // --- Submit Handler ---
+  // const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
+  //   console.log("Validated Form Data:", data);
+
+  //   if (!user) {
+  //     toast({
+  //       title: "Authentication required",
+  //       description: "Please log in to create a shipment",
+  //       variant: "destructive",
+  //     });
+  //     router.push("/");
+  //     return;
+  //   }
+
+  //   const userId = user.id;
+
+  //   try {
+  //     // 1. Create logistics order
+  //     const { data: orderData, error: orderError } = await supabase
+  //       .from("logistics_orders")
+  //       .insert({ user_id: userId, number_of_shipments: data.shipments.length })
+  //       .select()
+  //       .single();
+
+  //     if (orderError) throw orderError;
+  //     const orderId: string = orderData.logistics_order_id;
+  //     console.log("Order ID:", orderId);
+
+  //     const results = [];
+  //     // 2. Process each shipment
+  //     for (let i = 0; i < data.shipments.length; i++) {
+  //       const shipmentData = data.shipments[i];
+  //       const fieldId = shipmentFields[i]?.fieldId;
+  //       const priceResult = fieldId
+  //         ? priceCalculationResults[fieldId]
+  //         : undefined;
+  //       const transformedShipment = transformShipmentData(shipmentData);
+
+  //       // Create shipment
+  //       const { data: shipment, error: shipmentError } = await supabase
+  //         .from("shipments")
+  //         .insert(transformedShipment)
+  //         .select()
+  //         .single();
+
+  //       if (shipmentError) throw shipmentError;
+  //       const shipmentId: string = shipment.shipment_id;
+
+  //       // 3. Process items
+  //       if (shipmentData.items && shipmentData.items.length > 0) {
+  //         const itemsToInsert = shipmentData.items.map((item) =>
+  //           transformItemData(item, shipmentId)
+  //         );
+  //         const { data: items, error: itemsError } = await supabase
+  //           .from("shipment_items")
+  //           .insert(itemsToInsert)
+  //           .select();
+
+  //         if (itemsError) throw itemsError;
+  //         results.push({ shipment, items });
+  //       } else {
+  //         results.push({ shipment, items: [] });
+  //       }
+  //     }
+
+  //     toast({
+  //       title: "Success",
+  //       description: `Created ${results.length} shipment(s)`,
+  //     });
+  //     console.log("[Create Shipment] User state before navigation:", user);
+  //     setShowTermsDialog(false); // Close dialog on success
+  //     router.push("/shipments");
+  //   } catch (error: any) {
+  //     console.error("Error creating shipments:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //     setShowTermsDialog(false); // Close dialog on error
+  //   }
+  // };
   const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
     console.log("Validated Form Data:", data);
 
@@ -411,6 +549,7 @@ export default function CreateShipmentPage() {
 
     try {
       setIsSubmitting(true);
+      setShowTermsDialog(true); // Close dialog on success
       const transformedShipment = transformShipmentData(data.shipments[0]);
       const payload = {
         ...transformedShipment,
@@ -436,6 +575,7 @@ export default function CreateShipmentPage() {
       });
       console.log("Drop and Ship Order created:", responseData);
 
+      setShowTermsDialog(false); // Close dialog on success
       router.push("/shipments");
     } catch (error: any) {
       console.error("Error creating shipments:", error);
@@ -444,15 +584,12 @@ export default function CreateShipmentPage() {
         description: error.message,
         variant: "destructive",
       });
+      setShowTermsDialog(false); // Close dialog on error
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Dynamic step labels based on service type
-  const stepLabels = isWarehouseService
-    ? ["Products", "Warehouse", "Delivery", "Add-ons", "Review"]
-    : ["Products", "Delivery", "Add-ons", "Review"];
+  // --- End Submit Handler ---
 
   if (isLoading || authIsLoading) {
     return (
@@ -474,7 +611,7 @@ export default function CreateShipmentPage() {
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
-          {/* Identity Verification Banner */}
+          {/* Identity Verification Banner - Shows for pending or not verified users */}
           {!isVerified && (
             <Alert
               className={`mb-6 rounded-lg border p-4 ${
@@ -535,6 +672,7 @@ export default function CreateShipmentPage() {
                     "You need to verify your identity before you can place a shipment order. Please complete the KYC verification process."
                   )}
                 </span>
+                {/* Show verify/re-upload button only for rejected or not submitted states */}
                 {!isPending && (
                   <IdentityVerificationDialog
                     userId={user?.id ?? ""}
@@ -561,177 +699,108 @@ export default function CreateShipmentPage() {
             </Alert>
           )}
 
-          {/* Page Title */}
-          <div className="flex items-start justify-between">
-            <div className="mb-6 space-y-1.5">
-              <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
-                Create Shipment{" "}
-                <span className="font-bold text-[#9c4cd2]">BUY2SEND</span>
-              </h1>
-              <p className="text-[14px] text-[#a2a2a2] mt-2">
-                Step {currentStep} of {isWarehouseService ? 5 : 4}:{" "}
-                {stepLabels[currentStep - 1]}
-              </p>
+          <FormHeader
+            totalPrice={totalPrice.toFixed(2)}
+            isSubmitting={isSubmitting}
+            showTermsDialog={showTermsDialog}
+            setShowTermsDialog={setShowTermsDialog}
+            onSubmit={() => {
+              const form = document.getElementById(
+                "order-form"
+              ) as HTMLFormElement;
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+            onAddOnsChange={handleAddOnsChange}
+            isVerified={isVerified}
+          />
+
+          <form
+            id="order-form"
+            onSubmit={handleSubmit(
+              // Success callback - only runs if validation passes
+              (data) => {
+                // Submit the form data
+                onSubmitHandler(data);
+              }
+            )}
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Shipments</h3>
+                <div className="flex gap-2">
+                  {/* <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={addShipment}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add Shipment
+                  </Button> */}
+                </div>
+              </div>
+
+              <Accordion
+                type="multiple"
+                defaultValue={shipmentFields.map(
+                  (field) => `shipment-${field.fieldId}`
+                )}
+                className="space-y-6"
+              >
+                {shipmentFields.map((field, index) => (
+                  <ShipmentCard
+                    key={field.fieldId}
+                    control={control}
+                    register={register}
+                    errors={errors}
+                    watch={watch}
+                    setValue={setValue}
+                    getValues={getValues}
+                    trigger={trigger}
+                    index={index}
+                    fieldId={field.fieldId}
+                    countries={countries}
+                    courierServices={detailedCourierServices}
+                    shipmentType={watch(`shipments.${index}.shipmentType`)}
+                    activeTab={activeTab[field.fieldId] || "details"}
+                    setActiveTab={setActiveTab}
+                    expandedItems={expandedItems}
+                    toggleItemExpansion={toggleItemExpansion}
+                    priceCalculationResult={
+                      priceCalculationResults[field.fieldId]
+                    }
+                    onRemove={() => handleRemoveShipment(index)}
+                    onPriceChange={calculateTotalPrice}
+                    isVerified={isVerified}
+                  />
+                ))}
+              </Accordion>
+
+              <div className="flex w-full justify-end">
+                <Button
+                  type="button"
+                  onClick={() => setShowTermsDialog(true)}
+                  className="gap-2 w-full sm:w-auto"
+                  disabled={isSubmitting || !isVerified}
+                  size="sm"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Place Order
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <ServiceSelectionDialog>
-              <Button className="gap-2" variant="outline">
-                Change Service
-              </Button>
-            </ServiceSelectionDialog>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-6 ">
-            <div className="flex items-center justify-between mb-2 ">
-              {(isWarehouseService ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map(
-                (step) => (
-                  <div key={step} className="flex items-center ">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step <= currentStep
-                          ? "bg-[#9c4cd2] text-white"
-                          : "bg-gray-200 text-gray-500"
-                      }`}
-                    >
-                      {step < currentStep ? <Check size={16} /> : step}
-                    </div>
-                    {step < (isWarehouseService ? 5 : 4) && (
-                      <div
-                        className={` ${
-                          isWarehouseService ? "w-[12rem]" : "w-[19rem]"
-                        } h-1 mx-2 rounded ${
-                          step < currentStep ? "bg-[#9c4cd2]" : "bg-gray-200"
-                        }`}
-                      />
-                    )}
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Step Content */}
-          <form id="order-form" onSubmit={handleSubmit(onSubmitHandler)}>
-            {currentStep === 1 && (
-              <ProductsStep
-                index={0}
-                control={control}
-                register={register}
-                errors={errors}
-                watch={watch}
-                setValue={setValue}
-                onNext={handleNext}
-                isWarehouseService={isWarehouseService}
-                getValues={getValues}
-              />
-            )}
-
-            {currentStep === 2 && isWarehouseService && (
-              <div className="space-y-6">
-                <WarehouseSelectionStep
-                  index={0}
-                  control={control}
-                  register={register}
-                  errors={errors}
-                  watch={watch}
-                  setValue={setValue}
-                />
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handleBack}>
-                    Back
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Continue to Delivery
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 2 && !isWarehouseService && (
-              <div className="space-y-6">
-                <ReceiverInfoTab
-                  index={0}
-                  control={control}
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  countries={countries}
-                />
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handleBack}>
-                    Back
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Continue to Add-ons
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 3 && isWarehouseService && (
-              <div className="space-y-6">
-                <ReceiverInfoTab
-                  index={0}
-                  control={control}
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  countries={countries}
-                />
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handleBack}>
-                    Back
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Continue to Add-ons
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 3 && !isWarehouseService && (
-              <AddOnsStep
-                baseAmount={baseAmount}
-                selectedAddOns={selectedAddOns}
-                onAddOnsChange={handleAddOnsChange}
-                onNext={handleNext}
-                onBack={handleBack}
-              />
-            )}
-
-            {currentStep === 4 && isWarehouseService && (
-              <AddOnsStep
-                baseAmount={baseAmount}
-                selectedAddOns={selectedAddOns}
-                onAddOnsChange={handleAddOnsChange}
-                onNext={handleNext}
-                onBack={handleBack}
-              />
-            )}
-
-            {(currentStep === 4 && !isWarehouseService) ||
-            (currentStep === 5 && isWarehouseService) ? (
-              <ReviewStep
-                baseAmount={baseAmount}
-                selectedAddOns={selectedAddOns}
-                addOnTotal={addOnTotal}
-                onBack={handleBack}
-                onSubmit={async () => {
-                  const reviewStep = isWarehouseService ? 5 : 4;
-                  const isValid = await validateStep(reviewStep);
-                  if (isValid) {
-                    handleSubmit(onSubmitHandler)();
-                  } else {
-                    toast({
-                      title: "Validation Error",
-                      description: "Please fill in all required fields",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                isSubmitting={isSubmitting}
-              />
-            ) : null}
           </form>
         </div>
       </main>
