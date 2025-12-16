@@ -22,6 +22,7 @@ import {
   Upload,
   Calendar,
   Globe,
+  Lightbulb,
 } from "lucide-react";
 import {
   Controller,
@@ -221,10 +222,6 @@ function ProductItemWithQuery({
             id={`shipments.${index}.items.${itemIndex}.productName`}
             {...register(`shipments.${index}.items.${itemIndex}.productName`)}
             placeholder="Product name"
-            disabled={
-              Boolean(isLoading) ||
-              Boolean(trimmedUrl && trimmedUrl !== debouncedUrl)
-            }
           />
           <ErrorMessage
             error={errors.shipments?.[index]?.items?.[itemIndex]?.productName}
@@ -256,7 +253,6 @@ function ProductItemWithQuery({
             Price *
           </Label>
           <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               id={`shipments.${index}.items.${itemIndex}.price`}
               {...register(`shipments.${index}.items.${itemIndex}.price`, {
@@ -266,11 +262,6 @@ function ProductItemWithQuery({
               step="0.01"
               min="0"
               placeholder="0.00"
-              className="pl-10"
-              disabled={
-                Boolean(isLoading) ||
-                Boolean(trimmedUrl && trimmedUrl !== debouncedUrl)
-              }
             />
           </div>
           <ErrorMessage
@@ -429,7 +420,7 @@ export function ProductsStep({
             },
           }));
         } else if (queryData) {
-          // Show fetched data
+          // Show fetched data - handle case where no image is available
           setProductImages((prev) => ({
             ...prev,
             [itemIndex]: {
@@ -440,8 +431,11 @@ export function ProductsStep({
               error: queryData.image ? undefined : "No image available",
             },
           }));
-        } else if (queryState.error) {
-          // Show error state
+        } else if (
+          queryState.error ||
+          (queryState.data === null && queryState.fetchStatus === "idle")
+        ) {
+          // Show error state or no data state
           setProductImages((prev) => ({
             ...prev,
             [itemIndex]: {
@@ -449,7 +443,7 @@ export function ProductsStep({
               productUrl: productUrl,
               name: item?.productName || "Product",
               loading: false,
-              error: "Unable to load image",
+              error: "No image available",
             },
           }));
         }
@@ -519,6 +513,20 @@ export function ProductsStep({
                     name: queryData.title || item?.productName || "Product",
                     loading: false,
                     error: queryData.image ? undefined : "No image available",
+                  },
+                }));
+              } else if (
+                queryState.error ||
+                (queryState.data === null && queryState.fetchStatus === "idle")
+              ) {
+                setProductImages((prev) => ({
+                  ...prev,
+                  [itemIndex]: {
+                    imageUrl: "",
+                    productUrl: productUrl,
+                    name: item?.productName || "Product",
+                    loading: false,
+                    error: "No image available",
                   },
                 }));
               }
@@ -1163,11 +1171,11 @@ export function ProductsStep({
                               <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
                                 <Loader2 className="w-6 h-6 text-primary animate-spin" />
                               </div>
-                            ) : imageData.error ? (
+                            ) : imageData.error || !imageData.imageUrl ? (
                               <div className="flex flex-col items-center justify-center h-32 bg-muted rounded-lg text-center p-3">
                                 <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
                                 <p className="text-xs text-muted-foreground">
-                                  {imageData.error}
+                                  {imageData.error || "No image available"}
                                 </p>
                               </div>
                             ) : (
@@ -1202,6 +1210,39 @@ export function ProductsStep({
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Tips Card */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <h4 className="font-semibold text-sm text-primary">Tips</h4>
+                  <ul className="space-y-1.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary/70 mt-0.5">•</span>
+                      <span>Images load automatically from product links</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary/70 mt-0.5">•</span>
+                      <span>
+                        Product details auto-fill from major e-commerce
+                        platforms
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary/70 mt-0.5">•</span>
+                      <span>
+                        If unavailable, you can manually enter name and price
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

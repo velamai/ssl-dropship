@@ -184,10 +184,15 @@ export const ShipmentSchema = z
       return undefined;
     }, z.date().optional()),
     purchasedSite: z
-      .string()
-      .trim()
-      .url({ message: "Purchased site must be a valid URL" })
-      .optional(),
+      .union([
+        z
+          .string()
+          .trim()
+          .url({ message: "Purchased site must be a valid URL" }),
+        z.literal(""),
+      ])
+      .optional()
+      .transform((val) => (val === "" || val === undefined ? undefined : val)),
     packageType: z.enum(["box", "envelope"], {
       required_error: "Package type is required",
       invalid_type_error: "Package type must be either 'box' or 'envelope'",
@@ -210,7 +215,7 @@ export const ShipmentSchema = z
     notes: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
-    // Validate warehouse selection only for warehouse shipments
+    // Validate warehouse-specific fields only for warehouse shipments
     if (data.shipmentType === "warehouse") {
       if (!data.warehouseId) {
         ctx.addIssue({
@@ -233,6 +238,15 @@ export const ShipmentSchema = z
           path: ["purchasedSite"],
         });
       }
+    } else if (data.shipmentType === "link") {
+      // For link service, clear warehouse-specific fields to avoid validation issues
+      // These fields should be undefined/empty for link service
+      if (data.purchasedSite && data.purchasedSite.trim() !== "") {
+        // If purchasedSite has a value for link service, it should be a valid URL
+        // But we don't require it, so we just validate format if present
+      }
+      // invoiceUrls and productImageUrls are optional for link service
+      // They will only be validated if present (which they shouldn't be)
     }
   });
 

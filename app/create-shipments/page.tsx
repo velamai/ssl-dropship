@@ -93,6 +93,7 @@ function CreateShipmentPageContent() {
     control,
     handleSubmit,
     formState: { errors },
+    formState,
     watch,
     setValue,
     getValues,
@@ -107,7 +108,7 @@ function CreateShipmentPageContent() {
           country: "",
           warehouseId: undefined,
           purchasedDate: undefined,
-          purchasedSite: "",
+          purchasedSite: isLinkService ? undefined : "",
           packageType: "box",
           dimensions: {
             length: undefined,
@@ -149,11 +150,11 @@ function CreateShipmentPageContent() {
               productNote: "",
               price: 0,
               valueCurrency: "INR",
-              quantity: 0,
+              quantity: 1,
             },
           ],
-          invoiceUrls: [],
-          productImageUrls: [],
+          invoiceUrls: isLinkService ? undefined : [],
+          productImageUrls: isLinkService ? undefined : [],
           notes: "",
         },
       ],
@@ -208,6 +209,33 @@ function CreateShipmentPageContent() {
     }
   }, [user, authIsLoading, router, toast]);
 
+  // Ensure shipmentType is synced with service type and clear warehouse fields for link service
+  useEffect(() => {
+    const currentShipmentType = watch("shipments.0.shipmentType");
+    const expectedType = isLinkService ? "link" : "warehouse";
+
+    if (currentShipmentType !== expectedType) {
+      setValue("shipments.0.shipmentType", expectedType, {
+        shouldValidate: false,
+      });
+    }
+
+    // Clear warehouse-specific fields for link service
+    if (isLinkService) {
+      setValue("shipments.0.warehouseId", undefined, { shouldValidate: false });
+      setValue("shipments.0.purchasedDate", undefined, {
+        shouldValidate: false,
+      });
+      setValue("shipments.0.purchasedSite", undefined, {
+        shouldValidate: false,
+      });
+      setValue("shipments.0.invoiceUrls", undefined, { shouldValidate: false });
+      setValue("shipments.0.productImageUrls", undefined, {
+        shouldValidate: false,
+      });
+    }
+  }, [isLinkService, isWarehouseService, watch, setValue]);
+
   // Fetch countries on component mount
   useEffect(() => {
     async function loadData() {
@@ -245,6 +273,29 @@ function CreateShipmentPageContent() {
 
     loadData();
   }, [toast, setValue]);
+
+  // Helper function to extract all validation errors
+  const extractAllErrors = useCallback((errors: any, path = ""): string[] => {
+    const errorMessages: string[] = [];
+
+    if (!errors) return errorMessages;
+
+    if (errors.message) {
+      errorMessages.push(`${path ? `${path}: ` : ""}${errors.message}`);
+    }
+
+    if (typeof errors === "object") {
+      Object.keys(errors).forEach((key) => {
+        const currentPath = path ? `${path}.${key}` : key;
+        if (key !== "message" && key !== "ref") {
+          const nestedErrors = extractAllErrors(errors[key], currentPath);
+          errorMessages.push(...nestedErrors);
+        }
+      });
+    }
+
+    return errorMessages;
+  }, []);
 
   // Validate current step before moving forward
   const validateStep = useCallback(
@@ -296,11 +347,129 @@ function CreateShipmentPageContent() {
           return true;
         } else {
           // Review step - validate entire form for link service
-          return await trigger();
+          console.log(
+            "[validateStep] Step 4 (Link Review) - Validating entire form..."
+          );
+          const result = await trigger();
+          console.log("[validateStep] Step 4 validation result:", result);
+          if (!result) {
+            // Validate each section individually to find what's failing
+            const itemsResult = await trigger(
+              `shipments.${shipmentIndex}.items`
+            );
+            const receiverResult = await trigger(
+              `shipments.${shipmentIndex}.receiver`
+            );
+            const countryResult = await trigger(
+              `shipments.${shipmentIndex}.country`
+            );
+            const packageTypeResult = await trigger(
+              `shipments.${shipmentIndex}.packageType`
+            );
+            const dimensionsResult = await trigger(
+              `shipments.${shipmentIndex}.dimensions`
+            );
+            const isPickupNeeded = getValues(
+              `shipments.${shipmentIndex}.isPickupNeeded`
+            );
+            const pickupResult = isPickupNeeded
+              ? await trigger(`shipments.${shipmentIndex}.pickup`)
+              : true;
+            const invoiceUrlsResult = await trigger(
+              `shipments.${shipmentIndex}.invoiceUrls`
+            );
+            const productImageUrlsResult = await trigger(
+              `shipments.${shipmentIndex}.productImageUrls`
+            );
+
+            console.log("[validateStep] Individual field validation results:", {
+              items: itemsResult,
+              receiver: receiverResult,
+              country: countryResult,
+              packageType: packageTypeResult,
+              dimensions: dimensionsResult,
+              isPickupNeeded,
+              pickup: pickupResult,
+              invoiceUrls: invoiceUrlsResult,
+              productImageUrls: productImageUrlsResult,
+            });
+
+            // Try to manually validate using the schema to see what's failing
+            try {
+              const formData = getValues();
+              const { OrderSchema } = await import(
+                "@/lib/schemas/shipmentSchema"
+              );
+              const validationResult = OrderSchema.safeParse(formData);
+              if (!validationResult.success) {
+                console.log(
+                  "[validateStep] Schema validation errors:",
+                  validationResult.error.errors
+                );
+                console.log(
+                  "[validateStep] Schema validation error details:",
+                  validationResult.error.errors.map((e) => ({
+                    path: e.path.join("."),
+                    message: e.message,
+                    code: e.code,
+                  }))
+                );
+              } else {
+                console.log("[validateStep] Schema validation passed!");
+              }
+            } catch (error) {
+              console.error(
+                "[validateStep] Error during schema validation:",
+                error
+              );
+            }
+          }
+          return result;
         }
       } else if (step === 5) {
         // Review step - validate entire form for warehouse service
-        return await trigger();
+        console.log(
+          "[validateStep] Step 5 (Warehouse Review) - Validating entire form..."
+        );
+        const result = await trigger();
+        console.log("[validateStep] Step 5 validation result:", result);
+        if (!result) {
+          // Validate each section individually to find what's failing
+          const itemsResult = await trigger(`shipments.${shipmentIndex}.items`);
+          const receiverResult = await trigger(
+            `shipments.${shipmentIndex}.receiver`
+          );
+          const warehouseResult = await trigger(
+            `shipments.${shipmentIndex}.warehouseId`
+          );
+          const purchasedDateResult = await trigger(
+            `shipments.${shipmentIndex}.purchasedDate`
+          );
+          const purchasedSiteResult = await trigger(
+            `shipments.${shipmentIndex}.purchasedSite`
+          );
+          const countryResult = await trigger(
+            `shipments.${shipmentIndex}.country`
+          );
+          const packageTypeResult = await trigger(
+            `shipments.${shipmentIndex}.packageType`
+          );
+          const dimensionsResult = await trigger(
+            `shipments.${shipmentIndex}.dimensions`
+          );
+
+          console.log("[validateStep] Individual field validation results:", {
+            items: itemsResult,
+            receiver: receiverResult,
+            warehouse: warehouseResult,
+            purchasedDate: purchasedDateResult,
+            purchasedSite: purchasedSiteResult,
+            country: countryResult,
+            packageType: packageTypeResult,
+            dimensions: dimensionsResult,
+          });
+        }
+        return result;
       }
 
       return false;
@@ -720,13 +889,110 @@ function CreateShipmentPageContent() {
                 onBack={handleBack}
                 onSubmit={async () => {
                   const reviewStep = isWarehouseService ? 5 : 4;
+                  console.log("[ReviewStep] Starting validation:", {
+                    reviewStep,
+                    isWarehouseService,
+                    currentStep,
+                  });
+
                   const isValid = await validateStep(reviewStep);
+                  console.log("[ReviewStep] Validation result:", isValid);
+
+                  if (!isValid) {
+                    // Wait a bit for React Hook Form to update errors
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+
+                    const formData = getValues();
+
+                    // Use formState.errors directly to get the latest errors
+                    const latestErrors = formState.errors;
+                    console.log(
+                      "[ReviewStep] Latest errors from formState:",
+                      latestErrors
+                    );
+
+                    // Extract all validation errors in a readable format
+                    const allErrors = extractAllErrors(latestErrors);
+
+                    console.group(
+                      "🔴 [ReviewStep] Validation Failed - Detailed Errors"
+                    );
+                    console.log("Step:", reviewStep);
+                    console.log(
+                      "Service Type:",
+                      isWarehouseService ? "Warehouse" : "Link"
+                    );
+                    console.log("\n📋 All Validation Errors:");
+                    if (allErrors.length > 0) {
+                      allErrors.forEach((error, index) => {
+                        console.log(`  ${index + 1}. ${error}`);
+                      });
+                    } else {
+                      console.log("  No error messages found in errors object");
+                    }
+
+                    console.log("\n📊 Form Data Summary:");
+                    console.log(
+                      "  Shipment Type:",
+                      formData.shipments?.[0]?.shipmentType
+                    );
+
+                    if (isWarehouseService) {
+                      console.log(
+                        "  Warehouse ID:",
+                        formData.shipments[0]?.warehouseId || "❌ MISSING"
+                      );
+                      console.log(
+                        "  Purchased Date:",
+                        formData.shipments[0]?.purchasedDate || "❌ MISSING"
+                      );
+                      console.log(
+                        "  Purchased Site:",
+                        formData.shipments[0]?.purchasedSite || "❌ MISSING"
+                      );
+                    }
+
+                    console.log(
+                      "  Receiver Country:",
+                      formData.shipments[0]?.receiver?.receivingCountry ||
+                        "❌ MISSING"
+                    );
+                    console.log(
+                      "  Receiver Name:",
+                      `${formData.shipments[0]?.receiver?.firstName || ""} ${
+                        formData.shipments[0]?.receiver?.lastName || ""
+                      }`.trim() || "❌ MISSING"
+                    );
+                    console.log(
+                      "  Items Count:",
+                      formData.shipments[0]?.items?.length || 0
+                    );
+
+                    console.log("\n🔍 Full Errors Object (from formState):");
+                    console.log(latestErrors);
+                    console.log("\n🔍 Full Errors Object (from destructured):");
+                    console.log(errors);
+
+                    console.log("\n📦 Full Form Data:");
+                    console.log(formData);
+                    console.groupEnd();
+                  }
+
                   if (isValid) {
+                    console.log(
+                      "✅ [ReviewStep] Validation passed, submitting form..."
+                    );
                     handleSubmit(onSubmitHandler)();
                   } else {
+                    const allErrors = extractAllErrors(errors);
                     toast({
                       title: "Validation Error",
-                      description: "Please fill in all required fields",
+                      description:
+                        allErrors.length > 0
+                          ? `Please fix: ${allErrors.slice(0, 3).join(", ")}${
+                              allErrors.length > 3 ? "..." : ""
+                            }`
+                          : "Please fill in all required fields",
                       variant: "destructive",
                     });
                   }

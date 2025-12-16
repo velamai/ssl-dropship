@@ -1521,99 +1521,101 @@ export default function ShipmentDetailsPage() {
               </Card>
 
               {/* Card 4: Warehouse Information */}
-              <Card className="transition-all hover:shadow-md">
-                <CardHeader className="bg-muted/30 pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Truck className="h-5 w-5 text-primary" />
-                    Warehouse Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  {shipment.drop_and_ship_warehouse_address ? (
-                    <>
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground">
-                          Warehouse Name
-                        </h3>
-                        <p className="text-sm font-medium">
-                          {shipment.drop_and_ship_warehouse_address.name ||
-                            "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground">
-                          Address
-                        </h3>
-                        <div className="space-y-1 mt-1">
-                          <p className="text-sm">
-                            {
-                              shipment.drop_and_ship_warehouse_address
-                                .address_line1
-                            }{" "}
-                            ,
-                          </p>
-                          <p className="text-sm">
-                            {shipment.drop_and_ship_warehouse_address
-                              .address_line2 && (
-                              <>
-                                {
-                                  shipment.drop_and_ship_warehouse_address
-                                    .address_line2
-                                }
-                              </>
-                            )}
-                          </p>
-                          <p className="text-sm">
-                            {shipment.drop_and_ship_warehouse_address
-                              .address_line3 && (
-                              <>
-                                {
-                                  shipment.drop_and_ship_warehouse_address
-                                    .address_line3
-                                }
-                              </>
-                            )}
-                            {shipment.drop_and_ship_warehouse_address
-                              .address_line4 && (
-                              <>
-                                ,{" "}
-                                {
-                                  shipment.drop_and_ship_warehouse_address
-                                    .address_line4
-                                }
-                              </>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
+              {shipment.drop_and_ship_warehouse_address && (
+                <Card className="transition-all hover:shadow-md">
+                  <CardHeader className="bg-muted/30 pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Truck className="h-5 w-5 text-primary" />
+                      Warehouse Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    {shipment.drop_and_ship_warehouse_address ? (
+                      <>
                         <div>
                           <h3 className="text-xs font-medium text-muted-foreground">
-                            Country
+                            Warehouse Name
                           </h3>
                           <p className="text-sm font-medium">
-                            {shipment.drop_and_ship_warehouse_address.country ||
+                            {shipment.drop_and_ship_warehouse_address.name ||
                               "N/A"}
                           </p>
                         </div>
                         <div>
                           <h3 className="text-xs font-medium text-muted-foreground">
-                            Postal Code
+                            Address
                           </h3>
-                          <p className="text-sm font-medium">
-                            {shipment.drop_and_ship_warehouse_address
-                              .postal_code || "N/A"}
-                          </p>
+                          <div className="space-y-1 mt-1">
+                            <p className="text-sm">
+                              {
+                                shipment.drop_and_ship_warehouse_address
+                                  .address_line1
+                              }{" "}
+                              ,
+                            </p>
+                            <p className="text-sm">
+                              {shipment.drop_and_ship_warehouse_address
+                                .address_line2 && (
+                                <>
+                                  {
+                                    shipment.drop_and_ship_warehouse_address
+                                      .address_line2
+                                  }
+                                </>
+                              )}
+                            </p>
+                            <p className="text-sm">
+                              {shipment.drop_and_ship_warehouse_address
+                                .address_line3 && (
+                                <>
+                                  {
+                                    shipment.drop_and_ship_warehouse_address
+                                      .address_line3
+                                  }
+                                </>
+                              )}
+                              {shipment.drop_and_ship_warehouse_address
+                                .address_line4 && (
+                                <>
+                                  ,{" "}
+                                  {
+                                    shipment.drop_and_ship_warehouse_address
+                                      .address_line4
+                                  }
+                                </>
+                              )}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No warehouse information available
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <h3 className="text-xs font-medium text-muted-foreground">
+                              Country
+                            </h3>
+                            <p className="text-sm font-medium">
+                              {shipment.drop_and_ship_warehouse_address
+                                .country || "N/A"}
+                            </p>
+                          </div>
+                          <div>
+                            <h3 className="text-xs font-medium text-muted-foreground">
+                              Postal Code
+                            </h3>
+                            <p className="text-sm font-medium">
+                              {shipment.drop_and_ship_warehouse_address
+                                .postal_code || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No warehouse information available
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column - Tracking History */}
