@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const event = JSON.parse(body);
 
-  const { shipment_id } = event.payload.payment.entity.notes;
+  const { shipment_id, payment_type } = event.payload.payment.entity.notes;
 
   switch (event.event) {
     case "payment.captured":
@@ -48,28 +48,74 @@ export async function POST(req: NextRequest) {
         .select("*")
         .eq("shipment_id", shipment_id);
 
-      const { error: updateError } = await supabase
-        .from("shipments")
-        .update({
-          payment_status: "paid",
-          paid_at: new Date().toISOString(),
-          current_status_updated_at: new Date().toISOString(),
-          payment_id: payment_id,
-          status_timeline: [
-            ...shipmentData.status_timeline,
-            {
-              status: "Paid",
-              updated_at: new Date().toISOString(),
-              description: "Payment has been captured",
-            },
-          ],
-          current_status: "Paid",
-          payment_details: event.payload.payment.entity,
-          payment_method: "Online Payment",
-        })
-        .eq("shipment_id", shipment_id);
-      if (updateError) {
-        return new NextResponse("Error updating shipment", { status: 500 });
+      // Check if this is a product payment or regular payment
+      const isProductPayment = payment_type === "product_payment";
+
+      // Parse status_timeline (it's stored as JSON string)
+      let statusTimeline = [];
+      try {
+        statusTimeline =
+          typeof shipmentData.status_timeline === "string"
+            ? JSON.parse(shipmentData.status_timeline)
+            : Array.isArray(shipmentData.status_timeline)
+            ? shipmentData.status_timeline
+            : [];
+      } catch (e) {
+        console.error("Error parsing status_timeline:", e);
+        statusTimeline = [];
+      }
+
+      if (isProductPayment) {
+        // Update product payment fields
+        const { error: updateError } = await supabase
+          .from("shipments")
+          .update({
+            drop_and_ship_product_payment_status: "paid",
+            drop_and_ship_product_paid_at: new Date().toISOString(),
+            current_status_updated_at: new Date().toISOString(),
+            drop_and_ship_product_payment_id: payment_id,
+            status_timeline: JSON.stringify([
+              ...statusTimeline,
+              {
+                status: "Product Payment Paid",
+                updated_at: new Date().toISOString(),
+                description: "Product payment has been captured",
+              },
+            ]),
+            drop_and_ship_product_payment_details: JSON.stringify(
+              event.payload.payment.entity
+            ),
+            drop_and_ship_product_payment_method: "Online Payment",
+          })
+          .eq("shipment_id", shipment_id);
+        if (updateError) {
+          return new NextResponse("Error updating shipment", { status: 500 });
+        }
+      } else {
+        // Update regular payment fields
+        const { error: updateError } = await supabase
+          .from("shipments")
+          .update({
+            payment_status: "paid",
+            paid_at: new Date().toISOString(),
+            current_status_updated_at: new Date().toISOString(),
+            payment_id: payment_id,
+            status_timeline: JSON.stringify([
+              ...statusTimeline,
+              {
+                status: "Paid",
+                updated_at: new Date().toISOString(),
+                description: "Payment has been captured",
+              },
+            ]),
+            current_status: "Paid",
+            payment_details: JSON.stringify(event.payload.payment.entity),
+            payment_method: "Online Payment",
+          })
+          .eq("shipment_id", shipment_id);
+        if (updateError) {
+          return new NextResponse("Error updating shipment", { status: 500 });
+        }
       }
 
       // Send payment success email

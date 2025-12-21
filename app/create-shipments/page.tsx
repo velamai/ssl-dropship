@@ -753,7 +753,7 @@ function CreateShipmentPageContent() {
 
           {/* Progress Bar */}
           <div className="mb-6 ">
-            <div className="flex items-center justify-between mb-2 ">
+            <div className=" hidden md:flex items-center justify-between mb-2 ">
               {(isWarehouseService ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map(
                 (step) => (
                   <div key={step} className="flex items-center ">
