@@ -13,6 +13,7 @@ export type Warehouse = {
 };
 
 export interface Shipment {
+  system_tracking_id: string | null;
   drop_and_ship_add_ons: string[];
   idx: number;
   shipment_id: string;
@@ -173,4 +174,3 @@ declare global {
     Razorpay: any;
   }
 }
-

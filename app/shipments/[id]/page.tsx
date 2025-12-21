@@ -259,6 +259,17 @@ export default function ShipmentDetailsPage() {
                     </Link>
                   </Button>
                 )}
+                {shipment.drop_and_ship_product_invoice_url_admin && (
+                  <Button variant="outline" size="sm" className="gap-1" asChild>
+                    <Link
+                      href={shipment.drop_and_ship_product_invoice_url_admin}
+                      target="_blank"
+                    >
+                      <FileText className="h-4 w-4" />
+                      View Product Invoice
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>

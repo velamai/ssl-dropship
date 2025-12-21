@@ -2,12 +2,7 @@
  * OrderDetailsCard component for displaying shipment order details
  */
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { MapPin } from "lucide-react";
 import { formatDate } from "./utils";
@@ -32,9 +27,7 @@ export function OrderDetailsCard({ shipment }: OrderDetailsCardProps) {
             <h3 className="text-xs font-medium text-muted-foreground">
               Tracking #
             </h3>
-            <p className="font-medium text-sm">
-              {shipment.price_details_tracking_id}
-            </p>
+            <p className="font-medium text-sm">{shipment.system_tracking_id}</p>
           </div>
           <div>
             <h3 className="text-xs font-medium text-muted-foreground">
@@ -69,9 +62,7 @@ export function OrderDetailsCard({ shipment }: OrderDetailsCardProps) {
             Receiving Address
           </h3>
           <div className="space-y-1 text-sm">
-            <p>
-              {shipment.receiver_address_line1 || "No address specified"}
-            </p>
+            <p>{shipment.receiver_address_line1 || "No address specified"}</p>
             {shipment.receiver_address_line2 && (
               <p>{shipment.receiver_address_line2}</p>
             )}
@@ -91,4 +82,3 @@ export function OrderDetailsCard({ shipment }: OrderDetailsCardProps) {
     </Card>
   );
 }
-
