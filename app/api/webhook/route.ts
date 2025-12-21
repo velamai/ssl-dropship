@@ -74,10 +74,11 @@ export async function POST(req: NextRequest) {
             drop_and_ship_product_paid_at: new Date().toISOString(),
             current_status_updated_at: new Date().toISOString(),
             drop_and_ship_product_payment_id: payment_id,
+            current_status: "Product Paid",
             status_timeline: JSON.stringify([
               ...statusTimeline,
               {
-                status: "Product Payment Paid",
+                status: "Product Paid",
                 updated_at: new Date().toISOString(),
                 description: "Product payment has been captured",
               },
