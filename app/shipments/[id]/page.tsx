@@ -6,15 +6,15 @@
 "use client";
 
 import { Navbar } from "@/components/navbar";
-import OrderPdf from "@/components/shipments/order-pdf";
 import { OrderDetailsCard } from "@/components/shipments/order-details-card";
 import { PaymentCard } from "@/components/shipments/payment-card";
-import { ProductPaymentCard } from "@/components/shipments/product-payment-card";
 import { ProductInfoCard } from "@/components/shipments/product-info-card";
+import { ProductPaymentCard } from "@/components/shipments/product-payment-card";
 import { ReceiverInfoCard } from "@/components/shipments/receiver-info-card";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { StatusOverviewCard } from "@/components/shipments/status-overview-card";
 import { TrackingHistoryCard } from "@/components/shipments/tracking-history-card";
+import type { Shipment, ShipmentItem } from "@/components/shipments/types";
 import { WarehouseInfoCard } from "@/components/shipments/warehouse-info-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,16 +28,10 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { generateBarcode } from "@/lib/barcode";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import { ArrowLeft, FileText, Loader2, Printer, Truck } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  formatAddressForLabel,
-  formatDate,
-} from "@/components/shipments/utils";
-import type { Shipment, ShipmentItem } from "@/components/shipments/types";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -217,7 +211,7 @@ export default function ShipmentDetailsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="gap-1">
+                {/* <Button variant="outline" size="sm" className="gap-1">
                   <Printer className="h-4 w-4" />
                   <PDFDownloadLink
                     document={
@@ -245,7 +239,7 @@ export default function ShipmentDetailsPage() {
                       loading ? "Generating PDF..." : "Print Label"
                     }
                   </PDFDownloadLink>
-                </Button>
+                </Button> */}
                 <Button variant="outline" size="sm" className="gap-1">
                   <Truck className="h-4 w-4" />
                   Track Shipment

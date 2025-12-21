@@ -94,7 +94,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
           </div>
           <span className="font-bold text-lg">BUY2SEND</span> */}
           <Image
-            src="logo.png"
+            src="/logo.png"
             width={60}
             height={60}
             alt="logo"

@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
+import { StatusBadge } from "@/components/shipments/status-badge";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -573,7 +574,7 @@ export default function ShipmentsPage() {
                               <Warehouse className="h-4 w-4 text-primary/70" />
                               <span className="font-medium">
                                 {shipment.drop_and_ship_warehouse_address
-                                  ?.name || "Unknown"}
+                                  ?.name || "N/A"}
                               </span>
                             </div>
                             <div className="font-medium text-primary">
@@ -688,76 +689,5 @@ function ShipmentCardSkeleton() {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  // Map status values to appropriate badge variants and colors
-  const getStatusConfig = (status: string) => {
-    const statusMap = {
-      "Pick Up Assigned": {
-        label: "Pick Up Assigned",
-        variant: "outline",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
-      },
-      Pending: {
-        label: "Pending",
-        variant: "outline",
-        color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      },
-      Received: {
-        label: "Received",
-        variant: "default",
-        color: "bg-green-100 text-green-800 border-green-200",
-      },
-      Accepted: {
-        label: "Accepted",
-        variant: "default",
-        color: "bg-green-100 text-green-800 border-green-200",
-      },
-      "Payment Requested": {
-        label: "Payment Requested",
-        variant: "outline",
-        color: "bg-orange-100 text-orange-800 border-orange-200",
-      },
-      "Invoice Generated": {
-        label: "Invoice Generated",
-        variant: "default",
-        color: "bg-purple-100 text-purple-800 border-purple-200",
-      },
-      Paid: {
-        label: "Paid",
-        variant: "success",
-        color: "bg-green-100 text-green-800 border-green-200",
-      },
-      "Ready to Ship": {
-        label: "Ready to Ship",
-        variant: "default",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
-      },
-      Departure: {
-        label: "Departure",
-        variant: "default",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
-      },
-    };
-
-    return (
-      statusMap[status as keyof typeof statusMap] || {
-        label: status,
-        variant: "outline",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
-      }
-    );
-  };
-
-  const { label, color } = getStatusConfig(status);
-
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}
-    >
-      {label}
-    </span>
   );
 }
