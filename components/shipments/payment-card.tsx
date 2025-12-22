@@ -663,7 +663,7 @@ export function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                 <span>{Number(shipment.grand_total).toFixed(2)} INR</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Online Payment Charge (2%):</span>
+                <span>Online Payment Charge (3.5%):</span>
                 <span>{onlinePaymentCharges.toFixed(2)} INR</span>
               </div>
               <Separator />

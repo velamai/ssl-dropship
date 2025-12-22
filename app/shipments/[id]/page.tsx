@@ -25,10 +25,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { generateBarcode } from "@/lib/barcode";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { ArrowLeft, FileText, Loader2, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Truck,
+} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -45,6 +58,7 @@ export default function ShipmentDetailsPage() {
   const { user } = useAuth();
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isRefetching, setIsRefetching] = useState(false);
+  const [showProductImagesDialog, setShowProductImagesDialog] = useState(false);
 
   const labelData = {
     destinationName: "Chinenye Ezinma",
@@ -264,6 +278,17 @@ export default function ShipmentDetailsPage() {
                     </Link>
                   </Button>
                 )}
+                {shipment.drop_and_ship_product_images_admin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setShowProductImagesDialog(true)}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    View Product Images
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -305,6 +330,75 @@ export default function ShipmentDetailsPage() {
           </div>
         </div>
       </main>
+
+      {/* Product Images Dialog */}
+      <Dialog
+        open={showProductImagesDialog}
+        onOpenChange={setShowProductImagesDialog}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Product Images</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {shipment?.drop_and_ship_product_images_admin ? (
+              (() => {
+                // Parse the images array (it might be a JSON string or already an array)
+                let images: string[] = [];
+                try {
+                  if (
+                    typeof shipment.drop_and_ship_product_images_admin ===
+                    "string"
+                  ) {
+                    images = JSON.parse(
+                      shipment.drop_and_ship_product_images_admin
+                    );
+                  } else if (
+                    Array.isArray(shipment.drop_and_ship_product_images_admin)
+                  ) {
+                    images = shipment.drop_and_ship_product_images_admin;
+                  }
+                } catch (e) {
+                  console.error("Error parsing product images:", e);
+                }
+
+                if (images.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                      <ImageIcon className="h-12 w-12 mb-3 text-gray-400" />
+                      <p className="font-medium">No Product Images Available</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {images.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden border border-border hover:shadow-md transition-shadow"
+                      >
+                        <Image
+                          src={imageUrl}
+                          alt={`Product image ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                <ImageIcon className="h-12 w-12 mb-3 text-gray-400" />
+                <p className="font-medium">No Product Images Available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

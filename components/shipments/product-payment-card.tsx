@@ -209,7 +209,9 @@ export function ProductPaymentCard({
 
     try {
       // Upload file to storage
-      const filename = `product-payment-proof/${Date.now()}-${selectedFile.name}`;
+      const filename = `product-payment-proof/${Date.now()}-${
+        selectedFile.name
+      }`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("colombo-storage")
         .upload(filename, selectedFile);
@@ -228,7 +230,8 @@ export function ProductPaymentCard({
           drop_and_ship_product_payment_method: paymentMethod,
           drop_and_ship_product_payment_proof_url: publicUrl,
           drop_and_ship_product_payment_proof_status: "Submitted",
-          drop_and_ship_product_payment_proof_submitted_at: new Date().toISOString(),
+          drop_and_ship_product_payment_proof_submitted_at:
+            new Date().toISOString(),
         })
         .eq("shipment_id", shipment.shipment_id);
 
@@ -363,7 +366,8 @@ export function ProductPaymentCard({
         .update({
           drop_and_ship_product_payment_method: "Cash",
           drop_and_ship_product_payment_proof_status: "Submitted",
-          drop_and_ship_product_payment_proof_submitted_at: new Date().toISOString(),
+          drop_and_ship_product_payment_proof_submitted_at:
+            new Date().toISOString(),
         })
         .eq("shipment_id", shipment.shipment_id);
 
@@ -730,7 +734,7 @@ export function ProductPaymentCard({
                 <span>{productPaymentAmount.toFixed(2)} INR</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Online Payment Charge (2%):</span>
+                <span>Online Payment Charge (3.5%):</span>
                 <span>{onlinePaymentCharges.toFixed(2)} INR</span>
               </div>
               <Separator />
@@ -775,4 +779,3 @@ export function ProductPaymentCard({
     </>
   );
 }
-
