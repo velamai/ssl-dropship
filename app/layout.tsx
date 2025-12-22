@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Buy2Send",
   description: "Buy2Send",
   generator: "Buy2Send",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
