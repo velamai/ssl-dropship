@@ -22,6 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/logo.png" sizes="32x32" />
+        <link rel="icon" href="/logo.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/logo.png" sizes="180x180" />
+      </head>
       <body>
         <ReactQueryProvider>
           <AuthProvider>
