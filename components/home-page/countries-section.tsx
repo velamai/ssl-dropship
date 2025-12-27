@@ -1,0 +1,178 @@
+"use client";
+
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+
+const countryData = [
+  {
+    country: "India",
+    flag: "🇮🇳",
+    tagline:
+      "Shop Indian brands, local marketplaces, ethnic wear, electronics, and wellness products",
+    benefits: [
+      "Traditional handicrafts",
+      "Affordable tech",
+      "Ayurvedic products",
+      "Fashion & textiles",
+      "Spices & specialty items",
+      "Local artisan stores",
+    ],
+    image: "/home-page/indian-marketplace-with-colorful-textiles-spices-a.jpg",
+  },
+  {
+    country: "Sri Lanka",
+    flag: "🇱🇰",
+    tagline: "Buy Sri Lankan specialty items, handicrafts, and local products",
+    benefits: [
+      "Premium Ceylon tea",
+      "Precious gemstones",
+      "Handcrafted items",
+      "Organic products",
+      "Traditional crafts",
+      "Authentic spices",
+    ],
+    image: "/home-page/sri-lankan-tea-plantation-and-gemstones-display.jpg",
+  },
+  {
+    country: "Dubai (UAE)",
+    flag: "🇦🇪",
+    tagline:
+      "Access premium products, electronics, and global brands at competitive prices",
+    benefits: [
+      "Luxury brands",
+      "Latest electronics",
+      "Gold & jewelry",
+      "Tax-free shopping",
+      "Designer fashion",
+      "Premium quality",
+    ],
+    image: "/home-page/dubai-luxury-mall-with-gold-jewelry-and-electronic.jpg",
+  },
+  {
+    country: "Malaysia",
+    flag: "🇲🇾",
+    tagline: "Shop lifestyle products, gadgets, and regional brands",
+    benefits: [
+      "Tech & gadgets",
+      "Skincare products",
+      "Halal certified",
+      "Local brands",
+      "Affordable prices",
+      "Quality electronics",
+    ],
+    image: "/home-page/malaysian-shopping-district-with-technology-and-be.jpg",
+  },
+  {
+    country: "United Kingdom",
+    flag: "🇬🇧",
+    tagline: "Buy UK-exclusive brands, fashion, supplements, and more",
+    benefits: [
+      "Fashion brands",
+      "Books & media",
+      "Specialty foods",
+      "Premium quality",
+      "British craftsmanship",
+      "Iconic products",
+    ],
+    image: "/home-page/british-shopping-street-with-fashion-and-specialty.jpg",
+  },
+];
+
+export function CountriesSection() {
+  return (
+    <section
+      id="countries"
+      className="py-20 bg-gradient-to-b from-pink-50/50 to-white"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16 animate-slide-up-fade">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-balance">
+            Buy from These Countries
+            <br />
+            <span className="text-pink-600 animate-gradient">with Ease</span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed">
+            Each country offers unique products and experiences. Where will you
+            shop today?
+          </p>
+        </div>
+
+        <div className="space-y-8">
+          {countryData.map((item, index) => (
+            <Card
+              key={item.country}
+              className="overflow-hidden hover:shadow-2xl transition-all border-2 border-pink-50 hover:border-pink-200 animate-slide-up-fade"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div
+                className={`grid lg:grid-cols-2 gap-0 ${
+                  index % 2 === 0 ? "" : "lg:grid-cols-[1fr_1fr]"
+                }`}
+              >
+                {/* Image - Order changes based on index */}
+                <div
+                  className={`relative aspect-video lg:aspect-auto bg-gradient-to-br from-pink-100 to-purple-100 ${
+                    index % 2 === 0 ? "lg:order-1" : "lg:order-2"
+                  }`}
+                >
+                  <Image
+                    src={item.image || "/home-page/placeholder.svg"}
+                    alt={`Shopping in ${item.country}`}
+                    width={600}
+                    height={400}
+                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+
+                {/* Content */}
+                <div
+                  className={`p-8 lg:p-12 flex flex-col justify-center ${
+                    index % 2 === 0 ? "lg:order-2" : "lg:order-1"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-5xl animate-bounce-subtle">
+                      {item.flag}
+                    </span>
+                    <h3 className="text-3xl font-bold">{item.country}</h3>
+                  </div>
+
+                  <p className="text-muted-foreground mb-6 leading-relaxed text-lg">
+                    {item.tagline}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 mb-8">
+                    {item.benefits.map((benefit) => (
+                      <div
+                        key={benefit}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-pink-50 transition-colors group"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-pink-500 flex-shrink-0 group-hover:scale-150 transition-transform" />
+                        <span className="text-sm">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button className="bg-pink-gradient text-white hover:opacity-90 w-fit hover:scale-105 transition-all">
+                    Start Shopping from {item.country}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center mt-12">
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-pink-300 hover:bg-pink-50 hover:border-pink-400 bg-transparent"
+          >
+            Calculate Shipping from Any Country
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
