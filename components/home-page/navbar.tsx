@@ -78,7 +78,7 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="#calculator">
+            <Link href="/product-price-calculator">
               <Button
                 variant="outline"
                 size="sm"
@@ -87,12 +87,14 @@ export function Navbar() {
                 Calculate Price
               </Button>
             </Link>
-            <Button
-              size="sm"
-              className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
-            >
-              Sign Up
-            </Button>
+            <Link href="/product-price-calculator">
+              <Button
+                size="sm"
+                className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
+              >
+                Sign Up
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -147,19 +149,23 @@ export function Navbar() {
               FAQs
             </Link>
             <div className="flex flex-col gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary bg-transparent"
-              >
-                Calculate Price
-              </Button>
-              <Button
-                size="sm"
-                className="bg-pink-gradient text-white hover:opacity-90"
-              >
-                Sign Up
-              </Button>
+              <Link href="/product-price-calculator" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary bg-transparent w-full"
+                >
+                  Calculate Price
+                </Button>
+              </Link>
+              <Link href="/product-price-calculator" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  size="sm"
+                  className="bg-pink-gradient text-white hover:opacity-90 w-full"
+                >
+                  Sign Up
+                </Button>
+              </Link>
             </div>
           </div>
         )}

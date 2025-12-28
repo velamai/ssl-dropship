@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ const countries = [
 ];
 
 export function HeroSection() {
+  const router = useRouter();
   const [productLink, setProductLink] = useState("");
   const [sourceCountry, setSourceCountry] = useState("");
   const [destination, setDestination] = useState("");
@@ -38,13 +40,7 @@ export function HeroSection() {
   const [isCalculating, setIsCalculating] = useState(false);
 
   const handleCalculate = () => {
-    if (productLink && sourceCountry && destination) {
-      setIsCalculating(true);
-      setTimeout(() => {
-        setIsCalculating(false);
-        setShowEstimate(true);
-      }, 1500);
-    }
+    router.push("/product-price-calculator");
   };
 
   return (
@@ -104,22 +100,16 @@ export function HeroSection() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                onClick={() => {
-                  const calculatorElement =
-                    document.getElementById("hero-calculator");
-                  calculatorElement?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
-                }}
-                className="bg-pink-gradient text-white hover:opacity-90 text-lg h-14 px-8 hover:shadow-2xl hover:scale-105 transition-all group w-full sm:w-auto"
-              >
-                Calculate Product Price
-                <Calculator className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
-              </Button>
-              <Link href="#services">
+              <Link href="/product-price-calculator">
+                <Button
+                  size="lg"
+                  className="bg-pink-gradient text-white hover:opacity-90 text-lg h-14 px-8 hover:shadow-2xl hover:scale-105 transition-all group w-full sm:w-auto"
+                >
+                  Calculate Product Price
+                  <Calculator className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
+                </Button>
+              </Link>
+              <Link href="/warehouses">
                 <Button
                   size="lg"
                   variant="outline"
@@ -234,26 +224,11 @@ export function HeroSection() {
 
                 <Button
                   size="lg"
-                  className="w-full bg-pink-gradient text-white hover:opacity-90 h-12 text-sm hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                  className="w-full bg-pink-gradient text-white hover:opacity-90 h-12 text-sm hover:shadow-xl hover:scale-105 transition-all group/btn"
                   onClick={handleCalculate}
-                  disabled={
-                    isCalculating ||
-                    !productLink ||
-                    !sourceCountry ||
-                    !destination
-                  }
                 >
-                  {isCalculating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Calculating...
-                    </>
-                  ) : (
-                    <>
-                      Calculate Cost
-                      <Calculator className="w-4 h-4 ml-2 group-hover/btn:rotate-12 transition-transform" />
-                    </>
-                  )}
+                  Calculate Cost
+                  <Calculator className="w-4 h-4 ml-2 group-hover/btn:rotate-12 transition-transform" />
                 </Button>
 
                 {showEstimate && (
