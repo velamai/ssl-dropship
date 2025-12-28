@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Shield, Users } from "lucide-react";
 import Image from "next/image";
 
@@ -9,7 +10,6 @@ const warehouses = [
     flag: "🇮🇳",
     address: "Andheri East, Mumbai 400069",
     hours: "9:00 AM - 7:00 PM IST",
-    capacity: "50,000+ parcels/month",
     image: "/home-page/modern-warehouse-facility-in-mumbai-india.jpg",
   },
   {
@@ -18,7 +18,6 @@ const warehouses = [
     flag: "🇱🇰",
     address: "Wellawatte, Colombo 00600",
     hours: "9:00 AM - 6:00 PM SLST",
-    capacity: "20,000+ parcels/month",
     image: "/home-page/warehouse-facility-in-colombo-sri-lanka.jpg",
   },
   {
@@ -27,7 +26,6 @@ const warehouses = [
     flag: "🇦🇪",
     address: "Jebel Ali Free Zone, Dubai",
     hours: "8:00 AM - 6:00 PM GST",
-    capacity: "75,000+ parcels/month",
     image: "/home-page/modern-logistics-warehouse-in-dubai-uae.jpg",
   },
   {
@@ -36,7 +34,6 @@ const warehouses = [
     flag: "🇲🇾",
     address: "Petaling Jaya, Selangor",
     hours: "9:00 AM - 6:00 PM MYT",
-    capacity: "35,000+ parcels/month",
     image: "/home-page/warehouse-facility-in-kuala-lumpur-malaysia.jpg",
   },
   {
@@ -45,10 +42,22 @@ const warehouses = [
     flag: "🇬🇧",
     address: "Heathrow, London TW6",
     hours: "8:00 AM - 6:00 PM GMT",
-    capacity: "60,000+ parcels/month",
     image: "/home-page/logistics-warehouse-near-london-heathrow.jpg",
   },
 ];
+
+// Helper function to generate button text based on country
+const getButtonText = (country: string): string => {
+  const countryTextMap: Record<string, string> = {
+    India: "Indian",
+    "Sri Lanka": "Sri Lankan",
+    UAE: "UAE",
+    Malaysia: "Malaysian",
+    "United Kingdom": "UK",
+  };
+  const countryText = countryTextMap[country] || country;
+  return `Get your ${countryText} warehouse address`;
+};
 
 export function WarehousesSection() {
   return (
@@ -57,7 +66,7 @@ export function WarehousesSection() {
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-balance">
             Our{" "}
-            <span className="text-pink-600 animate-gradient">
+            <span className="text-primary animate-gradient">
               Global Warehouses
             </span>
           </h2>
@@ -73,7 +82,7 @@ export function WarehousesSection() {
               key={warehouse.city}
               className="overflow-hidden hover:shadow-2xl transition-shadow group"
             >
-              <div className="relative aspect-video bg-gradient-to-br from-pink-100 to-purple-100">
+              <div className="relative aspect-video bg-gradient-to-br from-accent/40 to-accent/30">
                 <Image
                   src={warehouse.image || "/home-page/placeholder.svg"}
                   alt={`${warehouse.city} Warehouse`}
@@ -104,14 +113,11 @@ export function WarehousesSection() {
                     <Clock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                     <span className="leading-relaxed">{warehouse.hours}</span>
                   </div>
-
-                  <div className="flex items-start gap-2">
-                    <Users className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      {warehouse.capacity}
-                    </span>
-                  </div>
                 </div>
+
+                <Button className="w-full bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all mt-4">
+                  {getButtonText(warehouse.country)}
+                </Button>
               </div>
             </Card>
           ))}
