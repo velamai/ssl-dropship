@@ -373,20 +373,28 @@ export default function ShipmentDetailsPage() {
 
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {images.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden border border-border hover:shadow-md transition-shadow"
-                      >
-                        <Image
-                          src={imageUrl}
-                          alt={`Product image ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
-                    ))}
+                    {images.map((imageUrl, index) => {
+                      // Use regular img tag for better error handling
+                      return (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-border hover:shadow-md transition-shadow bg-muted"
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={`Product image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Replace with placeholder on error
+                              const target = e.target as HTMLImageElement;
+                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='16'%3EImage not available%3C/text%3E%3C/svg%3E";
+                              target.onerror = null; // Prevent infinite loop
+                            }}
+                            loading="lazy"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })()

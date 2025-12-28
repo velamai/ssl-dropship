@@ -15,6 +15,130 @@ interface ProductData {
   };
 }
 
+// In-memory cache for request deduplication and caching
+interface CacheEntry {
+  data: ProductData;
+  timestamp: number;
+  promise?: Promise<ProductData>;
+}
+
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const FETCH_TIMEOUT = 15000; // 15 seconds
+const MAX_RETRIES = 3;
+
+// Normalize URL for cache key
+function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Remove query params that don't affect product data (like tracking params)
+    urlObj.searchParams.delete("ref");
+    urlObj.searchParams.delete("utm_source");
+    urlObj.searchParams.delete("utm_medium");
+    urlObj.searchParams.delete("utm_campaign");
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
+}
+
+// Clean up expired cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      cache.delete(key);
+    }
+  }
+}, 60000); // Clean up every minute
+
+// Fetch with timeout and retry logic
+async function fetchWithRetry(
+  url: string,
+  retries = MAX_RETRIES,
+  attempt = 1
+): Promise<ProductData> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Read response with timeout
+    const htmlController = new AbortController();
+    const htmlTimeoutId = setTimeout(() => htmlController.abort(), FETCH_TIMEOUT);
+    
+    let html: string;
+    try {
+      html = await response.text();
+      clearTimeout(htmlTimeoutId);
+    } catch (err) {
+      clearTimeout(htmlTimeoutId);
+      throw new Error("Timeout while reading response");
+    }
+
+    const hostname = new URL(url).hostname.toLowerCase();
+    let productData: ProductData;
+
+    // Parse based on domain - try site-specific parsers first, then generic
+    if (hostname.includes("amazon")) {
+      productData = parseAmazon(html);
+    } else if (hostname.includes("ebay")) {
+      productData = parseEbay(html);
+    } else {
+      // Try generic parser for all other sites
+      productData = parseGeneric(html, hostname);
+    }
+
+    // Validate extracted data
+    if (!productData.title || productData.title.trim() === "" || productData.price <= 0) {
+      throw new Error("Invalid product data extracted");
+    }
+
+    return productData;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+
+    // Check if it's an abort error (timeout)
+    if (error.name === "AbortError" || error.message?.includes("Timeout")) {
+      if (attempt < retries) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, attempt - 1) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return fetchWithRetry(url, retries, attempt + 1);
+      }
+      throw new Error("Request timeout: The website took too long to respond. Please try again.");
+    }
+
+    // Retry on network errors or 5xx errors
+    if (attempt < retries && (error.message?.includes("fetch") || error.message?.includes("HTTP 5"))) {
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, retries, attempt + 1);
+    }
+
+    // Re-throw with better error message
+    if (error.message?.includes("HTTP")) {
+      throw error;
+    }
+    throw new Error(`Network error: ${error.message || "Failed to fetch product details"}`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
@@ -64,50 +188,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch product page
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-      },
+    // Check cache first
+    const cacheKey = normalizeUrl(url);
+    const cached = cache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < CACHE_TTL) {
+      // Return cached data
+      return NextResponse.json(cached.data);
+    }
+
+    // Check if there's an ongoing request for this URL (deduplication)
+    if (cached?.promise) {
+      try {
+        const data = await cached.promise;
+        return NextResponse.json(data);
+      } catch {
+        // If promise failed, continue to make new request
+      }
+    }
+
+    // Create new fetch promise
+    const fetchPromise = fetchWithRetry(url);
+    
+    // Store promise in cache for deduplication
+    cache.set(cacheKey, {
+      data: cached?.data || {} as ProductData,
+      timestamp: cached?.timestamp || now,
+      promise: fetchPromise,
     });
 
-    if (!response.ok) {
+    try {
+      const productData = await fetchPromise;
+      
+      // Update cache with successful result
+      cache.set(cacheKey, {
+        data: productData,
+        timestamp: now,
+      });
+
+      return NextResponse.json(productData);
+    } catch (error: any) {
+      // Remove failed promise from cache
+      cache.delete(cacheKey);
+      
+      // Determine error type and return appropriate message
+      if (error.message?.includes("timeout") || error.message?.includes("Timeout")) {
+        return NextResponse.json(
+          { error: "Request timeout: The website took too long to respond. Please try again later." },
+          { status: 504 }
+        );
+      }
+      
+      if (error.message?.includes("HTTP")) {
+        return NextResponse.json(
+          { error: error.message || "Unable to fetch product details from this website. Please contact administrator for assistance." },
+          { status: 502 }
+        );
+      }
+
+      console.error("Error fetching product details:", error);
       return NextResponse.json(
-        { error: "Unable to fetch product details from this website. Please contact administrator for assistance." },
-        { status: response.status }
+        { error: error.message || "Unable to fetch product details from this website. Please contact administrator for assistance." },
+        { status: 500 }
       );
     }
-
-    const html = await response.text();
-
-    let productData: ProductData;
-
-    // Parse based on domain - try site-specific parsers first, then generic
-    if (hostname.includes("amazon")) {
-      productData = parseAmazon(html);
-    } else if (hostname.includes("ebay")) {
-      productData = parseEbay(html);
-    } else {
-      // Try generic parser for all other sites
-      productData = parseGeneric(html, hostname);
-    }
-
-    // Validate extracted data
-    if (!productData.title || productData.title.trim() === "" || productData.price <= 0) {
+  } catch (error: any) {
+    console.error("Error in product details API:", error);
+    
+    // Handle specific error types
+    if (error.message?.includes("timeout") || error.message?.includes("Timeout")) {
       return NextResponse.json(
-        { error: "Unable to fetch product details from this website. Please contact administrator for assistance." },
-        { status: 400 }
+        { error: "Request timeout: The website took too long to respond. Please try again later." },
+        { status: 504 }
       );
     }
-
-    return NextResponse.json(productData);
-  } catch (error) {
-    console.error("Error fetching product details:", error);
+    
     return NextResponse.json(
-      { error: "Unable to fetch product details from this website. Please contact administrator for assistance." },
+      { error: error.message || "Unable to fetch product details from this website. Please contact administrator for assistance." },
       { status: 500 }
     );
   }

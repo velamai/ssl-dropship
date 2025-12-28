@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +18,14 @@ import { CountrySelector } from "@/components/product-price-calculator/country-s
 import { CategorySelector } from "@/components/product-price-calculator/category-selector";
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
 import {
-  fetchProductData,
   validateProductUrl,
-  type ProductData,
 } from "@/lib/product-scraper";
 import {
   calculateProductPrice,
   type PriceCalculationInput,
 } from "@/lib/product-price-calculator";
 import type { ProductCategory } from "@/lib/shipping-rates";
+import { useProductData } from "@/lib/hooks/useProductData";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/footer";
@@ -40,10 +39,12 @@ export default function ProductPriceCalculatorPage() {
   );
   const [quantity, setQuantity] = useState(1);
 
-  // Product data state
-  const [productData, setProductData] = useState<ProductData | null>(null);
-  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
-  const [productError, setProductError] = useState<string | null>(null);
+  // Use React Query for product data fetching
+  const {
+    data: productData,
+    isLoading: isLoadingProduct,
+    error: productError,
+  } = useProductData(productUrl);
 
   // Price calculation state
   const [priceBreakdown, setPriceBreakdown] = useState<ReturnType<
@@ -52,41 +53,29 @@ export default function ProductPriceCalculatorPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
-  // Handle product URL input and fetch
-  const handleUrlChange = async (url: string) => {
+  // Handle product URL input
+  const handleUrlChange = (url: string) => {
     setProductUrl(url);
-    setProductError(null);
-    setProductData(null);
+    setCalculationError(null);
     setPriceBreakdown(null);
-
-    if (!url.trim()) {
-      return;
-    }
-
-    // Validate URL
-    const validation = validateProductUrl(url);
-    if (!validation.valid) {
-      setProductError(validation.error || "Invalid URL");
-      return;
-    }
-
-    // Fetch product data
-    setIsLoadingProduct(true);
-    setProductError(null);
-
-    try {
-      const data = await fetchProductData(url);
-      setProductData(data);
-    } catch (error) {
-      setProductError(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch product details"
-      );
-    } finally {
-      setIsLoadingProduct(false);
-    }
   };
+
+  // Get error message from React Query error
+  const productErrorMessage = useMemo(() => {
+    if (!productError) return null;
+    
+    if (productError instanceof Error) {
+      return productError.message;
+    }
+    
+    return "Failed to fetch product details";
+  }, [productError]);
+
+  // Validate URL and show error if invalid
+  const urlValidation = useMemo(() => {
+    if (!productUrl.trim()) return null;
+    return validateProductUrl(productUrl);
+  }, [productUrl]);
 
   // Handle price calculation
   const handleCalculatePrice = () => {
@@ -194,6 +183,51 @@ export default function ProductPriceCalculatorPage() {
                   </p>
                 </div>
 
+                {/* URL Validation Error */}
+                {urlValidation && !urlValidation.valid && (
+                  <Alert variant="destructive">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <AlertDescription className="mb-3">
+                            {urlValidation.error || "Invalid URL"}
+                          </AlertDescription>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Need help?
+                            </span>
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
+                                  "_blank"
+                                )
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5 " />
+                              WhatsApp
+                            </button>
+                            <button
+                              onClick={() =>
+                                (window.location.href =
+                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              }
+                              className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Email
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Alert>
+                )}
+
                 {/* Loading State */}
                 {isLoadingProduct && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -203,14 +237,14 @@ export default function ProductPriceCalculatorPage() {
                 )}
 
                 {/* Error State */}
-                {productError && (
+                {productErrorMessage && (
                   <Alert variant="destructive">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
                         <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <div>
                           <AlertDescription className="mb-3">
-                            {productError}
+                            {productErrorMessage}
                           </AlertDescription>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">
@@ -251,14 +285,24 @@ export default function ProductPriceCalculatorPage() {
                 {productData && (
                   <div className="border rounded-lg p-4 space-y-4">
                     <div className="flex gap-4">
-                      {productData.image && (
+                      {productData.image ? (
                         <div className="relative w-24 h-24 flex-shrink-0">
                           <Image
                             src={productData.image}
                             alt={productData.title}
                             fill
                             className="object-contain rounded"
+                            onError={(e) => {
+                              // Fallback to placeholder if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Crect width='96' height='96' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
+                            }}
+                            loading="lazy"
                           />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded flex items-center justify-center">
+                          <Package className="h-8 w-8 text-gray-400" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">

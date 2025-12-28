@@ -166,9 +166,13 @@ export function extractOriginCountryFromUrl(url: string): OriginCountry {
 }
 
 /**
- * Fetch product data from backend API
+ * Fetch product data from backend API with timeout
  */
 export async function fetchProductData(url: string): Promise<ProductData> {
+  const CLIENT_TIMEOUT = 20000; // 20 seconds
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CLIENT_TIMEOUT);
+
   try {
     const response = await fetch("/api/product-details", {
       method: "POST",
@@ -176,10 +180,23 @@ export async function fetchProductData(url: string): Promise<ProductData> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ url }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      
+      // Handle specific error types
+      if (response.status === 504) {
+        throw new Error("Request timeout: The website took too long to respond. Please try again later.");
+      }
+      
+      if (response.status === 502) {
+        throw new Error(errorData.error || "Network error: Unable to reach the website. Please check your connection and try again.");
+      }
+      
       throw new Error(
         errorData.error ||
           `Failed to fetch product data: ${response.statusText}`
@@ -199,12 +216,26 @@ export async function fetchProductData(url: string): Promise<ProductData> {
       dimensions: data.dimensions,
       originCountry,
     };
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    // Handle abort error (timeout)
+    if (error.name === "AbortError" || error.message?.includes("timeout")) {
+      throw new Error("Request timeout: The request took too long. Please check your connection and try again.");
+    }
+    
+    // Handle network errors
+    if (error.message?.includes("fetch") || error.message?.includes("network")) {
+      throw new Error("Network error: Unable to connect to the server. Please check your internet connection and try again.");
+    }
+    
     console.error("Error fetching product data:", error);
+    
     // Preserve the error message from API (which includes "contact administrator" message)
     if (error instanceof Error) {
       throw error;
     }
+    
     throw new Error(
       "Unable to fetch product details from this website. Please contact administrator for assistance."
     );
