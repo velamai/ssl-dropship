@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, MapPin, CheckCircle2, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export function ServicesSection() {
   return (
@@ -69,9 +70,11 @@ export function ServicesSection() {
                   </span>
                 </div>
               </div>
-              <Button className="w-full bg-primary hover:bg-primary/90">
-                Ship Using Product Link <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <Link href="/product-price-calculator">
+                <Button className="w-full bg-primary hover:bg-primary/90">
+                  Ship Using Product Link <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -127,9 +130,11 @@ export function ServicesSection() {
                   </span>
                 </div>
               </div>
-              <Button className="w-full bg-primary hover:bg-primary/90">
-                Get Virtual Warehouse <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <Link href="/warehouses">
+                <Button className="w-full bg-primary hover:bg-primary/90">
+                  Get Virtual Warehouse <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

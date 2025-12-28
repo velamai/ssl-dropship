@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calculator, Package, Plane, Building2, Sparkles } from "lucide-react";
+import { Calculator, Sparkles } from "lucide-react";
 
 const countries = [
   { value: "india", label: "India", flag: "🇮🇳" },
@@ -23,19 +24,12 @@ const countries = [
 ];
 
 export function CalculatorSection() {
+  const router = useRouter();
   const [productLink, setProductLink] = useState("");
   const [destination, setDestination] = useState("");
-  const [showEstimate, setShowEstimate] = useState(false);
-  const [isCalculating, setIsCalculating] = useState(false);
 
   const handleCalculate = () => {
-    if (productLink && destination) {
-      setIsCalculating(true);
-      setTimeout(() => {
-        setIsCalculating(false);
-        setShowEstimate(true);
-      }, 1500);
-    }
+    router.push("/product-price-calculator");
   };
 
   return (
@@ -134,103 +128,12 @@ export function CalculatorSection() {
 
             <Button
               size="lg"
-              className="w-full bg-pink-gradient text-white hover:opacity-90 h-14 text-base hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn relative overflow-hidden"
+              className="w-full bg-pink-gradient text-white hover:opacity-90 h-14 text-base hover:shadow-xl hover:scale-105 transition-all group/btn relative overflow-hidden"
               onClick={handleCalculate}
-              disabled={isCalculating || !productLink || !destination}
             >
-              {isCalculating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Calculating...
-                </>
-              ) : (
-                <>
-                  Calculate Shipping Cost
-                  <Calculator className="w-5 h-5 ml-2 group-hover/btn:rotate-12 transition-transform" />
-                </>
-              )}
+              Calculate Shipping Cost
+              <Calculator className="w-5 h-5 ml-2 group-hover/btn:rotate-12 transition-transform" />
             </Button>
-
-            {showEstimate && (
-              <div className="mt-8 p-6 bg-gradient-to-br from-accent/30 to-accent/20 rounded-2xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 shadow-xl hover:shadow-2xl transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />
-                    Estimated Breakdown
-                  </h3>
-                  <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    Live Rates
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div
-                    className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-white/80 transition-all hover:translate-x-1 group/item animate-in fade-in slide-in-from-left"
-                    style={{ animationDelay: "0.1s" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-gradient rounded-lg flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                        <Package className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium">Product Cost</span>
-                    </div>
-                    <span className="font-bold text-lg">$45.00</span>
-                  </div>
-
-                  <div
-                    className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-white/80 transition-all hover:translate-x-1 group/item animate-in fade-in slide-in-from-left"
-                    style={{ animationDelay: "0.2s" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-gradient rounded-lg flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                        <Plane className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium">
-                        International Shipping
-                      </span>
-                    </div>
-                    <span className="font-bold text-lg">$12.50</span>
-                  </div>
-
-                  <div
-                    className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-white/80 transition-all hover:translate-x-1 group/item animate-in fade-in slide-in-from-left"
-                    style={{ animationDelay: "0.3s" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-gradient rounded-lg flex items-center justify-center group-hover/item:scale-110 transition-transform">
-                        <Building2 className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium">
-                        Warehouse Handling
-                      </span>
-                    </div>
-                    <span className="font-bold text-lg">$3.00</span>
-                  </div>
-
-                  <div
-                    className="pt-4 border-t-2 border-primary/20 animate-in fade-in slide-in-from-bottom"
-                    style={{ animationDelay: "0.4s" }}
-                  >
-                    <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all">
-                      <span className="font-bold text-lg">Total Estimate</span>
-                      <span className="font-bold text-2xl text-primary bg-pink-gradient bg-clip-text text-transparent animate-pulse">
-                        $60.50
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">
-                      Final price confirmed after product verification. Customs
-                      duties may apply.
-                    </p>
-                  </div>
-                </div>
-
-                <Button className="w-full mt-4 bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all group/proceed">
-                  Proceed with Order
-                  <Sparkles className="w-4 h-4 ml-2 group-hover/proceed:rotate-12 transition-transform" />
-                </Button>
-              </div>
-            )}
           </div>
         </Card>
       </div>

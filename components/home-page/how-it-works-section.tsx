@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, CableIcon as CalcIcon, Warehouse } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const steps = [
   {
@@ -35,6 +36,8 @@ const steps = [
 ];
 
 export function HowItWorksSection() {
+  const router = useRouter();
+
   return (
     <section
       id="how-it-works"
@@ -91,12 +94,7 @@ export function HowItWorksSection() {
             size="lg"
             className="bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all"
             onClick={() => {
-              const calculatorElement =
-                document.getElementById("hero-calculator");
-              calculatorElement?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-              });
+              router.push("/product-price-calculator");
             }}
           >
             Try the Calculator Now

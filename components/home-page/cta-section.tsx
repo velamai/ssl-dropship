@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Package, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export function CTASection() {
   return (
@@ -32,22 +33,26 @@ export function CTASection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="text-lg h-14 px-8 hover:scale-105 transition-transform"
-              >
-                Create Free Account
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg h-14 px-8 bg-white/10 hover:bg-white/20 text-white border-white hover:scale-105 transition-transform"
-              >
-                <Package className="w-5 h-5 mr-2" />
-                View Pricing
-              </Button>
+              <Link href="/register">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="text-lg h-14 px-8 hover:scale-105 transition-transform"
+                >
+                  Create Free Account
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/product-price-calculator">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-lg h-14 px-8 bg-white/10 hover:bg-white/20 text-white border-white hover:scale-105 transition-transform"
+                >
+                  <Package className="w-5 h-5 mr-2" />
+                  View Pricing
+                </Button>
+              </Link>
             </div>
 
             <div className="pt-8 text-white/80 text-sm">

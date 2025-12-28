@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Package, Users, DollarSign } from "lucide-react";
+import Link from "next/link";
 
 const warehouseCountries = [
   { flag: "🇮🇳", name: "India", code: "IN" },
@@ -156,12 +157,14 @@ export function WarehouseAddressSection() {
             </div>
           </div>
           <div className="text-center mt-8">
-            <Button
-              size="lg"
-              className="bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all"
-            >
-              Get Your Warehouse Address
-            </Button>
+            <Link href="/warehouses">
+              <Button
+                size="lg"
+                className="bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all"
+              >
+                Get Your Warehouse Address
+              </Button>
+            </Link>
           </div>
         </Card>
       </div>

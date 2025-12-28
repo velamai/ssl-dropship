@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 
 const countryData = [
   {
@@ -154,9 +155,11 @@ export function CountriesSection() {
                     ))}
                   </div>
 
-                  <Button className="bg-pink-gradient text-white hover:opacity-90 w-fit hover:scale-105 transition-all">
-                    Start Shopping from {item.country}
-                  </Button>
+                  <Link href="/warehouses">
+                    <Button className="bg-pink-gradient text-white hover:opacity-90 w-fit hover:scale-105 transition-all">
+                      Start Shopping from {item.country}
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -164,13 +167,15 @@ export function CountriesSection() {
         </div>
 
         <div className="text-center mt-12">
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-primary/30 hover:bg-accent/50 hover:border-primary bg-transparent"
-          >
-            Calculate Shipping from Any Country
-          </Button>
+          <Link href="/product-price-calculator">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-primary/30 hover:bg-accent/50 hover:border-primary bg-transparent"
+            >
+              Calculate Shipping from Any Country
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
