@@ -91,9 +91,6 @@ export function WarehousesSection() {
                   height={300}
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform"
                 />
-                <div className="absolute top-4 right-4 text-4xl">
-                  {warehouse.flag}
-                </div>
               </div>
 
               <div className="p-6 space-y-4">

@@ -8,7 +8,7 @@ import Link from "next/link";
 const countryData = [
   {
     country: "India",
-    flag: "🇮🇳",
+    flag: "/flags/in.png",
     tagline:
       "Shop Indian brands, local marketplaces, ethnic wear, electronics, and wellness products",
     benefits: [
@@ -23,7 +23,7 @@ const countryData = [
   },
   {
     country: "Sri Lanka",
-    flag: "🇱🇰",
+    flag: "/flags/sl.png",
     tagline: "Buy Sri Lankan specialty items, handicrafts, and local products",
     benefits: [
       "Premium Ceylon tea",
@@ -37,7 +37,7 @@ const countryData = [
   },
   {
     country: "Dubai (UAE)",
-    flag: "🇦🇪",
+    flag: "/flags/uae.png",
     tagline:
       "Access premium products, electronics, and global brands at competitive prices",
     benefits: [
@@ -52,7 +52,7 @@ const countryData = [
   },
   {
     country: "Malaysia",
-    flag: "🇲🇾",
+    flag: "/flags/ml.png",
     tagline: "Shop lifestyle products, gadgets, and regional brands",
     benefits: [
       "Tech & gadgets",
@@ -66,7 +66,7 @@ const countryData = [
   },
   {
     country: "United Kingdom",
-    flag: "🇬🇧",
+    flag: "/flags/uk.png",
     tagline: "Buy UK-exclusive brands, fashion, supplements, and more",
     benefits: [
       "Fashion brands",
@@ -133,9 +133,13 @@ export function CountriesSection() {
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-4xl animate-bounce-subtle">
-                      {item.flag}
-                    </span>
+                    <Image
+                      src={item.flag}
+                      alt={`${item.country} flag`}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 object-contain animate-bounce-subtle"
+                    />
                     <h3 className="text-2xl font-bold">{item.country}</h3>
                   </div>
 

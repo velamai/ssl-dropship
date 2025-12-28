@@ -428,7 +428,7 @@ const TestimonialCard = ({
 
 							layoutId={layout ? `card-${testimonial.name}` : undefined}
 
-							className="max-w-5xl mx-auto bg-gradient-to-b from-[#f2f0eb] to-[#fff9eb] h-full z-[60] p-4 md:p-10 rounded-3xl relative md:mt-10"
+							className="max-w-5xl mx-auto bg-gradient-to-b from-accent/50 to-white h-full z-[60] p-4 md:p-10 rounded-3xl relative md:mt-10"
 
 						>
 
@@ -510,7 +510,7 @@ const TestimonialCard = ({
 
 				<div
 
-					className={`${index % 2 === 0 ? "rotate-0" : "-rotate-0"} rounded-3xl bg-gradient-to-b from-[#f2f0eb] to-[#fff9eb] h-[500px] md:h-[550px] w-80 md:w-96 overflow-hidden flex flex-col items-center justify-center relative z-10 shadow-md`}
+					className={`${index % 2 === 0 ? "rotate-0" : "-rotate-0"} rounded-3xl bg-gradient-to-b from-accent/50 to-white h-[500px] md:h-[550px] w-80 md:w-96 overflow-hidden flex flex-col items-center justify-center relative z-10 shadow-xl hover:shadow-2xl transition-shadow`}
 
 				>
 
