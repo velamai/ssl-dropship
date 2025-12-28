@@ -82,7 +82,7 @@ export function Navbar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="hover:bg-primary/10 transition-all border-pink-500 text-pink-600 hover:border-pink-600 bg-transparent"
+                className="hover:bg-primary/10 transition-all border-primary text-primary hover:border-primary bg-transparent"
               >
                 Calculate Price
               </Button>
@@ -150,7 +150,7 @@ export function Navbar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-pink-500 text-pink-600 bg-transparent"
+                className="border-primary text-primary bg-transparent"
               >
                 Calculate Price
               </Button>

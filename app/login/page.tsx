@@ -147,7 +147,7 @@ function SignInForm() {
           {/* Illustration */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             {/* Circle background */}
-            <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9a3bd9]/10"></div>
+            <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10"></div>
 
             {/* Clouds */}
             <div className="relative h-[450px] w-[450px]">
@@ -198,7 +198,7 @@ function SignInForm() {
             <div className="mb-6 space-y-1.5">
               <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f] md:mt-16">
                 Welcome to{" "}
-                <span className=" font-bold text-[#9c4cd2]">BUY2SEND</span>
+                <span className=" font-bold text-primary">BUY2SEND</span>
               </h1>
               <p className="text-[14px] text-[#a2a2a2] mt-2">
                 Please enter your email and password to proceed
@@ -226,7 +226,7 @@ function SignInForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
-                  className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                  className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
@@ -246,7 +246,7 @@ function SignInForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
-                    className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                    className="h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     required
                   />
                   <button
@@ -268,7 +268,7 @@ function SignInForm() {
                   onClick={() => {
                     setShowForgotPasswordModal(true);
                   }}
-                  className="text-[13px] font-medium text-[#9c4cd2] hover:underline"
+                  className="text-[13px] font-medium text-primary hover:underline"
                 >
                   Forgot Password?
                 </button>
@@ -277,7 +277,7 @@ function SignInForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="h-[46px] w-full rounded-lg bg-[#9a3bd9] text-[14px] font-medium text-white transition-colors hover:bg-[#9a3bd9]/90 disabled:opacity-70"
+                className="h-[46px] w-full rounded-lg bg-primary text-[14px] font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-70"
               >
                 {isLoading ? "Signing In..." : "Sign In"}
               </button>
@@ -286,7 +286,7 @@ function SignInForm() {
                 Don't have an account?{" "}
                 <Link
                   href="/register"
-                  className="text-[#9c4cd2] font-medium hover:underline"
+                  className="text-primary font-medium hover:underline"
                 >
                   Register
                 </Link>
@@ -368,7 +368,7 @@ function SignInForm() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="h-[46px] w-full rounded-lg bg-[#9a3bd9] text-[15px] font-medium text-white transition-all hover:bg-[#8a34c3] focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2 active:scale-[0.98]"
+                  className="h-[46px] w-full rounded-lg bg-primary text-[15px] font-medium text-white transition-all hover:bg-[#8a34c3] focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2 active:scale-[0.98]"
                 >
                   Reset Password
                 </button>

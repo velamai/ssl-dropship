@@ -29,37 +29,37 @@ function OfficeLocationCard({
       style.id = "office-card-styles";
       style.textContent = `
         .office-name {
-          color: oklch(0.55 0.22 25);
+          color: oklch(0.62 0.22 345);
         }
         .group:hover .office-name {
-          color: oklch(0.72 0.16 60);
+          color: oklch(0.72 0.18 350);
         }
         .office-icon {
-          color: oklch(0.72 0.16 60);
+          color: oklch(0.72 0.18 350);
         }
         .group:hover .office-icon {
-          color: oklch(0.55 0.22 25);
+          color: oklch(0.62 0.22 345);
         }
         .office-email:hover {
-          color: oklch(0.55 0.22 25);
+          color: oklch(0.62 0.22 345);
         }
         .office-gradient-overlay {
-          background: linear-gradient(to bottom right, oklch(0.55 0.22 25 / 0), transparent, oklch(0.72 0.16 60 / 0));
+          background: linear-gradient(to bottom right, oklch(0.62 0.22 345 / 0), transparent, oklch(0.72 0.18 350 / 0));
         }
         .group:hover .office-gradient-overlay {
-          background: linear-gradient(to bottom right, oklch(0.55 0.22 25 / 0.05), transparent, oklch(0.72 0.16 60 / 0.05));
+          background: linear-gradient(to bottom right, oklch(0.62 0.22 345 / 0.05), transparent, oklch(0.72 0.18 350 / 0.05));
         }
         .office-flag-bg {
           background: linear-gradient(to bottom right, rgb(241 245 249), rgb(248 250 252));
         }
         .group:hover .office-flag-bg {
-          background: linear-gradient(to bottom right, oklch(0.72 0.16 60 / 0.1), oklch(0.55 0.22 25 / 0.1));
+          background: linear-gradient(to bottom right, oklch(0.72 0.18 350 / 0.1), oklch(0.62 0.22 345 / 0.1));
         }
         .office-border {
-          border-color: oklch(0.55 0.22 25 / 0);
+          border-color: oklch(0.62 0.22 345 / 0);
         }
         .group:hover .office-border {
-          border-color: oklch(0.55 0.22 25 / 0.2);
+          border-color: oklch(0.62 0.22 345 / 0.2);
         }
       `;
       document.head.appendChild(style);

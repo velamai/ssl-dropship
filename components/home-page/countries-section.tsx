@@ -83,14 +83,14 @@ export function CountriesSection() {
   return (
     <section
       id="countries"
-      className="py-20 bg-gradient-to-b from-pink-50/50 to-white"
+      className="py-20 bg-gradient-to-b from-accent/20 to-white"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16 animate-slide-up-fade">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-balance">
             Buy from These Countries
             <br />
-            <span className="text-pink-600 animate-gradient">with Ease</span>
+            <span className="text-primary animate-gradient">with Ease</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed">
             Each country offers unique products and experiences. Where will you
@@ -102,7 +102,7 @@ export function CountriesSection() {
           {countryData.map((item, index) => (
             <Card
               key={item.country}
-              className="overflow-hidden hover:shadow-2xl transition-all border-2 border-pink-50 hover:border-pink-200 animate-slide-up-fade"
+              className="overflow-hidden hover:shadow-2xl transition-all border-2 border-accent/30 hover:border-primary/30 animate-slide-up-fade"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div
@@ -112,7 +112,7 @@ export function CountriesSection() {
               >
                 {/* Image - Order changes based on index */}
                 <div
-                  className={`relative aspect-video lg:aspect-auto bg-gradient-to-br from-pink-100 to-purple-100 ${
+                  className={`relative aspect-video lg:aspect-auto bg-gradient-to-br from-accent/40 to-accent/30 ${
                     index % 2 === 0 ? "lg:order-1" : "lg:order-2"
                   }`}
                 >
@@ -146,9 +146,9 @@ export function CountriesSection() {
                     {item.benefits.map((benefit) => (
                       <div
                         key={benefit}
-                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-pink-50 transition-colors group"
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors group"
                       >
-                        <div className="w-1.5 h-1.5 rounded-full bg-pink-500 flex-shrink-0 group-hover:scale-150 transition-transform" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 group-hover:scale-150 transition-transform" />
                         <span className="text-sm">{benefit}</span>
                       </div>
                     ))}
@@ -167,7 +167,7 @@ export function CountriesSection() {
           <Button
             size="lg"
             variant="outline"
-            className="border-pink-300 hover:bg-pink-50 hover:border-pink-400 bg-transparent"
+            className="border-primary/30 hover:bg-accent/50 hover:border-primary bg-transparent"
           >
             Calculate Shipping from Any Country
           </Button>

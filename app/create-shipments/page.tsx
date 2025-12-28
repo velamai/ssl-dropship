@@ -760,7 +760,7 @@ function CreateShipmentPageContent() {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         step <= currentStep
-                          ? "bg-[#9c4cd2] text-white"
+                          ? "bg-primary text-white"
                           : "bg-gray-200 text-gray-500"
                       }`}
                     >
@@ -771,7 +771,7 @@ function CreateShipmentPageContent() {
                         className={` ${
                           isWarehouseService ? "w-[12rem]" : "w-[19rem]"
                         } h-1 mx-2 rounded ${
-                          step < currentStep ? "bg-[#9c4cd2]" : "bg-gray-200"
+                          step < currentStep ? "bg-primary" : "bg-gray-200"
                         }`}
                       />
                     )}

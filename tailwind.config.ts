@@ -26,12 +26,12 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#8800D9", // COLOR NAME - Purple
+          DEFAULT: "#E6398F", // Primary Pink - oklch(0.62 0.22 345)
           foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#230239", // IRIS - Dark Purple
-          foreground: "#ffffff",
+          DEFAULT: "#F490C7", // Accent Pink - oklch(0.72 0.18 350)
+          foreground: "#1a0a14", // Dark text for contrast
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -42,8 +42,8 @@ const config = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "#FCF8FF", // DORIAN - Very Light Purple
-          foreground: "#230239",
+          DEFAULT: "#FDF2F8", // Light pink accent - derived from accent pink
+          foreground: "#1a0a14", // Text Dark - oklch(0.15 0.02 340)
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -54,11 +54,11 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         // Custom colors from the palette
-        dark: "#230239", // ONYX - Dark Purple for headings
-        text: "#252127", // SLATE - Dark Gray for body text
+        dark: "#1a0a14", // Text Dark - oklch(0.15 0.02 340) for headings
+        text: "#1a0a14", // Text Dark - oklch(0.15 0.02 340) for body text
         "text-subtle": "#AFADB0", // LIGHT SLATE - Light Gray for input field
         success: "#0FA95B", // EVERGREEN - Green for success messages
-        light: "#FCFAFE", // Light color for search bar dropdown
+        light: "#FDF2F8", // Light pink for backgrounds - oklch(0.96 0.01 340)
       },
       borderRadius: {
         lg: "var(--radius)",

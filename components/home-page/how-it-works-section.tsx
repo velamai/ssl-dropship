@@ -38,12 +38,12 @@ export function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="py-20 bg-gradient-to-b from-white to-pink-50/30"
+      className="py-20 bg-gradient-to-b from-white to-accent/20"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16 animate-slide-up-fade">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-balance">
-            <span className="text-pink-600">Simple. Transparent.</span>{" "}
+            <span className="text-primary">Simple. Transparent.</span>{" "}
             Borderless.
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
@@ -57,11 +57,11 @@ export function HowItWorksSection() {
             return (
               <Card
                 key={step.number}
-                className="p-8 hover:shadow-2xl transition-all relative overflow-hidden group bg-white border-2 border-pink-50 hover:border-pink-200 animate-slide-up-fade"
+                className="p-8 hover:shadow-2xl transition-all relative overflow-hidden group bg-white border-2 border-accent/30 hover:border-primary/30 animate-slide-up-fade"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Background Number */}
-                <div className="absolute -top-6 -right-6 text-9xl font-bold text-pink-100 group-hover:text-pink-200 transition-colors">
+                <div className="absolute -top-6 -right-6 text-9xl font-bold text-accent/30 group-hover:text-primary/20 transition-colors">
                   {step.number}
                 </div>
 
@@ -79,7 +79,7 @@ export function HowItWorksSection() {
 
                 {/* Connection Arrow (except last item) */}
                 {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute -right-4 top-1/2 transform -translate-y-1/2 w-8 h-0.5 bg-gradient-to-r from-pink-400 to-transparent z-20" />
+                  <div className="hidden lg:block absolute -right-4 top-1/2 transform -translate-y-1/2 w-8 h-0.5 bg-gradient-to-r from-primary/40 to-transparent z-20" />
                 )}
               </Card>
             );

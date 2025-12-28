@@ -37,21 +37,21 @@ const benefits = [
 
 export function WarehouseAddressSection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-white via-pink-50/50 to-white relative overflow-hidden">
+    <section className="py-20 bg-gradient-to-b from-white via-accent/20 to-white relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-20 w-64 h-64 bg-pink-400 rounded-full blur-3xl animate-float" />
+        <div className="absolute top-20 right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-float" />
         <div
-          className="absolute bottom-20 left-20 w-80 h-80 bg-pink-300 rounded-full blur-3xl animate-float"
+          className="absolute bottom-20 left-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-float"
           style={{ animationDelay: "1.5s" }}
         />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16 animate-slide-up-fade">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-100 rounded-full mb-6">
-            <MapPin className="w-4 h-4 text-pink-600" />
-            <span className="text-sm font-medium text-pink-700">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/50 rounded-full mb-6">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">
               High Priority Feature
             </span>
           </div>
@@ -75,7 +75,7 @@ export function WarehouseAddressSection() {
             {warehouseCountries.map((country, index) => (
               <Card
                 key={country.code}
-                className="p-6 text-center hover:shadow-xl hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-white to-pink-50/50 border-2 border-pink-100 hover:border-pink-300"
+                className="p-6 text-center hover:shadow-xl hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-white to-accent/20 border-2 border-accent/30 hover:border-primary/30"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div
@@ -107,11 +107,11 @@ export function WarehouseAddressSection() {
                   key={benefit.title}
                   className="flex items-start gap-4 group"
                 >
-                  <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-pink-gradient group-hover:scale-110 transition-all">
-                    <Icon className="w-6 h-6 text-pink-600 group-hover:text-white transition-colors" />
+                  <div className="w-12 h-12 bg-accent/50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-pink-gradient group-hover:scale-110 transition-all">
+                    <Icon className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
                   </div>
                   <div>
-                    <div className="font-semibold mb-1 group-hover:text-pink-600 transition-colors">
+                    <div className="font-semibold mb-1 group-hover:text-primary transition-colors">
                       {benefit.title}
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -125,7 +125,7 @@ export function WarehouseAddressSection() {
         </div>
 
         {/* Best For Section */}
-        <Card className="p-8 bg-gradient-to-br from-pink-50 to-purple-50 border-2 border-pink-100 animate-slide-up-fade">
+        <Card className="p-8 bg-gradient-to-br from-accent/30 to-accent/20 border-2 border-accent/30 animate-slide-up-fade">
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold mb-2">Perfect For</h3>
             <p className="text-muted-foreground">
@@ -134,21 +134,21 @@ export function WarehouseAddressSection() {
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
             <div className="text-center p-6 bg-white rounded-xl hover:shadow-lg transition-all hover-scale">
-              <Users className="w-8 h-8 text-pink-600 mx-auto mb-3" />
+              <Users className="w-8 h-8 text-primary mx-auto mb-3" />
               <div className="font-semibold mb-1">Expats & NRIs</div>
               <div className="text-sm text-muted-foreground">
                 Living abroad but shopping from home
               </div>
             </div>
             <div className="text-center p-6 bg-white rounded-xl hover:shadow-lg transition-all hover-scale">
-              <Package className="w-8 h-8 text-pink-600 mx-auto mb-3" />
+              <Package className="w-8 h-8 text-primary mx-auto mb-3" />
               <div className="font-semibold mb-1">International Shoppers</div>
               <div className="text-sm text-muted-foreground">
                 Access to exclusive products
               </div>
             </div>
             <div className="text-center p-6 bg-white rounded-xl hover:shadow-lg transition-all hover-scale">
-              <DollarSign className="w-8 h-8 text-pink-600 mx-auto mb-3" />
+              <DollarSign className="w-8 h-8 text-primary mx-auto mb-3" />
               <div className="font-semibold mb-1">Small Businesses</div>
               <div className="text-sm text-muted-foreground">
                 Importing products efficiently

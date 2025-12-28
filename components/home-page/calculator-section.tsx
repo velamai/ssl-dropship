@@ -41,7 +41,7 @@ export function CalculatorSection() {
   return (
     <section
       id="calculator"
-      className="py-20 bg-gradient-to-b from-white to-pink-50 relative overflow-hidden"
+      className="py-20 bg-gradient-to-b from-white to-accent/30 relative overflow-hidden"
     >
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-40 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
@@ -76,7 +76,7 @@ export function CalculatorSection() {
           className="p-8 lg:p-10 shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 hover:border-primary/30 relative overflow-hidden group animate-slide-up-fade"
           style={{ animationDelay: "0.2s" }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
           <div className="relative z-10 space-y-6">
             <div className="space-y-2">
@@ -152,7 +152,7 @@ export function CalculatorSection() {
             </Button>
 
             {showEstimate && (
-              <div className="mt-8 p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 shadow-xl hover:shadow-2xl transition-shadow">
+              <div className="mt-8 p-6 bg-gradient-to-br from-accent/30 to-accent/20 rounded-2xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />

@@ -242,7 +242,7 @@ export default function AccountPage() {
           <div className="container mx-auto max-w-6xl">
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c4cd2] mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-[#a2a2a2]">
                   Loading your account information...
                 </p>
@@ -269,7 +269,7 @@ export default function AccountPage() {
                   </p>
                   <Link
                     href="/login"
-                    className="text-[#9c4cd2] hover:underline mt-2 inline-block"
+                    className="text-primary hover:underline mt-2 inline-block"
                   >
                     Go to Login
                   </Link>
@@ -281,7 +281,7 @@ export default function AccountPage() {
                   </p>
                   <button
                     onClick={() => refetchUserData()}
-                    className="text-[#9c4cd2] hover:underline mt-2 inline-block"
+                    className="text-primary hover:underline mt-2 inline-block"
                   >
                     Try Again
                   </button>
@@ -334,7 +334,7 @@ export default function AccountPage() {
               <div className="rounded-lg border border-[#e2e2e2] bg-white overflow-hidden">
                 <div className="p-4 border-b border-[#e2e2e2]">
                   <div className="flex items-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#9c4cd2]/10 text-[#9c4cd2]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <User size={20} />
                     </div>
                     <div className="ml-3">
@@ -350,7 +350,7 @@ export default function AccountPage() {
                     onClick={() => setActiveTab("personal")}
                     className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
                       activeTab === "personal"
-                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        ? "bg-accent/30 text-primary font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
                     }`}
                   >
@@ -361,7 +361,7 @@ export default function AccountPage() {
                     onClick={() => setActiveTab("security")}
                     className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
                       activeTab === "security"
-                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        ? "bg-accent/30 text-primary font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
                     }`}
                   >
@@ -372,7 +372,7 @@ export default function AccountPage() {
                     onClick={() => setActiveTab("notifications")}
                     className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
                       activeTab === "notifications"
-                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        ? "bg-accent/30 text-primary font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
                     }`}
                   >
@@ -384,7 +384,7 @@ export default function AccountPage() {
                     onClick={() => setActiveTab("address")}
                     className={`flex w-full items-center rounded-md px-3 py-2 text-sm ${
                       activeTab === "address"
-                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        ? "bg-accent/30 text-primary font-medium"
                         : "text-[#3f3f3f] hover:bg-[#fefcff]"
                     }`}
                   >
@@ -418,7 +418,7 @@ export default function AccountPage() {
                         // <button
                         //   type="button"
                         //   onClick={() => setIsEditing(true)}
-                        //   className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]"
+                        //   className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary"
                         // >
                         //   <Edit size={14} className="mr-1.5" />
                         //   Edit
@@ -427,7 +427,7 @@ export default function AccountPage() {
                           <Tooltip delayDuration={150}>
                             <TooltipTrigger asChild>
                               <button
-                                className="flex items-center rounded-md bg-[#f2e9ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2] opacity-60 cursor-not-allowed"
+                                className="flex items-center rounded-md bg-accent/20 px-3 py-1.5 text-sm font-medium text-primary opacity-60 cursor-not-allowed"
                                 type="button"
                                 disabled
                               >
@@ -454,7 +454,7 @@ export default function AccountPage() {
                           <button
                             type="submit"
                             disabled={updateProfileMutation.isPending}
-                            className="flex items-center rounded-md bg-[#9c4cd2] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-70"
+                            className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-70"
                           >
                             {updateProfileMutation.isPending ? (
                               <>
@@ -489,7 +489,7 @@ export default function AccountPage() {
                             disabled={!isEditing}
                             className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
                               isEditing
-                                ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                                ? "focus:border-primary focus:ring-1 focus:ring-[#9c4cd2]"
                                 : "opacity-80"
                             }`}
                           />
@@ -510,7 +510,7 @@ export default function AccountPage() {
                             disabled={!isEditing}
                             className={`h-[46px] w-full rounded-lg border border-[#e2e2e2] bg-[#fcfcfc] px-3.5 text-[14px] outline-none ${
                               isEditing
-                                ? "focus:border-[#9c4cd2] focus:ring-1 focus:ring-[#9c4cd2]"
+                                ? "focus:border-primary focus:ring-1 focus:ring-[#9c4cd2]"
                                 : "opacity-80"
                             }`}
                           />
@@ -550,7 +550,7 @@ export default function AccountPage() {
                               defaultCountry="IN"
                               international
                               countryCallingCodeEditable={false}
-                              className="[&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] [&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
+                              className="[&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] [&_input]:border-[#e2e2e2] [&_input]:focus:border-primary [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-primary"
                             />
                           ) : (
                             <input
@@ -588,7 +588,7 @@ export default function AccountPage() {
                                 Last changed 3 months ago
                               </p>
                             </div>
-                            <button className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]">
+                            <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
                               Change
                             </button>
                           </div>
@@ -629,7 +629,7 @@ export default function AccountPage() {
                                 Add an extra layer of security to your account
                               </p>
                             </div>
-                            <button className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]">
+                            <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
                               Enable
                             </button>
                           </div>
@@ -645,7 +645,7 @@ export default function AccountPage() {
                                 View your recent login activity
                               </p>
                             </div>
-                            <button className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]">
+                            <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
                               View
                             </button>
                           </div>
@@ -680,7 +680,7 @@ export default function AccountPage() {
                               className="peer sr-only"
                               defaultChecked
                             />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#9c4cd2] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
                           </label>
                         </div>
 
@@ -695,7 +695,7 @@ export default function AccountPage() {
                           </div>
                           <label className="relative inline-flex cursor-pointer items-center">
                             <input type="checkbox" className="peer sr-only" />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#9c4cd2] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
                           </label>
                         </div>
 
@@ -710,7 +710,7 @@ export default function AccountPage() {
                           </div>
                           <label className="relative inline-flex cursor-pointer items-center">
                             <input type="checkbox" className="peer sr-only" />
-                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#9c4cd2] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
                           </label>
                         </div>
                       </div>
@@ -728,7 +728,7 @@ export default function AccountPage() {
                     </div>
                     <div className="p-4">
                       <div className="mb-4 flex justify-end">
-                        <button className="flex items-center rounded-md bg-[#9c4cd2] px-3 py-1.5 text-sm font-medium text-white">
+                        <button className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white">
                           Add New Address
                         </button>
                       </div>
@@ -761,7 +761,7 @@ export default function AccountPage() {
                               </p>
                             </div>
                             <div className="flex flex-col gap-2">
-                              <button className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]">
+                              <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
                                 <Edit size={14} className="mr-1.5" />
                                 Edit
                               </button>
@@ -789,7 +789,7 @@ export default function AccountPage() {
                               </p>
                             </div>
                             <div className="flex flex-col gap-2">
-                              <button className="flex items-center rounded-md bg-[#f5e5ff] px-3 py-1.5 text-sm font-medium text-[#9c4cd2]">
+                              <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
                                 <Edit size={14} className="mr-1.5" />
                                 Edit
                               </button>

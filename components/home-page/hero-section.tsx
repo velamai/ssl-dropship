@@ -48,15 +48,15 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-pink-50 via-white to-pink-50/30 py-20 ">
+    <section className="relative overflow-hidden bg-gradient-to-b from-accent/30 via-white to-accent/20 py-20 ">
       <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-pink-400/40 rounded-full blur-3xl animate-float" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
         <div
-          className="absolute bottom-20 right-10 w-96 h-96 bg-pink-300/30 rounded-full blur-3xl animate-float"
+          className="absolute bottom-20 right-10 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-float"
           style={{ animationDelay: "1s" }}
         />
         <div
-          className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-200/40 rounded-full blur-3xl animate-float"
+          className="absolute top-1/2 left-1/2 w-64 h-64 bg-primary/15 rounded-full blur-3xl animate-float"
           style={{ animationDelay: "2s" }}
         />
       </div>
@@ -64,12 +64,12 @@ export function HeroSection() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 animate-slide-up-fade">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-100 border border-pink-200 rounded-full hover:bg-pink-200 transition-all hover:scale-105">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/50 border border-primary/20 rounded-full hover:bg-accent/70 transition-all hover:scale-105">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <span className="text-sm font-medium text-pink-700">
+              <span className="text-sm font-medium text-primary">
                 Warehouses in 5 Countries • Transparent Pricing • Safe Delivery
               </span>
             </div>
@@ -77,7 +77,7 @@ export function HeroSection() {
             <h1 className="text-5xl lg:text-7xl font-bold text-balance leading-tight">
               Buy from 5 Countries,
               <br />
-              <span className="text-pink-600 animate-gradient">
+              <span className="text-primary animate-gradient">
                 We Ship It Worldwide
               </span>
             </h1>
@@ -90,15 +90,15 @@ export function HeroSection() {
 
             <div className="grid grid-cols-3 gap-4 py-4">
               <div className="text-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all hover-scale">
-                <div className="text-3xl font-bold text-pink-600">5</div>
+                <div className="text-3xl font-bold text-primary">5</div>
                 <div className="text-sm text-muted-foreground">Countries</div>
               </div>
               <div className="text-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all hover-scale">
-                <div className="text-3xl font-bold text-pink-600">100%</div>
+                <div className="text-3xl font-bold text-primary">100%</div>
                 <div className="text-sm text-muted-foreground">Transparent</div>
               </div>
               <div className="text-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all hover-scale">
-                <div className="text-3xl font-bold text-pink-600">24/7</div>
+                <div className="text-3xl font-bold text-primary">24/7</div>
                 <div className="text-sm text-muted-foreground">Support</div>
               </div>
             </div>
@@ -123,7 +123,7 @@ export function HeroSection() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-lg h-14 px-8 bg-white hover:bg-pink-50 hover:border-pink-400 hover:scale-105 transition-all w-full sm:w-auto"
+                  className="text-lg h-14 px-8 bg-white hover:bg-accent/50 hover:border-primary hover:scale-105 transition-all w-full sm:w-auto"
                 >
                   Get your Own Virtual Warehouse
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -139,9 +139,9 @@ export function HeroSection() {
           >
             <Card
               id="hero-calculator"
-              className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-pink-50 to-purple-50 p-6 lg:p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-pink-100/50 group"
+              className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-accent/30 to-accent/20 p-6 lg:p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-primary/10 group"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
               <div className="relative z-10 space-y-5">
                 <div className="space-y-2">
@@ -257,7 +257,7 @@ export function HeroSection() {
                 </Button>
 
                 {showEstimate && (
-                  <div className="mt-4 p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 shadow-lg">
+                  <div className="mt-4 p-4 bg-gradient-to-br from-accent/30 to-accent/20 rounded-xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 shadow-lg">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold text-sm flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-primary" />
@@ -310,7 +310,7 @@ export function HeroSection() {
               </div>
             </Card>
 
-            <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-pink-100">
+            <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                   <img
@@ -326,7 +326,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute -bottom-4 -left-8 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-pink-100"
+              className="absolute -bottom-4 -left-8 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "1s" }}
             >
               <div className="flex items-center gap-3">
@@ -344,7 +344,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute top-1/2 -left-10 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-pink-100"
+              className="absolute top-1/2 -left-10 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "2s" }}
             >
               <div className="flex items-center gap-2">
@@ -362,7 +362,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute top-1/3 -right-6 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-pink-100"
+              className="absolute top-1/3 -right-6 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "1.5s" }}
             >
               <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute bottom-1/3 -right-8 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-pink-100"
+              className="absolute bottom-1/3 -right-8 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "2.5s" }}
             >
               <div className="flex items-center gap-2">

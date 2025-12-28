@@ -668,7 +668,7 @@ export default function RegisterPage() {
                   className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                     validationErrors.firstName
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                      : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                   }`}
                 />
                 {validationErrors.firstName && (
@@ -695,7 +695,7 @@ export default function RegisterPage() {
                   className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                     validationErrors.lastName
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                      : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                   }`}
                 />
                 {validationErrors.lastName && (
@@ -723,7 +723,7 @@ export default function RegisterPage() {
                 className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                   validationErrors.email
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                    : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                 }`}
               />
               {validationErrors.email && (
@@ -784,7 +784,7 @@ export default function RegisterPage() {
                   className={`h-[46px] bg-[#fcfcfc] pr-12 text-[14px] ${
                     validationErrors.password
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                      : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                   }`}
                 />
                 <button
@@ -830,7 +830,7 @@ export default function RegisterPage() {
                 className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                   validationErrors.addressLine1
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                    : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                 }`}
               />
               {validationErrors.addressLine1 && (
@@ -857,7 +857,7 @@ export default function RegisterPage() {
                 className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                   validationErrors.addressLine2
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                    : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                 }`}
               />
               {validationErrors.addressLine2 && (
@@ -881,7 +881,7 @@ export default function RegisterPage() {
                 value={formData.addressLine3}
                 onChange={handleChange}
                 placeholder="City, state (optional)"
-                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-primary focus:ring-primary"
               />
             </div>
 
@@ -899,7 +899,7 @@ export default function RegisterPage() {
                 value={formData.addressLine4}
                 onChange={handleChange}
                 placeholder="Additional details (optional)"
-                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                className="h-[46px] bg-[#fcfcfc] text-[14px] border-[#e2e2e2] focus:border-primary focus:ring-primary"
               />
             </div>
 
@@ -925,7 +925,7 @@ export default function RegisterPage() {
                         "h-[46px] w-full justify-between bg-[#fcfcfc] text-left text-[14px]",
                         validationErrors.country
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                          : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                          : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                       )}
                       disabled={isCountriesLoading}
                     >
@@ -1030,7 +1030,7 @@ export default function RegisterPage() {
                   className={`h-[46px] bg-[#fcfcfc] text-[14px] ${
                     validationErrors.pincode
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                      : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                      : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
                   }`}
                 />
                 {validationErrors.pincode && (
@@ -1113,7 +1113,7 @@ export default function RegisterPage() {
               sent to your inbox.
             </p>
             <div className="pt-2">
-              <Link href="/" className="text-[#9c4cd2] hover:underline">
+              <Link href="/" className="text-primary hover:underline">
                 Return to home
               </Link>
             </div>
@@ -1163,7 +1163,7 @@ export default function RegisterPage() {
         {/* Illustration */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           {/* Circle background */}
-          <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9a3bd9]/10"></div>
+          <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10"></div>
 
           {/* Clouds */}
           <div className="relative h-[450px] w-[450px]">
@@ -1223,7 +1223,7 @@ export default function RegisterPage() {
           <div className="mb-6 space-y-1.5">
             <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
               Create Account{" "}
-              <span className=" font-bold text-[#9c4cd2]">BUY2SEND</span>
+              <span className=" font-bold text-primary">BUY2SEND</span>
             </h1>
             {!registrationSuccess && (
               <p className="text-[14px] text-[#a2a2a2] mt-2">
@@ -1246,7 +1246,7 @@ export default function RegisterPage() {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         step <= currentStep
-                          ? "bg-[#9c4cd2] text-white"
+                          ? "bg-primary text-white"
                           : "bg-gray-200 text-gray-500"
                       }`}
                     >
@@ -1255,7 +1255,7 @@ export default function RegisterPage() {
                     {step < 3 && (
                       <div
                         className={`w-[12.5rem] h-1 mx-2 rounded ${
-                          step < currentStep ? "bg-[#9c4cd2]" : "bg-gray-200"
+                          step < currentStep ? "bg-primary" : "bg-gray-200"
                         }`}
                       />
                     )}
@@ -1291,7 +1291,7 @@ export default function RegisterPage() {
                   After verifying your email, you can{" "}
                   <Link
                     href="/login"
-                    className="font-semibold text-[#9c4cd2] underline"
+                    className="font-semibold text-primary underline"
                   >
                     log in here
                   </Link>{" "}
@@ -1324,7 +1324,7 @@ export default function RegisterPage() {
                   <Button
                     type="button"
                     onClick={handleNext}
-                    className="bg-[#9a3bd9] hover:bg-[#9a3bd9]/90 flex items-center gap-2"
+                    className="bg-primary hover:bg-primary/90 flex items-center gap-2"
                   >
                     Next
                     <ChevronRight size={16} />
@@ -1334,7 +1334,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={registerMutation.isPending || isUploadingFiles}
-                    className="bg-[#9a3bd9] hover:bg-[#9a3bd9]/90"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isUploadingFiles
                       ? "Creating Account..."
@@ -1354,7 +1354,7 @@ export default function RegisterPage() {
                 Already have an account?{" "}
                 <Link
                   href="/login"
-                  className="text-[#9c4cd2] font-medium hover:underline"
+                  className="text-primary font-medium hover:underline"
                 >
                   Sign In
                 </Link>

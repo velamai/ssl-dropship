@@ -6,7 +6,7 @@ export function CTASection() {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="relative overflow-hidden bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 p-12 lg:p-16">
+        <Card className="relative overflow-hidden bg-pink-gradient p-12 lg:p-16">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl" />

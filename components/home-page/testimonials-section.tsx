@@ -48,11 +48,11 @@ const testimonials = [
 
 export function TestimonialsSection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-white to-pink-50">
+    <section className="py-20 bg-gradient-to-b from-white to-accent/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-balance">
-            Trusted by <span className="text-pink-600 animate-gradient">50,000+ Happy Shoppers</span>
+            Trusted by <span className="text-primary animate-gradient">50,000+ Happy Shoppers</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
             Real stories from customers who shop globally with confidence
