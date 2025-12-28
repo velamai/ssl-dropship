@@ -20,9 +20,9 @@ export function Navbar() {
 
   return (
     <nav
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 shadow-md ${
         scrolled
-          ? "bg-white/95 backdrop-blur-xl shadow-lg"
+          ? "bg-white/95 backdrop-blur-xl"
           : "bg-white/80 backdrop-blur-lg"
       } border-b border-border`}
     >

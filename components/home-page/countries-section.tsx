@@ -127,22 +127,22 @@ export function CountriesSection() {
 
                 {/* Content */}
                 <div
-                  className={`p-8 lg:p-12 flex flex-col justify-center ${
+                  className={`p-6 lg:p-8 flex flex-col justify-center ${
                     index % 2 === 0 ? "lg:order-2" : "lg:order-1"
                   }`}
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-5xl animate-bounce-subtle">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-4xl animate-bounce-subtle">
                       {item.flag}
                     </span>
-                    <h3 className="text-3xl font-bold">{item.country}</h3>
+                    <h3 className="text-2xl font-bold">{item.country}</h3>
                   </div>
 
-                  <p className="text-muted-foreground mb-6 leading-relaxed text-lg">
+                  <p className="text-muted-foreground mb-4 leading-relaxed text-base">
                     {item.tagline}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-3 mb-8">
+                  <div className="grid grid-cols-2 gap-3 mb-6">
                     {item.benefits.map((benefit) => (
                       <div
                         key={benefit}

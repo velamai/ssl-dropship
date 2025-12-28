@@ -92,6 +92,7 @@ export default function Footer() {
                     info@colombomail.lk
                   </a>
                   <p>(+94) 114 896 660</p>
+                  <p>(+94) 755 192 192</p>
                 </div>
               </div>
 
@@ -105,7 +106,7 @@ export default function Footer() {
                 <div className="text-purple-200 text-sm space-y-1">
                   <p>SUPER SAVE UK (PVT) LTD.</p>
                   <p>234 NORTHUMBERLAND AVENUE,</p>
-                  <p>READING, RG2 7QA, UK.</p>
+                  <p>READING, RG2 7QA, UNITED KINGDOM</p>
                   <a
                     href="mailto:uk@colombomail.lk"
                     className="block hover:text-white transition-colors"
@@ -113,6 +114,7 @@ export default function Footer() {
                     uk@colombomail.lk
                   </a>
                   <p>(+44) 779 175 3342</p>
+                  <p>(+44) 118 958 9871</p>
                 </div>
               </div>
 
@@ -124,16 +126,17 @@ export default function Footer() {
                   <span className="font-medium text-white">UAE Office</span>
                 </div>
                 <div className="text-purple-200 text-sm space-y-1">
-                  <p>SUPER SAVE GENERAL TRADING LLC,</p>
-                  <p>P.O BOX 376549,</p>
-                  <p>DUBAI, UAE.</p>
+                  <p>SUPER SAVE GENERAL TRADING LLC</p>
+                  <p>ROOM 201, 22ND FLOOR,</p>
+                  <p>3RD ABUBAKAR BUILDING, 37TH STREET,</p>
+                  <p>AL MURAQQABAT, DUBAI, UAE</p>
                   <a
                     href="mailto:uae@colombomail.lk"
                     className="block hover:text-white transition-colors"
                   >
                     uae@colombomail.lk
                   </a>
-                  <p>(+971) 502 402 360</p>
+                  <p>(+971) 551 536 286</p>
                 </div>
               </div>
 
@@ -146,15 +149,16 @@ export default function Footer() {
                 </div>
                 <div className="text-purple-200 text-sm space-y-1">
                   <p>SUPER SAVE INDIA (PVT) LTD.</p>
-                  <p>132 KALAYANARAM STREET,</p>
-                  <p>CHENNAI - 600043, INDIA</p>
+                  <p>GF 4, MANTHRA APARTMENTS, No.112,</p>
+                  <p>NORTH BOAG ROAD, T NAGAR,</p>
+                  <p>CHENNAI, TAMILNADU - 600017, INDIA</p>
                   <a
-                    href="mailto:india@colombomail.lk"
+                    href="mailto:info@universalmail.in"
                     className="block hover:text-white transition-colors"
                   >
-                    india@colombomail.lk
+                    info@universalmail.in
                   </a>
-                  <p>(+91) 984 047 4896</p>
+                  <p>(+91) 984 060 1406</p>
                 </div>
               </div>
 
@@ -169,8 +173,9 @@ export default function Footer() {
                 </div>
                 <div className="text-purple-200 text-sm space-y-1">
                   <p>SUPER SAVE MALAYSIA (PVT) LTD.</p>
+                  <p>SOHO-1- FLOOR 11 NUMBER13 (11/13),</p>
                   <p>VISTA ALAM SERVICE APARTMENT,</p>
-                  <p>SHAH ALAM, MALAYSIA</p>
+                  <p>JALAN IKHTISAS, SEKSYEN14, SHAH ALAM, MALAYSIA</p>
                   <a
                     href="mailto:malaysia@colombomail.lk"
                     className="block hover:text-white transition-colors"
