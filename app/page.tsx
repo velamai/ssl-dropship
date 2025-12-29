@@ -700,7 +700,6 @@ import { CountriesSection } from "@/components/home-page/countries-section";
 import { HowItWorksSection } from "@/components/home-page/how-it-works-section";
 import { WarehousesSection } from "@/components/home-page/warehouses-section";
 import { TestimonialsSection } from "@/components/home-page/testimonials-section";
-import { CTASection } from "@/components/home-page/cta-section";
 import { Footer } from "@/components/home-page/footer";
 import { Partners } from "@/components/home-page/partners";
 import { ServicesCards } from "@/components/home-page/services-cards";
@@ -727,8 +726,8 @@ export default function Home() {
         <div className="relative z-10 bg-background">
           <Navbar />
           <HeroSection />
-          <HowItWorksSection />
           <ServicesSection />
+          <HowItWorksSection />
           <Partners />
           <CountriesSection />
         </div>
@@ -736,7 +735,6 @@ export default function Home() {
         <div className="relative z-10 bg-background">
           <WarehousesSection />
           <TestimonialsSection />
-          <CTASection />
           <OfficeLocation />
           <FAQSection />
 

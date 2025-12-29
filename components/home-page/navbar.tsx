@@ -78,19 +78,19 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/product-price-calculator">
+            <Link href="/register">
               <Button
-                variant="outline"
                 size="sm"
-                className="hover:bg-primary/10 transition-all border-primary text-primary hover:border-primary bg-transparent"
+                className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
               >
-                Calculate Price
+                Signup
               </Button>
             </Link>
             <Link href="/login">
               <Button
+                variant="outline"
                 size="sm"
-                className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
+                className="hover:bg-primary/10 transition-all border-primary text-primary hover:border-primary bg-transparent"
               >
                 Login
               </Button>
@@ -149,19 +149,19 @@ export function Navbar() {
               FAQs
             </Link>
             <div className="flex flex-col gap-2 pt-4">
-              <Link href="/product-price-calculator" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="border-primary text-primary bg-transparent w-full"
+                  className="bg-pink-gradient text-white hover:opacity-90 w-full"
                 >
-                  Calculate Price
+                  Signup
                 </Button>
               </Link>
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button
+                  variant="outline"
                   size="sm"
-                  className="bg-pink-gradient text-white hover:opacity-90 w-full"
+                  className="border-primary text-primary bg-transparent w-full"
                 >
                   Login
                 </Button>

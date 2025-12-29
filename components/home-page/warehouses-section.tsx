@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Shield, Users } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 const warehouses = [
   {
@@ -113,11 +112,12 @@ export function WarehousesSection() {
                   </div>
                 </div>
 
-                <Link href="/warehouses" className="w-full">
-                  <Button className="w-full bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all mt-4">
-                    {getButtonText(warehouse.country)}
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all mt-4"
+                  disabled
+                >
+                  {getButtonText(warehouse.country)}
+                </Button>
               </div>
             </Card>
           ))}

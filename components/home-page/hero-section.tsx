@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,14 +22,21 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { fetchCountries } from "@/lib/api-client";
 
-const countries = [
-  { value: "india", label: "India", flag: "🇮🇳" },
-  { value: "srilanka", label: "Sri Lanka", flag: "🇱🇰" },
-  { value: "dubai", label: "Dubai (UAE)", flag: "🇦🇪" },
-  { value: "malaysia", label: "Malaysia", flag: "🇲🇾" },
-  { value: "uk", label: "United Kingdom", flag: "🇬🇧" },
-];
+// Helper function to get flag emoji from country code
+const getFlagEmoji = (countryCode: string): string => {
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
+// Helper function to convert country name to value format
+const countryNameToValue = (name: string): string => {
+  return name.toLowerCase().replace(/\s+/g, "");
+};
 
 export function HeroSection() {
   const router = useRouter();
@@ -38,6 +45,34 @@ export function HeroSection() {
   const [destination, setDestination] = useState("");
   const [showEstimate, setShowEstimate] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [countries, setCountries] = useState<
+    Array<{ value: string; label: string; flag: string }>
+  >([]);
+
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const countriesData = await fetchCountries();
+        const formattedCountries = countriesData.map((country) => ({
+          value: countryNameToValue(country.name),
+          label: country.name,
+          flag: getFlagEmoji(country.code),
+        }));
+        setCountries(formattedCountries);
+      } catch (error) {
+        console.error("Error loading countries:", error);
+        // Fallback to default countries
+        setCountries([
+          { value: "india", label: "India", flag: "🇮🇳" },
+          { value: "srilanka", label: "Sri Lanka", flag: "🇱🇰" },
+          { value: "dubai", label: "Dubai (UAE)", flag: "🇦🇪" },
+          { value: "malaysia", label: "Malaysia", flag: "🇲🇾" },
+          { value: "uk", label: "United Kingdom", flag: "🇬🇧" },
+        ]);
+      }
+    };
+    loadCountries();
+  }, []);
 
   const handleCalculate = () => {
     router.push("/product-price-calculator");
@@ -151,7 +186,7 @@ export function HeroSection() {
                   />
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    Supports Amazon, eBay, Alibaba, and more
+                    Supports Amazon, eBay, Ebay, Flipkart, Shopify, Daraz, noon, lazada, Meesho and more
                   </p>
                 </div>
 

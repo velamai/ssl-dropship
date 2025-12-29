@@ -27,7 +27,7 @@ const countryData = [
     tagline: "Buy Sri Lankan specialty items, handicrafts, and local products",
     benefits: [
       "Premium Ceylon tea",
-      "Precious gemstones",
+      "Spices and herbal products",
       "Handcrafted items",
       "Organic products",
       "Traditional crafts",
@@ -43,10 +43,10 @@ const countryData = [
     benefits: [
       "Luxury brands",
       "Latest electronics",
-      "Gold & jewelry",
+      "Perfumes",
       "Tax-free shopping",
       "Designer fashion",
-      "Premium quality",
+      "Chocolates and dates, and more",
     ],
     image: "/home-page/dubai-luxury-mall-with-gold-jewelry-and-electronic.jpg",
   },
@@ -57,7 +57,7 @@ const countryData = [
     benefits: [
       "Tech & gadgets",
       "Skincare products",
-      "Halal certified",
+      "Branded items",
       "Local brands",
       "Affordable prices",
       "Quality electronics",
@@ -168,18 +168,6 @@ export function CountriesSection() {
               </div>
             </Card>
           ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <Link href="/product-price-calculator">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-primary/30 hover:bg-accent/50 hover:border-primary bg-transparent"
-            >
-              Calculate Shipping from Any Country
-            </Button>
-          </Link>
         </div>
       </div>
     </section>
