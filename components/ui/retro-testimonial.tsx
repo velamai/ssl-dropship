@@ -262,7 +262,7 @@ const Carousel = ({items, initialScroll = 0}: iCarouselProps) => {
 
 				<button
 
-					className="relative z-40 h-10 w-10 rounded-full bg-[#4b3f33] flex items-center justify-center disabled:opacity-50 hover:bg-[#4b3f33]/80 transition-colors duration-200"
+					className="relative z-40 h-10 w-10 rounded-full bg-primary flex items-center justify-center disabled:opacity-50 hover:bg-primary/80 transition-colors duration-200"
 
 					onClick={handleScrollLeft}
 
@@ -270,13 +270,13 @@ const Carousel = ({items, initialScroll = 0}: iCarouselProps) => {
 
 				>
 
-					<ArrowLeft className="h-6 w-6 text-[#f2f0eb]" />
+					<ArrowLeft className="h-6 w-6 text-white" />
 
 				</button>
 
 				<button
 
-					className="relative z-40 h-10 w-10 rounded-full bg-[#4b3f33] flex items-center justify-center disabled:opacity-50 hover:bg-[#4b3f33]/80 transition-colors duration-200"
+					className="relative z-40 h-10 w-10 rounded-full bg-primary flex items-center justify-center disabled:opacity-50 hover:bg-primary/80 transition-colors duration-200"
 
 					onClick={handleScrollRight}
 
@@ -284,7 +284,7 @@ const Carousel = ({items, initialScroll = 0}: iCarouselProps) => {
 
 				>
 
-					<ArrowRight className="h-6 w-6 text-[#f2f0eb]" />
+					<ArrowRight className="h-6 w-6 text-white" />
 
 				</button>
 
@@ -434,7 +434,7 @@ const TestimonialCard = ({
 
 							<button
 
-								className="sticky top-4 h-8 w-8 right-0 ml-auto rounded-full flex items-center justify-center bg-[#4b3f33]"
+								className="sticky top-4 h-8 w-8 right-0 ml-auto rounded-full flex items-center justify-center bg-primary"
 
 								onClick={handleCollapse}
 
@@ -448,7 +448,7 @@ const TestimonialCard = ({
 
 								layoutId={layout ? `category-${testimonial.name}` : undefined}
 
-								className="px-0 md:px-20 text-[rgba(31, 27, 29, 0.7)] text-lg dark:text-white font-thin font-serif underline underline-offset-8"
+								className="px-0 md:px-20 text-foreground/70 text-lg dark:text-white font-thin font-serif underline underline-offset-8"
 
 							>
 
@@ -460,7 +460,7 @@ const TestimonialCard = ({
 
 								layoutId={layout ? `title-${testimonial.name}` : undefined}
 
-								className="px-0 md:px-20 text-2xl md:text-4xl font-normal italic text-[rgba(31, 27, 29, 0.7)] mt-4 dark:text-white font-serif lowercase"
+								className="px-0 md:px-20 text-2xl md:text-4xl font-normal italic text-foreground/70 mt-4 dark:text-white font-serif lowercase"
 
 							>
 
@@ -468,9 +468,9 @@ const TestimonialCard = ({
 
 							</motion.p>
 
-							<div className="py-8 text-[rgba(31, 27, 29, 0.7)] px-0 md:px-20 text-3xl lowercase font-thin font-serif leading-snug tracking-wide">
+							<div className="py-8 text-foreground/70 px-0 md:px-20 text-3xl lowercase font-thin font-serif leading-snug tracking-wide">
 
-								<Quote className="h-6 w-6 text-[rgba(31, 27, 29, 0.7)] dark:text-neutral-900" />
+								<Quote className="h-6 w-6 text-foreground/70 dark:text-neutral-900" />
 
 								{testimonial.description}
 
@@ -540,7 +540,7 @@ const TestimonialCard = ({
 
 						layoutId={layout ? `title-${testimonial.name}` : undefined}
 
-						className="text-[rgba(31, 27, 29, 0.7)] text-2xl md:text-2xl font-normal text-center [text-wrap:balance] font-serif mt-4 lowercase px-3"
+						className="text-foreground/70 text-2xl md:text-2xl font-normal text-center [text-wrap:balance] font-serif mt-4 lowercase px-3"
 
 					>
 
@@ -556,7 +556,7 @@ const TestimonialCard = ({
 
 						layoutId={layout ? `category-${testimonial.name}` : undefined}
 
-						className="text-[rgba(31, 27, 29, 0.7)] text-xl md:text-2xl font-thin font-serif italic text-center mt-5 lowercase"
+						className="text-foreground/70 text-xl md:text-2xl font-thin font-serif italic text-center mt-5 lowercase"
 
 					>
 
@@ -568,7 +568,7 @@ const TestimonialCard = ({
 
 						layoutId={layout ? `category-${testimonial.name}` : undefined}
 
-						className="text-[rgba(31, 27, 29, 0.7)] text-base md:text-base font-thin font-serif italic text-center mt-1 lowercase underline underline-offset-8 decoration-1"
+						className="text-foreground/70 text-base md:text-base font-thin font-serif italic text-center mt-1 lowercase underline underline-offset-8 decoration-1"
 
 					>
 
@@ -596,7 +596,7 @@ const ProfileImage = ({src, alt, ...rest}: ImageProps) => {
 
 	return (
 
-		<div className="w-[90px] h-[90px] md:w-[150px] md:h-[150px] opacity-80 overflow-hidden rounded-[1000px] border-[3px] border-solid border-[rgba(59,59,59,0.6)] aspect-[1/1] flex-none saturate-[0.2] sepia-[0.46] relative">
+		<div className="w-[90px] h-[90px] md:w-[150px] md:h-[150px] opacity-80 overflow-hidden rounded-[1000px] border-[3px] border-solid border-primary/60 aspect-[1/1] flex-none saturate-[0.2] sepia-[0.46] relative">
 
 			<Image
 

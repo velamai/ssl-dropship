@@ -87,12 +87,12 @@ export function Navbar() {
                 Calculate Price
               </Button>
             </Link>
-            <Link href="/product-price-calculator">
+            <Link href="/login">
               <Button
                 size="sm"
                 className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
               >
-                Sign Up
+                Login
               </Button>
             </Link>
           </div>
@@ -158,12 +158,12 @@ export function Navbar() {
                   Calculate Price
                 </Button>
               </Link>
-              <Link href="/product-price-calculator" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button
                   size="sm"
                   className="bg-pink-gradient text-white hover:opacity-90 w-full"
                 >
-                  Sign Up
+                  Login
                 </Button>
               </Link>
             </div>

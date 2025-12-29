@@ -64,7 +64,7 @@ export function TestimonialsSection() {
           <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-balance">
             Trusted by <span className="text-primary animate-gradient">50,000+ Happy Shoppers</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+          <p className="text-xl text-foreground/70 max-w-2xl mx-auto text-pretty leading-relaxed">
             Real stories from customers who shop globally with confidence
           </p>
         </div>
