@@ -180,7 +180,7 @@ export const OfficeLocation = () => {
         <OfficeLocationCard
           flag={"/flags/in.png"}
           name="INDIA OFFICE"
-          company="SUPER SAVE INDIA (PVT) LTD."
+          company="VALUABLE SWIFT COURIERS LLP"
           address="GF 4, MANTHRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017."
           email="info@universalmail.in"
           phones={["(+91) 984 060 1406", "(+91) 984 063 5406"]}

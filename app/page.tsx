@@ -698,7 +698,6 @@ import { HeroSection } from "@/components/home-page/hero-section";
 import { ServicesSection } from "@/components/home-page/services-section";
 import { CountriesSection } from "@/components/home-page/countries-section";
 import { HowItWorksSection } from "@/components/home-page/how-it-works-section";
-import { WarehousesSection } from "@/components/home-page/warehouses-section";
 import { TestimonialsSection } from "@/components/home-page/testimonials-section";
 import { Footer } from "@/components/home-page/footer";
 import { Partners } from "@/components/home-page/partners";
@@ -733,7 +732,6 @@ export default function Home() {
         </div>
         <ServicesCards />
         <div className="relative z-10 bg-background">
-          <WarehousesSection />
           <TestimonialsSection />
           <OfficeLocation />
           <FAQSection />

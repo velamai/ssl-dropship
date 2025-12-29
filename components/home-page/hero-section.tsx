@@ -14,14 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowRight,
   Calculator,
   Package,
   Plane,
   Building2,
   Sparkles,
 } from "lucide-react";
-import Link from "next/link";
+import Image from "next/image";
 import { fetchCountries } from "@/lib/api-client";
 
 // Helper function to get flag emoji from country code
@@ -133,28 +132,6 @@ export function HeroSection() {
                 <div className="text-sm text-muted-foreground">Support</div>
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/product-price-calculator">
-                <Button
-                  size="lg"
-                  className="bg-pink-gradient text-white hover:opacity-90 text-lg h-14 px-8 hover:shadow-2xl hover:scale-105 transition-all group w-full sm:w-auto"
-                >
-                  Calculate Product Price
-                  <Calculator className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/warehouses">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-lg h-14 px-8 bg-white hover:bg-accent/50 hover:border-primary hover:scale-105 transition-all w-full sm:w-auto"
-                >
-                  Get your Own Virtual Warehouse
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
           </div>
 
           {/* Right Visual - Calculator */}
@@ -186,7 +163,7 @@ export function HeroSection() {
                   />
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    Supports Amazon, eBay, Ebay, Flipkart, Shopify, Daraz, noon, lazada, Meesho and more
+                    Supports Amazon, Etsy, Ebay, Flipkart, Shopify, Daraz, noon, lazada, Meesho and more
                   </p>
                 </div>
 
@@ -323,9 +300,11 @@ export function HeroSection() {
             <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="https://flagcdn.com/w40/in.png"
+                  <Image
+                    src="/flags/in.png"
                     alt="India flag"
+                    width={48}
+                    height={48}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -341,9 +320,11 @@ export function HeroSection() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="https://flagcdn.com/w40/gb.png"
+                  <Image
+                    src="/flags/uk.png"
                     alt="UK flag"
+                    width={48}
+                    height={48}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -359,9 +340,11 @@ export function HeroSection() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="https://flagcdn.com/w40/lk.png"
+                  <Image
+                    src="/flags/sl.png"
                     alt="Sri Lanka flag"
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -377,9 +360,11 @@ export function HeroSection() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="https://flagcdn.com/w40/my.png"
+                  <Image
+                    src="/flags/ml.png"
                     alt="Malaysia flag"
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -395,9 +380,11 @@ export function HeroSection() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="https://flagcdn.com/w40/ae.png"
+                  <Image
+                    src="/flags/uae.png"
                     alt="UAE flag"
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                   />
                 </div>

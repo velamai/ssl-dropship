@@ -1,49 +1,65 @@
 import { PartnersColumn } from "./partners-column";
 
-const pnartners = ["DHL", "FedEx", "UPS", "Aramex", "Blue Dart", "India Post"];
-
 const partners = [
   {
-    name: "DHL",
-    color: "from-blue-500 to-cyan-400",
-    description: "Mobile shopping app with budget-friendly deals worldwide",
-    logo: "company/dhl.svg",
+    name: "Amazon",
+    color: "from-orange-500 to-yellow-400",
+    description: "World's largest online marketplace with millions of products",
+    logo: "company/amazon.svg",
   },
   {
-    name: "FedEx",
-    color: "from-blue-600 to-yellow-400",
+    name: "Etsy",
+    color: "from-green-600 to-teal-500",
+    description: "Global marketplace for unique and handmade products",
+    logo: "company/etsy.svg",
+  },
+  {
+    name: "eBay",
+    color: "from-blue-600 to-red-500",
+    description: "Online auction and shopping platform for new and used items",
+    logo: "company/ebay.svg",
+  },
+  {
+    name: "Flipkart",
+    color: "from-blue-500 to-yellow-400",
     description: "India's leading e-commerce platform for all categories",
-    logo: "company/FedEx.svg",
+    logo: "company/flipkart.svg",
   },
   {
-    name: "UPS",
-    color: "from-purple-600 to-pink-500",
+    name: "Shopify",
+    color: "from-green-500 to-teal-600",
+    description: "Complete e-commerce platform for online stores",
+    logo: "company/shopify.svg",
+  },
+  {
+    name: "Daraz",
+    color: "from-red-500 to-orange-500",
+    description: "Leading online marketplace in South Asia",
+    logo: "company/daraz-seeklogo.svg",
+  },
+  {
+    name: "Lazada",
+    color: "from-blue-500 to-orange-400",
+    description: "Southeast Asia's leading e-commerce platform",
+    logo: "company/1024px-Lazada_(2019).svg.png",
+  },
+  {
+    name: "Meesho",
+    color: "from-pink-500 to-purple-500",
     description: "Social commerce platform empowering resellers in India",
-    logo: "company/ups.svg",
+    logo: "company/meesho.svg",
   },
   {
-    name: "Aramex",
-    color: "from-pink-600 to-purple-500",
-    description: "Premier fashion and lifestyle shopping destination",
-    logo: "company/aramex.svg",
-  },
-  {
-    name: "Blue Dart",
-    color: "from-orange-600 to-red-600",
-    description: "Cross-border payment platform for global business",
-    logo: "company/blue-dart.png",
-  },
-  {
-    name: "India Post",
-    color: "from-green-600 to-blue-500",
-    description: "Seller-friendly marketplace for unique and artisan products",
-    logo: "company/in-post.svg",
+    name: "Walmart",
+    color: "from-blue-600 to-blue-400",
+    description: "American multinational retail corporation",
+    logo: "company/walmart.svg",
   },
 ];
 
-const firstColumn = partners.slice(0, 2);
-const secondColumn = partners.slice(2, 4);
-const thirdColumn = partners.slice(4, 6);
+const firstColumn = partners.slice(0, 3);
+const secondColumn = partners.slice(3, 6);
+const thirdColumn = partners.slice(6, 9);
 
 export function Partners() {
   return (
@@ -51,11 +67,10 @@ export function Partners() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
-            Our Courier Partners
+            E-commerce Supported Platforms
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            We work with the world's leading courier services to ensure your
-            packages reach safely
+            Shop from your favorite e-commerce platforms worldwide
           </p>
         </div>
 
@@ -76,6 +91,11 @@ export function Partners() {
           <PartnersColumn partners={partners.slice(0, 3)} duration={22} />
           <PartnersColumn
             partners={partners.slice(3, 6)}
+            className="hidden md:block"
+            duration={22}
+          />
+          <PartnersColumn
+            partners={partners.slice(6, 9)}
             className="hidden md:block"
             duration={22}
           />
