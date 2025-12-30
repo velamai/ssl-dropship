@@ -19,7 +19,7 @@ const countryData = [
       "Spices & specialty items",
       "Local artisan stores",
     ],
-    image: "/home-page/indian-marketplace-with-colorful-textiles-spices-a.jpg",
+    image: "/home-page/Indiaimg.png",
   },
   {
     country: "Sri Lanka",
@@ -33,7 +33,7 @@ const countryData = [
       "Traditional Crafts",
       "Authentic Spices",
     ],
-    image: "/home-page/sri-lankan-tea-plantation-and-gemstones-display.jpg",
+    image: "/home-page/srilankaimg.png",
   },
   {
     country: "Dubai (UAE)",
@@ -48,7 +48,7 @@ const countryData = [
       "Designer fashion",
       "Chocolates, dates and more",
     ],
-    image: "/home-page/dubai-luxury-mall-with-gold-jewelry-and-electronic.jpg",
+    image: "/home-page/dubaiimg.png",
   },
   {
     country: "Malaysia",
@@ -62,7 +62,7 @@ const countryData = [
       "Affordable prices",
       "Quality electronics",
     ],
-    image: "/home-page/malaysian-shopping-district-with-technology-and-be.jpg",
+    image: "/home-page/malasiaimg.png",
   },
   {
     country: "United Kingdom",
@@ -76,7 +76,7 @@ const countryData = [
       "British craftsmanship",
       "Iconic products",
     ],
-    image: "/home-page/british-shopping-street-with-fashion-and-specialty.jpg",
+    image: "/home-page/ukimage.png",
   },
 ];
 
