@@ -84,22 +84,22 @@ export function CountriesSection() {
   return (
     <section
       id="countries"
-      className="py-20 bg-gradient-to-b from-accent/20 to-white"
+      className="py-12 bg-gradient-to-b from-accent/20 to-white"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16 animate-slide-up-fade">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-balance">
+        <div className="text-center mb-10 animate-slide-up-fade">
+          <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-balance">
             Buy from These Countries
             <br />
             <span className="text-primary animate-gradient">with Ease</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed">
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed">
             Each country offers unique products and experiences. Where will you
             shop today?
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {countryData.map((item, index) => (
             <Card
               key={item.country}
@@ -113,22 +113,22 @@ export function CountriesSection() {
               >
                 {/* Image - Order changes based on index */}
                 <div
-                  className={`relative aspect-video lg:aspect-auto bg-gradient-to-br from-accent/40 to-accent/30 ${
+                  className={`relative aspect-video lg:aspect-[4/3] bg-gradient-to-br from-accent/40 to-accent/30 ${
                     index % 2 === 0 ? "lg:order-1" : "lg:order-2"
                   }`}
                 >
                   <Image
                     src={item.image || "/home-page/placeholder.svg"}
                     alt={`Shopping in ${item.country}`}
-                    width={600}
-                    height={400}
+                    width={400}
+                    height={300}
                     className="object-cover w-full h-full hover:scale-105 transition-transform duration-500"
                   />
                 </div>
 
                 {/* Content */}
                 <div
-                  className={`p-6 lg:p-8 flex flex-col justify-center ${
+                  className={`p-4 lg:p-6 flex flex-col justify-center ${
                     index % 2 === 0 ? "lg:order-2" : "lg:order-1"
                   }`}
                 >
@@ -136,18 +136,18 @@ export function CountriesSection() {
                     <Image
                       src={item.flag}
                       alt={`${item.country} flag`}
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 object-contain animate-bounce-subtle"
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 object-contain animate-bounce-subtle"
                     />
-                    <h3 className="text-2xl font-bold">{item.country}</h3>
+                    <h3 className="text-xl font-bold">{item.country}</h3>
                   </div>
 
-                  <p className="text-muted-foreground mb-4 leading-relaxed text-base">
+                  <p className="text-muted-foreground mb-3 leading-relaxed text-base">
                     {item.tagline}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="grid grid-cols-2 gap-3 mb-4">
                     {item.benefits.map((benefit) => (
                       <div
                         key={benefit}
