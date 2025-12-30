@@ -16,56 +16,56 @@ const faqData: FAQItem[] = [
     question: "How does the warehouse address service work?",
     answer:
       "When you sign up, you'll receive a unique warehouse address in your chosen country (India, Sri Lanka, UAE, Malaysia, or UK). Simply use this address as your shipping address when shopping from online stores in that country. Once your packages arrive at our warehouse, we'll notify you and prepare them for international shipping to your final destination. This service is perfect for consolidating multiple purchases and accessing products that don't ship internationally.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 2,
     question: "How does the product link service work?",
     answer:
       "Our product link service makes shopping effortless! Just paste the product URL from any online store (Amazon, eBay, AliExpress, etc.) into our pricing calculator. We'll purchase the item on your behalf, receive it at our warehouse, perform quality checks, and ship it directly to your address anywhere in the world. You'll see the total cost upfront—including product price, handling fees, and international shipping—with no hidden charges.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 3,
     question: "Can I consolidate multiple packages?",
     answer:
       "Yes! Package consolidation is one of our most popular features. When you have multiple items arriving at our warehouse, we can combine them into a single shipment, which significantly reduces your shipping costs. Simply wait for all your packages to arrive, then request consolidation through your account dashboard. We'll carefully pack everything together and ship it as one package to your destination.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 4,
     question: "How long can packages be stored at your warehouse?",
     answer:
       "We offer free storage for up to 45 days at all our warehouse locations. This gives you plenty of time to receive multiple packages from different sellers and consolidate them into a single shipment. After 45 days, a small storage fee may apply. You'll receive notifications as your storage period approaches, so you can decide when to ship your items.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 5,
     question: "What countries do you have warehouses in?",
     answer:
       "We currently operate warehouses in 5 strategic locations: India (Chennai), Sri Lanka (Dehiwala), UAE (Dubai), Malaysia (Shah Alam), and United Kingdom (Reading). Each warehouse is fully equipped with secure storage, 24/7 surveillance, and climate control. Our expert team at each location handles receiving, quality checks, and packaging to ensure your items are safe and ready for international shipping.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 6,
     question: "Do you perform quality checks on products?",
     answer:
       "Absolutely! Quality assurance is a core part of our service. When we receive products at our warehouse, our trained staff inspects each item for damage, verifies it matches the order description, and checks for any defects. If we notice any issues, we'll immediately notify you with photos and options to proceed. This ensures you receive exactly what you ordered, every time.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 7,
     question: "How do I calculate the total cost including shipping?",
     answer:
       "Use our easy-to-use pricing calculator! Simply paste the product link or enter the product details (price, weight, dimensions), select the origin country and your destination, and choose your preferred shipping method. Our calculator instantly shows you the complete breakdown: product cost, handling fees, international shipping charges, and any applicable customs duties. You'll see the total cost upfront with full transparency—no surprises.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
   {
     id: 8,
     question: "What payment methods do you accept?",
     answer:
       "We accept multiple secure payment methods including credit cards, debit cards, and digital payment platforms. All payments are processed securely through our encrypted payment gateway. You can pay for the product cost and shipping fees together, or separately if you prefer. We also support partial payments for larger orders. All transactions are protected and secure.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/home-page/FAQMsg.png",
   },
 ]
 

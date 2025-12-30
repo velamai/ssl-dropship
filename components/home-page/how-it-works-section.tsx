@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, CableIcon as CalcIcon, Warehouse } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const steps = [
   {
@@ -12,12 +13,14 @@ const steps = [
     title: "Find Your Product",
     description:
       "Shop from any online store or local seller in our supported countries.",
+    image: "/steps/step1.png",
   },
   {
     icon: CalcIcon,
     number: "02",
     title: "Paste the Product Link",
     description: "Enter the product URL in our pricing calculator.",
+    image: "/steps/step2.png",
   },
   {
     icon: CalcIcon,
@@ -25,6 +28,7 @@ const steps = [
     title: "See the Total Cost",
     description:
       "Instantly view the product cost, shipping, and handling — no hidden charges.",
+    image: "/steps/step3.png",
   },
   {
     icon: Warehouse,
@@ -32,6 +36,7 @@ const steps = [
     title: "We Receive & Ship",
     description:
       "Your product is delivered to our warehouse and shipped safely to you.",
+    image: "/steps/step4.png",
   },
 ];
 
@@ -60,7 +65,7 @@ export function HowItWorksSection() {
             return (
               <Card
                 key={step.number}
-                className="p-8 hover:shadow-2xl transition-all relative overflow-hidden group bg-white border-2 border-accent/30 hover:border-primary/30 animate-slide-up-fade"
+                className="p-6 hover:shadow-2xl transition-all relative overflow-hidden group bg-white border-0 shadow-lg hover:border-primary/30 animate-slide-up-fade"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Background Number */}
@@ -70,8 +75,21 @@ export function HowItWorksSection() {
 
                 {/* Content */}
                 <div className="relative">
-                  <div className="w-16 h-16 bg-pink-gradient rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                    <Icon className="w-8 h-8 text-white" />
+                  {/* Step Image */}
+                  <div className="relative w-full h-56 mb-6 rounded-lg overflow-hidden bg-transparent group-hover:scale-105 transition-transform duration-300">
+                    <Image
+                      src={step.image}
+                      alt={step.title}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      priority={index < 2}
+                    />
+                  </div>
+
+                  {/* Icon (smaller, secondary) */}
+                  <div className="w-12 h-12 bg-pink-gradient rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
 
                   <h3 className="text-xl font-bold mb-3">{step.title}</h3>
