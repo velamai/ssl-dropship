@@ -297,7 +297,7 @@ export function HeroSection() {
               </div>
             </Card>
 
-            <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10">
+            <div className="absolute -top-8 -right-8 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                   <Image
@@ -315,7 +315,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute -bottom-4 -left-8 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
+              className="absolute -bottom-8 -left-12 bg-white rounded-2xl shadow-xl p-4 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "1s" }}
             >
               <div className="flex items-center gap-3">
@@ -335,7 +335,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute top-1/2 -left-10 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
+              className="absolute top-1/2 -left-16 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "2s" }}
             >
               <div className="flex items-center gap-2">
@@ -355,7 +355,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute top-1/3 -right-6 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
+              className="absolute top-1/3 -right-12 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "1.5s" }}
             >
               <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export function HeroSection() {
             </div>
 
             <div
-              className="absolute bottom-1/3 -right-8 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
+              className="absolute bottom-1/3 -right-14 bg-white rounded-2xl shadow-xl p-3 animate-float hover:shadow-2xl transition-shadow hover-scale cursor-pointer border-2 border-primary/10"
               style={{ animationDelay: "2.5s" }}
             >
               <div className="flex items-center gap-2">

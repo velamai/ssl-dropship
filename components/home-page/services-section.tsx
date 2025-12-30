@@ -82,7 +82,7 @@ export function ServicesSection() {
           <Card className="overflow-hidden group hover:shadow-2xl transition-all duration-300 border-2 border-primary/20">
             <div className="relative h-64 overflow-hidden">
               <img
-                src="/home-page/warehouse-multiple-packages-consolidation-bulk-shi.jpg"
+                src="/home-page/virtualwarehouse.jpeg"
                 alt="Virtual Warehouse Service"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
