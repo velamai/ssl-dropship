@@ -702,6 +702,7 @@ import { TestimonialsSection } from "@/components/home-page/testimonials-section
 import { Footer } from "@/components/home-page/footer";
 import { Partners } from "@/components/home-page/partners";
 import { ServicesCards } from "@/components/home-page/services-cards";
+import { CalculatorSection } from "@/components/home-page/calculator-section";
 import Image from "next/image";
 import { FAQSection } from "@/components/home-page/faq-section";
 import { OfficeLocation } from "@/components/home-page/office-location-card";
@@ -727,6 +728,7 @@ export default function Home() {
           <HeroSection />
           <ServicesSection />
           <HowItWorksSection />
+          <CalculatorSection />
           <Partners />
           <CountriesSection />
         </div>

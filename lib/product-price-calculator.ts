@@ -2,16 +2,18 @@
 
 import type { OriginCountry, ProductCategory } from "./shipping-rates";
 import {
-  EXCHANGE_RATES,
+  getExchangeRate,
   getDomesticCourier,
   getShippingRate,
-  COLOMBO_SERVICE_CHARGE_PERCENT,
+  getServiceChargePercentage,
   getCurrencyCode,
   getDomesticShippingDestination,
+  calculateWarehouseHandling,
 } from "./shipping-rates";
 
 export interface PriceCalculationInput {
   originCountry: OriginCountry;
+  destinationCountryCode?: string; // ISO country code (e.g., "LK"), defaults to "LK"
   category: ProductCategory;
   productPrice: number; // in origin currency
   weight?: number; // in kg - optional, only used for shipping estimate
@@ -65,65 +67,78 @@ export interface PriceBreakdown {
  * 3. Colombo Service Charge (LKR) = (Shipping Rate + Price Calculator Total in LKR) × 15%
  * 4. Shipping Total (LKR) = Shipping Rate + Colombo Service Charge
  */
-export function calculateProductPrice(input: PriceCalculationInput): PriceBreakdown {
-  const { originCountry, category, productPrice, weight, quantity, deliveryOption = "delivery" } = input;
+export async function calculateProductPrice(input: PriceCalculationInput): Promise<PriceBreakdown> {
+  const { 
+    originCountry, 
+    destinationCountryCode = "LK",
+    category, 
+    productPrice, 
+    weight, 
+    quantity, 
+    deliveryOption = "delivery" 
+  } = input;
 
-  // Get exchange rate
-  const exchangeRate = EXCHANGE_RATES[originCountry];
-  const originCurrency = getCurrencyCode(originCountry);
-  const destinationCurrency = "LKR";
+  // Get exchange rate from database
+  const exchangeRate = await getExchangeRate(originCountry, destinationCountryCode);
+  const originCurrency = await getCurrencyCode(originCountry);
+  
+  // Get destination currency code
+  const { productPriceCalculatorApi } = await import("./api/product-price-calculator");
+  const destinationCurrencyCode = await productPriceCalculatorApi.getCurrencyCode(destinationCountryCode) || "LKR";
+  const destinationCurrency = destinationCurrencyCode;
 
   // 1. Price Calculator Total (in Origin Currency)
   // Item Cost (Origin Currency)
   const itemCostOrigin = productPrice * quantity;
   
   // Domestic Courier Charge (Origin Currency)
-  const domesticCourier = getDomesticCourier(originCountry);
+  const domesticCourier = await getDomesticCourier(originCountry);
   
-  // Warehouse Handling (Origin Currency) = (Item Cost + Domestic Courier) × 10%
-  const warehouseHandling = (itemCostOrigin + domesticCourier) * 0.1;
+  // Warehouse Handling (Origin Currency) = calculated from database
+  const warehouseHandling = await calculateWarehouseHandling(originCountry, itemCostOrigin + domesticCourier);
   
   // Price Calculator Total (Origin Currency) = Item Cost + Domestic Courier + Warehouse Handling
   const priceCalculatorTotalOrigin = itemCostOrigin + domesticCourier + warehouseHandling;
 
-  // Convert Price Calculator Total to LKR
-  const priceCalculatorTotalLKR = priceCalculatorTotalOrigin * exchangeRate;
+  // Convert Price Calculator Total to destination currency
+  const priceCalculatorTotalDestination = priceCalculatorTotalOrigin * exchangeRate;
 
-  // 2. Shipping Rate (in LKR)
-  let internationalShippingLKR: number | undefined;
-  let shippingRateLKR: number | undefined;
-  const domesticShippingDestinationLKR = deliveryOption === "delivery" 
-    ? getDomesticShippingDestination() 
+  // 2. Shipping Rate (in destination currency)
+  let internationalShippingDestination: number | undefined;
+  let shippingRateDestination: number | undefined;
+  const domesticShippingDestination = deliveryOption === "delivery" 
+    ? await getDomesticShippingDestination(destinationCountryCode)
     : 0; // No domestic shipping charge if pickup
 
   if (weight && weight > 0) {
-    // International Shipping Charge (LKR) = Weight × Shipping Rate per kg
-    const shippingRatePerKg = getShippingRate(originCountry, category);
-    internationalShippingLKR = weight * shippingRatePerKg;
+    // International Shipping Charge = Weight × Shipping Rate per kg
+    const shippingRatePerKg = await getShippingRate(originCountry, category, destinationCountryCode);
+    internationalShippingDestination = weight * shippingRatePerKg;
     
-    // Shipping Rate (LKR) = International Shipping + Domestic Shipping
-    shippingRateLKR = internationalShippingLKR + domesticShippingDestinationLKR;
+    // Shipping Rate = International Shipping + Domestic Shipping
+    shippingRateDestination = internationalShippingDestination + domesticShippingDestination;
   }
 
-  // 3. Colombo Mail Service Charge (LKR) = (Shipping Rate + Price Calculator Total in LKR) × 15%
-  let colomboServiceChargeLKR: number | undefined;
-  let shippingTotalLKR: number | undefined;
+  // 3. Colombo Mail Service Charge = (Shipping Rate + Price Calculator Total) × percentage
+  let colomboServiceChargeDestination: number | undefined;
+  let shippingTotalDestination: number | undefined;
 
-  if (shippingRateLKR !== undefined) {
-    colomboServiceChargeLKR = (shippingRateLKR + priceCalculatorTotalLKR) * (COLOMBO_SERVICE_CHARGE_PERCENT / 100);
+  if (shippingRateDestination !== undefined) {
+    const serviceChargePercent = await getServiceChargePercentage();
+    colomboServiceChargeDestination = (shippingRateDestination + priceCalculatorTotalDestination) * (serviceChargePercent / 100);
     
-    // 4. Shipping Total (LKR) = Shipping Rate + Colombo Service Charge
-    shippingTotalLKR = shippingRateLKR + colomboServiceChargeLKR;
+    // 4. Shipping Total = Shipping Rate + Colombo Service Charge
+    shippingTotalDestination = shippingRateDestination + colomboServiceChargeDestination;
   }
 
   // Warehouse Handling Charges (for display) = Price Calculator Total
-  const warehouseHandlingChargesLKR = priceCalculatorTotalLKR;
+  const warehouseHandlingChargesDestination = priceCalculatorTotalDestination;
 
-  // Grand Total (LKR) = Price Calculator Total + Shipping Total (if calculated)
-  const totalPriceLKR = priceCalculatorTotalLKR + (shippingTotalLKR || 0);
+  // Grand Total = Price Calculator Total + Shipping Total (if calculated)
+  const totalPriceDestination = priceCalculatorTotalDestination + (shippingTotalDestination || 0);
 
   // Convert total back to origin currency for reference
-  const totalPriceOrigin = totalPriceLKR / exchangeRate;
+  const totalPriceOrigin = totalPriceDestination / exchangeRate;
 
   return {
     productPriceOrigin: itemCostOrigin,
@@ -131,14 +146,14 @@ export function calculateProductPrice(input: PriceCalculationInput): PriceBreakd
     domesticCourier,
     warehouseHandling,
     priceCalculatorTotalOrigin,
-    priceCalculatorTotalLKR,
-    internationalShippingLKR,
-    domesticShippingDestinationLKR,
-    shippingRateLKR,
-    colomboServiceChargeLKR,
-    shippingTotalLKR,
-    warehouseHandlingChargesLKR,
-    totalPriceLKR,
+    priceCalculatorTotalLKR: priceCalculatorTotalDestination,
+    internationalShippingLKR: internationalShippingDestination,
+    domesticShippingDestinationLKR: domesticShippingDestination,
+    shippingRateLKR: shippingRateDestination,
+    colomboServiceChargeLKR: colomboServiceChargeDestination,
+    shippingTotalLKR: shippingTotalDestination,
+    warehouseHandlingChargesLKR: warehouseHandlingChargesDestination,
+    totalPriceLKR: totalPriceDestination,
     totalPriceOrigin,
     exchangeRate,
     originCurrency,

@@ -24,8 +24,11 @@ import {
   calculateProductPrice,
   type PriceCalculationInput,
 } from "@/lib/product-price-calculator";
-import type { ProductCategory } from "@/lib/shipping-rates";
+import type { ProductCategory, OriginCountry } from "@/lib/shipping-rates";
+import { getOriginCountryFromCode } from "@/lib/shipping-rates";
 import { useProductData } from "@/lib/hooks/useProductData";
+import { warehouseApi } from "@/lib/api/warehouses";
+import type { Warehouse } from "@/lib/types/warehouse";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/footer";
@@ -33,11 +36,14 @@ import Footer from "@/components/footer";
 export default function ProductPriceCalculatorPage() {
   // Form state
   const [productUrl, setProductUrl] = useState("");
-  const [destinationCountry, setDestinationCountry] = useState("LK"); // Sri Lanka only
+  const [sourceCountryCode, setSourceCountryCode] = useState<string>("");
+  const [destinationCountry, setDestinationCountry] = useState("LK"); // Default to Sri Lanka
   const [category, setCategory] = useState<ProductCategory | undefined>(
     undefined
   );
   const [quantity, setQuantity] = useState(1);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(false);
 
   // Use React Query for product data fetching
   const {
@@ -46,10 +52,29 @@ export default function ProductPriceCalculatorPage() {
     error: productError,
   } = useProductData(productUrl);
 
+  // Auto-set source country from product data
+  useEffect(() => {
+    if (productData && !sourceCountryCode) {
+      // Map OriginCountry to country code
+      const countryCodeMap: Record<OriginCountry, string> = {
+        india: "IN",
+        malaysia: "MY",
+        dubai: "AE",
+        us: "US",
+        srilanka: "LK",
+        singapore: "SG",
+      };
+      const code = countryCodeMap[productData.originCountry];
+      if (code) {
+        setSourceCountryCode(code);
+      }
+    }
+  }, [productData, sourceCountryCode]);
+
   // Price calculation state
-  const [priceBreakdown, setPriceBreakdown] = useState<ReturnType<
+  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<ReturnType<
     typeof calculateProductPrice
-  > | null>(null);
+  >> | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
@@ -78,28 +103,51 @@ export default function ProductPriceCalculatorPage() {
   }, [productUrl]);
 
   // Handle price calculation
-  const handleCalculatePrice = () => {
-    if (!productData || !category) {
+  const handleCalculatePrice = async () => {
+    // Determine origin country - use selected source country or fallback to product data
+    let originCountry: OriginCountry;
+    if (sourceCountryCode) {
+      const country = getOriginCountryFromCode(sourceCountryCode);
+      if (!country) {
+        setCalculationError("Invalid source country selected");
+        return;
+      }
+      originCountry = country;
+    } else if (productData) {
+      originCountry = productData.originCountry;
+    } else {
       setCalculationError(
-        "Please ensure product URL and category are selected"
+        "Please select a source country or enter a product URL"
       );
       return;
     }
 
-    // Weight is no longer required - calculation works without it
+    if (!category) {
+      setCalculationError("Please select a product category");
+      return;
+    }
+
+    // Get product price - use product data if available, otherwise require manual input
+    const productPrice = productData?.price;
+    if (!productPrice) {
+      setCalculationError("Please enter a product URL or provide product price");
+      return;
+    }
+
     setIsCalculating(true);
     setCalculationError(null);
 
     try {
       const input: PriceCalculationInput = {
-        originCountry: productData.originCountry,
+        originCountry,
+        destinationCountryCode: destinationCountry,
         category,
-        productPrice: productData.price,
+        productPrice,
         quantity,
         deliveryOption: "delivery", // Default to delivery in main calculation
       };
 
-      const breakdown = calculateProductPrice(input);
+      const breakdown = await calculateProductPrice(input);
       setPriceBreakdown(breakdown);
     } catch (error) {
       setCalculationError(
@@ -110,18 +158,39 @@ export default function ProductPriceCalculatorPage() {
     }
   };
 
-  // Auto-recalculate when quantity or category changes after first calculation
+  // Fetch warehouses when source country changes
+  useEffect(() => {
+    if (sourceCountryCode) {
+      setIsLoadingWarehouses(true);
+      warehouseApi
+        .getWarehousesByCountry(sourceCountryCode)
+        .then((data) => {
+          setWarehouses(data);
+        })
+        .catch((error) => {
+          console.error("Error fetching warehouses:", error);
+          setWarehouses([]);
+        })
+        .finally(() => {
+          setIsLoadingWarehouses(false);
+        });
+    } else {
+      setWarehouses([]);
+    }
+  }, [sourceCountryCode]);
+
+  // Auto-recalculate when quantity, category, source country, or destination changes after first calculation
   useEffect(() => {
     // Only recalculate if:
     // 1. Price breakdown already exists (first calculation was done)
-    // 2. Product data exists
-    // 3. Category is selected
+    // 2. Category is selected
+    // 3. Either product data exists or source country is selected
     // 4. Not currently calculating (prevent infinite loops)
-    if (priceBreakdown && productData && category && !isCalculating) {
+    if (priceBreakdown && category && (productData || sourceCountryCode) && !isCalculating) {
       handleCalculatePrice();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantity, category]);
+  }, [quantity, category, sourceCountryCode, destinationCountry]);
 
   return (
     <main className="min-h-screen bg-[#f8f8f8]">
@@ -321,15 +390,76 @@ export default function ProductPriceCalculatorPage() {
                   </div>
                 )}
 
+                {/* Source Country */}
+                <div className="space-y-2">
+                  <Label>Source Country (Warehouse Location)</Label>
+                  <CountrySelector
+                    type="source"
+                    value={sourceCountryCode}
+                    onValueChange={(value) => {
+                      setSourceCountryCode(value);
+                      // Auto-set from product data if available
+                      if (productData && !sourceCountryCode) {
+                        const countryCode = getOriginCountryFromCode(value);
+                        if (countryCode) {
+                          // Source country is set via the selector
+                        }
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Select the country where the warehouse is located
+                  </p>
+                  
+                  {/* Warehouses Display */}
+                  {sourceCountryCode && (
+                    <div className="mt-2">
+                      {isLoadingWarehouses ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Loading warehouses...</span>
+                        </div>
+                      ) : warehouses.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Available Warehouses:
+                          </p>
+                          <div className="space-y-1">
+                            {warehouses.map((warehouse) => (
+                              <div
+                                key={warehouse.warehouse_id}
+                                className="text-xs p-2 bg-gray-50 rounded border"
+                              >
+                                <p className="font-medium">{warehouse.name || "Warehouse"}</p>
+                                <p className="text-muted-foreground">
+                                  {warehouse.address_line1}
+                                  {warehouse.address_line2 && `, ${warehouse.address_line2}`}
+                                  {warehouse.postal_code && `, ${warehouse.postal_code}`}
+                                </p>
+                                <p className="text-muted-foreground">{warehouse.country}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No warehouses found for this country
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Destination Country */}
                 <div className="space-y-2">
                   <Label>Receiving Country</Label>
                   <CountrySelector
+                    type="destination"
                     value={destinationCountry}
                     onValueChange={setDestinationCountry}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Currently only Sri Lanka is supported
+                    Select the country where the product will be delivered
                   </p>
                 </div>
 
@@ -375,7 +505,7 @@ export default function ProductPriceCalculatorPage() {
                 {/* Calculate Button */}
                 <Button
                   onClick={handleCalculatePrice}
-                  disabled={!productData || !category || isCalculating}
+                  disabled={(!productData && !sourceCountryCode) || !category || isCalculating}
                   className="w-full"
                   size="lg"
                 >
@@ -442,13 +572,18 @@ export default function ProductPriceCalculatorPage() {
 
           {/* Right Column - Price Breakdown */}
           <div>
-            {priceBreakdown && productData && category ? (
+            {priceBreakdown && category ? (
               <PriceBreakdown
                 breakdown={priceBreakdown}
-                productName={productData.title}
+                productName={productData?.title || "Product"}
                 quantity={quantity}
-                originCountry={productData.originCountry}
+                originCountry={
+                  sourceCountryCode
+                    ? (getOriginCountryFromCode(sourceCountryCode) || "india")
+                    : productData?.originCountry || "india"
+                }
                 category={category}
+                destinationCountryCode={destinationCountry}
               />
             ) : (
               <Card>

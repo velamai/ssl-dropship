@@ -16,11 +16,12 @@ interface PriceBreakdownProps {
   breakdown: PriceBreakdownType;
   productName: string;
   quantity: number;
-  originCountry: "india" | "malaysia" | "dubai" | "us";
+  originCountry: "india" | "malaysia" | "dubai" | "us" | "srilanka" | "singapore";
   category: ProductCategory;
+  destinationCountryCode?: string;
 }
 
-export function PriceBreakdown({ breakdown, productName, quantity, originCountry, category }: PriceBreakdownProps) {
+export function PriceBreakdown({ breakdown, productName, quantity, originCountry, category, destinationCountryCode = "LK" }: PriceBreakdownProps) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const {
@@ -177,6 +178,7 @@ export function PriceBreakdown({ breakdown, productName, quantity, originCountry
           originCurrency={originCurrency}
           destinationCurrency={destinationCurrency}
           priceCalculatorTotalLKR={breakdown.priceCalculatorTotalLKR}
+          destinationCountryCode={destinationCountryCode}
         />
       </div>
     </Card>

@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown, ChevronUp, Calculator, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Calculator, Package, Loader2 } from "lucide-react";
 import type { OriginCountry, ProductCategory } from "@/lib/shipping-rates";
-import { getShippingRate, getDomesticShippingDestination } from "@/lib/shipping-rates";
+import { getShippingRate, getDomesticShippingDestination, getServiceChargePercentage } from "@/lib/shipping-rates";
 import { formatNumber } from "@/lib/product-price-calculator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -19,6 +19,7 @@ interface ShippingEstimateProps {
   originCurrency: string;
   destinationCurrency: string;
   priceCalculatorTotalLKR: number; // Price Calculator Total in LKR for service charge calculation
+  destinationCountryCode?: string; // ISO country code for destination
 }
 
 export function ShippingEstimate({
@@ -28,6 +29,7 @@ export function ShippingEstimate({
   originCurrency,
   destinationCurrency,
   priceCalculatorTotalLKR,
+  destinationCountryCode = "LK",
 }: ShippingEstimateProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [weight, setWeight] = useState<string>("");
@@ -35,6 +37,10 @@ export function ShippingEstimate({
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
+  const [shippingRatePerKg, setShippingRatePerKg] = useState<number | null>(null);
+  const [domesticShipping, setDomesticShipping] = useState<number | null>(null);
+  const [serviceChargePercent, setServiceChargePercent] = useState<number>(15);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
 
   // Calculate volume metric weight: (L × W × H) / 5000 (standard formula)
   const calculateVolumeMetricWeight = (): number | null => {
@@ -48,16 +54,41 @@ export function ShippingEstimate({
     return null;
   };
 
+  // Load shipping rates on mount and when dependencies change
+  useEffect(() => {
+    const loadRates = async () => {
+      setIsLoadingRates(true);
+      try {
+        const [rate, domestic, servicePercent] = await Promise.all([
+          getShippingRate(originCountry, category, destinationCountryCode),
+          getDomesticShippingDestination(destinationCountryCode),
+          getServiceChargePercentage(),
+        ]);
+        setShippingRatePerKg(rate);
+        setDomesticShipping(domestic);
+        setServiceChargePercent(servicePercent);
+      } catch (error) {
+        console.error("Error loading shipping rates:", error);
+      } finally {
+        setIsLoadingRates(false);
+      }
+    };
+
+    loadRates();
+  }, [originCountry, category, destinationCountryCode]);
+
   // Calculate shipping estimate using new formula
   const calculateShippingEstimate = () => {
+    if (shippingRatePerKg === null || domesticShipping === null) {
+      return null;
+    }
+
     const weightValue = parseFloat(weight);
     const volumeWeight = calculateVolumeMetricWeight();
 
     if (!weightValue && !volumeWeight) {
       return null;
     }
-
-    const shippingRatePerKg = getShippingRate(originCountry, category);
 
     // Calculate weight-based international shipping
     const weightBasedInternational = weightValue > 0 ? weightValue * shippingRatePerKg : 0;
@@ -68,25 +99,23 @@ export function ShippingEstimate({
     // International Shipping = Max(Weight-based, Volume-based)
     const internationalShipping = Math.max(weightBasedInternational, volumeBasedInternational);
 
-    // Add Colombo Service Charge (15%) directly to International Shipping
-    // Service Charge = (International Shipping + Price Calculator Total in LKR) × 15%
-    const serviceCharge = (internationalShipping + priceCalculatorTotalLKR) * 0.15;
+    // Add Service Charge to International Shipping
+    // Service Charge = (International Shipping + Price Calculator Total in LKR) × percentage
+    const serviceCharge = (internationalShipping + priceCalculatorTotalLKR) * (serviceChargePercent / 100);
     const internationalShippingWithService = internationalShipping + serviceCharge;
 
     // Domestic Shipping in destination country (only if delivery)
-    const domesticShipping = deliveryOption === "delivery" 
-      ? getDomesticShippingDestination() 
-      : 0;
+    const domesticShippingAmount = deliveryOption === "delivery" ? domesticShipping : 0;
 
     // Shipping Total = International Shipping (with service charge) + Domestic Shipping
-    const shippingTotal = internationalShippingWithService + domesticShipping;
+    const shippingTotal = internationalShippingWithService + domesticShippingAmount;
 
     return {
       weightBasedInternational,
       volumeBasedInternational,
       internationalShipping,
       internationalShippingWithService,
-      domesticShipping,
+      domesticShipping: domesticShippingAmount,
       shippingTotal,
       shippingRatePerKg,
       volumeWeight,
@@ -225,8 +254,16 @@ export function ShippingEstimate({
             </div>
           </div>
 
+          {/* Loading State */}
+          {isLoadingRates && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading shipping rates...</span>
+            </div>
+          )}
+
           {/* Estimate Results */}
-          {estimate && (
+          {!isLoadingRates && estimate && (
             <div className="mt-4 space-y-3">
               <Separator />
               <div className="bg-purple-50 rounded-lg p-4 space-y-2">

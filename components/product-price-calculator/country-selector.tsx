@@ -18,9 +18,33 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sortedCountries } from "@/lib/countries";
+import type { OriginCountry } from "@/lib/shipping-rates";
 
-// Currently only Sri Lanka is supported as destination
+// Source countries (warehouse locations)
+const SOURCE_COUNTRIES: Array<{ originCountry: OriginCountry; code: string; name: string }> = [
+  { originCountry: "india", code: "IN", name: "India" },
+  { originCountry: "malaysia", code: "MY", name: "Malaysia" },
+  { originCountry: "dubai", code: "AE", name: "United Arab Emirates" },
+  { originCountry: "us", code: "US", name: "United States" },
+  { originCountry: "srilanka", code: "LK", name: "Sri Lanka" },
+  { originCountry: "singapore", code: "SG", name: "Singapore" },
+];
+
+// Supported destination countries
 const DESTINATION_COUNTRIES = [
+  {
+    code: "IN",
+    name: "India",
+  },
+  {
+    code: "MY",
+    name: "Malaysia",
+  },
+  {
+    code: "AE",
+    name: "United Arab Emirates",
+  },
   {
     code: "LK",
     name: "Sri Lanka",
@@ -31,12 +55,21 @@ interface CountrySelectorProps {
   value?: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  type?: "source" | "destination";
 }
 
-export function CountrySelector({ value, onValueChange, disabled }: CountrySelectorProps) {
+export function CountrySelector({ 
+  value, 
+  onValueChange, 
+  disabled,
+  type = "destination" 
+}: CountrySelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const selectedCountry = DESTINATION_COUNTRIES.find((country) => country.code === value);
+  const countries = type === "source" ? SOURCE_COUNTRIES : DESTINATION_COUNTRIES;
+  const selectedCountry = countries.find((country) => 
+    type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).code === value : country.code === value
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -50,11 +83,14 @@ export function CountrySelector({ value, onValueChange, disabled }: CountrySelec
         >
           {selectedCountry ? (
             <div className="flex items-center gap-2">
-              <CountryFlag countryCode={selectedCountry.code} size="sm" />
-              <span>{selectedCountry.name}</span>
+              <CountryFlag 
+                countryCode={type === "source" ? (selectedCountry as typeof SOURCE_COUNTRIES[0]).code : selectedCountry.code} 
+                size="sm" 
+              />
+              <span>{type === "source" ? (selectedCountry as typeof SOURCE_COUNTRIES[0]).name : selectedCountry.name}</span>
             </div>
           ) : (
-            "Select destination country..."
+            `Select ${type === "source" ? "source" : "destination"} country...`
           )}
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -65,27 +101,31 @@ export function CountrySelector({ value, onValueChange, disabled }: CountrySelec
           <CommandList>
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
-              {DESTINATION_COUNTRIES.map((country) => (
-                <CommandItem
-                  key={country.code}
-                  value={country.code}
-                  onSelect={() => {
-                    onValueChange(country.code);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <CountryFlag countryCode={country.code} size="sm" />
-                    <span>{country.name}</span>
-                  </div>
-                  <Check
-                    className={cn(
-                      "ml-2 h-4 w-4",
-                      value === country.code ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
+              {countries.map((country) => {
+                const countryCode = type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).code : country.code;
+                const countryName = type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).name : country.name;
+                return (
+                  <CommandItem
+                    key={countryCode}
+                    value={countryCode}
+                    onSelect={() => {
+                      onValueChange(countryCode);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-2 flex-1">
+                      <CountryFlag countryCode={countryCode} size="sm" />
+                      <span>{countryName}</span>
+                    </div>
+                    <Check
+                      className={cn(
+                        "ml-2 h-4 w-4",
+                        value === countryCode ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

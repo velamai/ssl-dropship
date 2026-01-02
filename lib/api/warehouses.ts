@@ -121,4 +121,20 @@ export const warehouseApi = {
       throw new Error(`Failed to delete warehouse: ${error.message}`);
     }
   },
+
+  // Get warehouses by country code
+  async getWarehousesByCountry(countryCode: string): Promise<Warehouse[]> {
+    const { data, error } = await supabase
+      .from("warehouses")
+      .select("*")
+      .eq("country_code", countryCode)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching warehouses by country:", error);
+      throw new Error(`Failed to fetch warehouses: ${error.message}`);
+    }
+
+    return data || [];
+  },
 };
