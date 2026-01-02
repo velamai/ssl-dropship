@@ -747,7 +747,7 @@ export default function RegisterPage() {
                 onChange={handlePhoneChange}
                 defaultCountry="IN"
                 international
-                countryCallingCodeEditable={false}
+                countryCallingCodeEditable={true}
                 className={`${
                   validationErrors.phoneNumber
                     ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
