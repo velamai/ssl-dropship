@@ -510,7 +510,7 @@ const TestimonialCard = ({
 
 				<div
 
-					className={`${index % 2 === 0 ? "rotate-0" : "-rotate-0"} rounded-3xl bg-gradient-to-b from-accent/50 to-white h-[500px] md:h-[550px] w-80 md:w-96 overflow-hidden flex flex-col items-center justify-center relative z-10 shadow-xl hover:shadow-2xl transition-shadow`}
+					className={`${index % 2 === 0 ? "rotate-0" : "-rotate-0"} rounded-3xl bg-gradient-to-b from-accent/50 to-white h-[350px] md:h-[400px] w-80 md:w-96 overflow-hidden flex flex-col items-center justify-center relative z-10 shadow-xl hover:shadow-2xl transition-shadow`}
 
 				>
 
@@ -534,13 +534,11 @@ const TestimonialCard = ({
 
 					</div>
 
-					<ProfileImage src={testimonial.profileImage} alt={testimonial.name} />
-
 					<motion.p
 
 						layoutId={layout ? `title-${testimonial.name}` : undefined}
 
-						className="text-foreground/70 text-2xl md:text-2xl font-normal text-center [text-wrap:balance] font-serif mt-4 lowercase px-3"
+						className="text-foreground/70 text-2xl md:text-2xl font-normal text-center [text-wrap:balance] font-serif lowercase px-3"
 
 					>
 
