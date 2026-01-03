@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Send, Loader2, FileText } from "lucide-react";
+import { ShipmentPriceBreakdown } from "@/components/shipments/price-breakdown";
+import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
@@ -17,6 +19,8 @@ interface ReviewStepProps {
   baseAmount: number;
   selectedAddOns: AddOnId[];
   addOnTotal: number;
+  priceBreakdown: ShipmentPriceBreakdownType | null;
+  isCalculatingBreakdown?: boolean;
   onBack: () => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -26,6 +30,8 @@ export function ReviewStep({
   baseAmount,
   selectedAddOns,
   addOnTotal,
+  priceBreakdown,
+  isCalculatingBreakdown = false,
   onBack,
   onSubmit,
   isSubmitting,
@@ -40,6 +46,22 @@ export function ReviewStep({
 
   return (
     <div className="space-y-6">
+      {/* Price Breakdown */}
+      {isCalculatingBreakdown && (
+        <Card>
+          <CardContent className="py-6">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Calculating price breakdown...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {priceBreakdown && !isCalculatingBreakdown && (
+        <ShipmentPriceBreakdown breakdown={priceBreakdown} />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">

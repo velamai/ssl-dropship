@@ -176,6 +176,7 @@ export const ShipmentSchema = z
   .object({
     shipmentType: z.string().default("link"), // Consider z.enum(["export", "import"])
     country: z.string().trim().min(1, "Destination country is required"),
+    sourceCountryCode: z.string().trim().min(1, "Source country is required"), // Source country (warehouse location)
     warehouseId: z.string().optional(), // Warehouse selection for warehouse type shipments
     courierService: z.string().optional(), // Courier service selection
     purchasedDate: z.preprocess((arg) => {

@@ -48,6 +48,7 @@ import { useFieldArray, useWatch } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { fetchProductData } from "@/lib/product-scraper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 
 interface ProductsStepProps {
   index: number;
@@ -557,6 +558,30 @@ export function ProductsStep({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Source Country Selection */}
+            <div className="space-y-2">
+              <Label htmlFor={`shipments.${index}.sourceCountryCode`}>
+                Source Country (Warehouse Location) *
+              </Label>
+              <Controller
+                name={`shipments.${index}.sourceCountryCode`}
+                control={control}
+                render={({ field }) => (
+                  <CountrySelector
+                    type="source"
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Select the country where the warehouse is located or where products will be shipped from
+              </p>
+              <ErrorMessage
+                error={errors.shipments?.[index]?.sourceCountryCode}
+              />
+            </div>
+
             <div className="space-y-4">
               {itemFields.map((field, itemIndex) => (
                 <ProductItemWithQuery

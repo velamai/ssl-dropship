@@ -106,6 +106,7 @@ function CreateShipmentPageContent() {
         {
           shipmentType: isLinkService ? "link" : "warehouse",
           country: "",
+          sourceCountryCode: "", // Source country (warehouse location)
           warehouseId: undefined,
           purchasedDate: undefined,
           purchasedSite: isLinkService ? undefined : "",
@@ -164,6 +165,12 @@ function CreateShipmentPageContent() {
   // State for fetched data
   const [countries, setCountries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State for price breakdown
+  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<ReturnType<
+    typeof import("@/lib/shipment-price-calculator").calculateShipmentPriceBreakdown
+  >> | null>(null);
+  const [isCalculatingBreakdown, setIsCalculatingBreakdown] = useState(false);
 
   // Calculate total price from all product items
   const calculateTotalPrice = useCallback(() => {
@@ -196,6 +203,79 @@ function CreateShipmentPageContent() {
 
     return () => subscription.unsubscribe();
   }, [watch]);
+
+  // Calculate price breakdown when items, source country, or destination country changes
+  useEffect(() => {
+    const calculateBreakdown = async () => {
+      const formData = getValues();
+      const shipment = formData.shipments[0]; // Assuming single shipment for now
+
+      if (!shipment) {
+        setPriceBreakdown(null);
+        return;
+      }
+
+      // Check if we have required data
+      if (
+        !shipment.sourceCountryCode ||
+        !shipment.receiver?.receivingCountry ||
+        !shipment.items ||
+        shipment.items.length === 0
+      ) {
+        setPriceBreakdown(null);
+        return;
+      }
+
+      // Check if items have prices
+      const hasValidItems = shipment.items.some(
+        (item) => item.price && item.price > 0 && item.quantity && item.quantity > 0
+      );
+
+      if (!hasValidItems) {
+        setPriceBreakdown(null);
+        return;
+      }
+
+      setIsCalculatingBreakdown(true);
+
+      try {
+        const { calculateShipmentPriceBreakdown } = await import(
+          "@/lib/shipment-price-calculator"
+        );
+
+        const items = shipment.items.map((item) => ({
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+          valueCurrency: item.valueCurrency || "INR",
+        }));
+
+        const breakdown = await calculateShipmentPriceBreakdown({
+          items,
+          sourceCountryCode: shipment.sourceCountryCode,
+          destinationCountryCode: shipment.receiver.receivingCountry,
+        });
+
+        setPriceBreakdown(breakdown);
+      } catch (error) {
+        console.error("Error calculating price breakdown:", error);
+        setPriceBreakdown(null);
+      } finally {
+        setIsCalculatingBreakdown(false);
+      }
+    };
+
+    // Debounce calculation
+    const timeoutId = setTimeout(() => {
+      calculateBreakdown();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    watch("shipments.0.items"),
+    watch("shipments.0.sourceCountryCode"),
+    watch("shipments.0.receiver.receivingCountry"),
+    getValues,
+  ]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -451,6 +531,9 @@ function CreateShipmentPageContent() {
           const countryResult = await trigger(
             `shipments.${shipmentIndex}.country`
           );
+          const sourceCountryResult = await trigger(
+            `shipments.${shipmentIndex}.sourceCountryCode`
+          );
           const packageTypeResult = await trigger(
             `shipments.${shipmentIndex}.packageType`
           );
@@ -465,6 +548,7 @@ function CreateShipmentPageContent() {
             purchasedDate: purchasedDateResult,
             purchasedSite: purchasedSiteResult,
             country: countryResult,
+            sourceCountry: sourceCountryResult,
             packageType: packageTypeResult,
             dimensions: dimensionsResult,
           });
@@ -886,6 +970,8 @@ function CreateShipmentPageContent() {
                 baseAmount={baseAmount}
                 selectedAddOns={selectedAddOns}
                 addOnTotal={addOnTotal}
+                priceBreakdown={priceBreakdown}
+                isCalculatingBreakdown={isCalculatingBreakdown}
                 onBack={handleBack}
                 onSubmit={async () => {
                   const reviewStep = isWarehouseService ? 5 : 4;
