@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { CountryFlag } from "@/components/country-flag";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -15,14 +15,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { sortedCountries } from "@/lib/countries";
+import type { Country } from "@/lib/api/countries";
+import type { SourceCountry } from "@/lib/api/source-countries";
 import type { OriginCountry } from "@/lib/shipping-rates";
+import { cn } from "@/lib/utils";
+import { Check, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
-// Source countries (warehouse locations)
-const SOURCE_COUNTRIES: Array<{ originCountry: OriginCountry; code: string; name: string }> = [
+// Source countries (warehouse locations) - fallback
+const SOURCE_COUNTRIES: Array<{
+  originCountry: OriginCountry;
+  code: string;
+  name: string;
+}> = [
   { originCountry: "india", code: "IN", name: "India" },
   { originCountry: "malaysia", code: "MY", name: "Malaysia" },
   { originCountry: "dubai", code: "AE", name: "United Arab Emirates" },
@@ -56,20 +61,39 @@ interface CountrySelectorProps {
   onValueChange: (value: string) => void;
   disabled?: boolean;
   type?: "source" | "destination";
+  sourceCountries?: SourceCountry[]; // Optional prop for fetched source countries
+  destinationCountries?: Country[]; // Optional prop for fetched destination countries
 }
 
-export function CountrySelector({ 
-  value, 
-  onValueChange, 
+export function CountrySelector({
+  value,
+  onValueChange,
   disabled,
-  type = "destination" 
+  type = "destination",
+  sourceCountries,
+  destinationCountries,
 }: CountrySelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const countries = type === "source" ? SOURCE_COUNTRIES : DESTINATION_COUNTRIES;
-  const selectedCountry = countries.find((country) => 
-    type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).code === value : country.code === value
-  );
+  // Use fetched source countries if provided, otherwise fall back to hardcoded list
+  const sourceCountriesList =
+    type === "source"
+      ? sourceCountries && sourceCountries.length > 0
+        ? sourceCountries.map((c) => ({ code: c.code, name: c.name }))
+        : SOURCE_COUNTRIES.map((c) => ({ code: c.code, name: c.name }))
+      : null;
+
+  // Use fetched destination countries if provided, otherwise fall back to hardcoded list
+  const destinationCountriesList =
+    type === "destination"
+      ? destinationCountries && destinationCountries.length > 0
+        ? destinationCountries.map((c) => ({ code: c.code, name: c.name }))
+        : DESTINATION_COUNTRIES
+      : null;
+
+  const countries =
+    type === "source" ? sourceCountriesList : destinationCountriesList;
+  const selectedCountry = countries?.find((country) => country.code === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -83,11 +107,8 @@ export function CountrySelector({
         >
           {selectedCountry ? (
             <div className="flex items-center gap-2">
-              <CountryFlag 
-                countryCode={type === "source" ? (selectedCountry as typeof SOURCE_COUNTRIES[0]).code : selectedCountry.code} 
-                size="sm" 
-              />
-              <span>{type === "source" ? (selectedCountry as typeof SOURCE_COUNTRIES[0]).name : selectedCountry.name}</span>
+              <CountryFlag countryCode={selectedCountry.code} size="sm" />
+              <span>{selectedCountry.name}</span>
             </div>
           ) : (
             `Select ${type === "source" ? "source" : "destination"} country...`
@@ -101,9 +122,9 @@ export function CountrySelector({
           <CommandList>
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
-              {countries.map((country) => {
-                const countryCode = type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).code : country.code;
-                const countryName = type === "source" ? (country as typeof SOURCE_COUNTRIES[0]).name : country.name;
+              {countries?.map((country) => {
+                const countryCode = country.code;
+                const countryName = country.name;
                 return (
                   <CommandItem
                     key={countryCode}
@@ -133,4 +154,3 @@ export function CountrySelector({
     </Popover>
   );
 }
-

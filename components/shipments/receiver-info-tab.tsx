@@ -37,6 +37,7 @@ import type {
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useUserAddresses, useUserProfile } from "@/lib/hooks/useUserAddresses";
+import { useCountries } from "@/lib/hooks/useCountries";
 import { Country } from "react-phone-number-input";
 
 interface ReceiverInfoTabProps {
@@ -45,7 +46,7 @@ interface ReceiverInfoTabProps {
   register: UseFormRegister<OrderFormData>;
   errors: FieldErrors<OrderFormData>;
   setValue: UseFormSetValue<OrderFormData>;
-  countries?: any[];
+  countries?: any[]; // Optional, will use hook if not provided
 }
 
 export function ReceiverInfoTab({
@@ -59,6 +60,16 @@ export function ReceiverInfoTab({
   const { data: userAddresses, isLoading: addressesLoading } =
     useUserAddresses();
   const { data: userProfile, isLoading: profileLoading } = useUserProfile();
+  
+  // Fetch countries from Supabase (use hook if not provided as prop)
+  const {
+    data: fetchedCountries,
+    isLoading: isLoadingCountries,
+  } = useCountries();
+  
+  // Use provided countries or fall back to fetched countries
+  const countriesList = countries && countries.length > 0 ? countries : (fetchedCountries || []);
+
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null
   );
@@ -212,7 +223,7 @@ export function ReceiverInfoTab({
               name={`shipments.${index}.receiver.receivingCountry`}
               control={control}
               render={({ field }) => {
-                const selectedCountry = countries.find(
+                const selectedCountry = countriesList.find(
                   (country) => country.code === field.value
                 );
                 return (
@@ -252,7 +263,7 @@ export function ReceiverInfoTab({
                         <CommandList>
                           <CommandEmpty>No country found.</CommandEmpty>
                           <CommandGroup>
-                            {countries.map((country) => (
+                            {countriesList.map((country) => (
                               <CommandItem
                                 key={country.code}
                                 value={`${country.code} ${country.name}`}

@@ -728,7 +728,7 @@ export default function Home() {
           <HeroSection />
           <ServicesSection />
           <HowItWorksSection />
-          <CalculatorSection />
+          {/* <CalculatorSection /> */}
           <Partners />
           <CountriesSection />
         </div>

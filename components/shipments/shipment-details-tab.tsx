@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useWarehouses } from "@/lib/hooks/useWarehouses";
+import { useCountries } from "@/lib/hooks/useCountries";
 import type { PriceCalculationResult } from "@/lib/price-calculator";
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { getCountryCode } from "@/lib/utils";
@@ -82,7 +83,7 @@ interface ShipmentDetailsTabProps {
   watch: UseFormWatch<OrderFormData>;
   setValue: UseFormSetValue<OrderFormData>;
   getValues: UseFormGetValues<OrderFormData>;
-  countries: any[];
+  countries?: any[]; // Optional, will use hook if not provided
   courierServices: any[];
   shipmentType: string;
   priceCalculationResult: PriceCalculationResult | undefined;
@@ -113,6 +114,14 @@ export function ShipmentDetailsTab({
 
   // Fetch warehouses for selection
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
+
+  // Fetch countries from Supabase (use hook if not provided as prop)
+  const { data: fetchedCountries, isLoading: isLoadingCountries } =
+    useCountries();
+
+  // Use provided countries or fall back to fetched countries
+  const countriesList =
+    countries && countries.length > 0 ? countries : fetchedCountries || [];
 
   // Helper function to check if file is an image
   const isImageType = (fileType: string) => {
@@ -296,7 +305,7 @@ export function ShipmentDetailsTab({
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.map((country) => (
+                      {countriesList.map((country) => (
                         <SelectItem key={country.code} value={country.code}>
                           {country.name}
                         </SelectItem>

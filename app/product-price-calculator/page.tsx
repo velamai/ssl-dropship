@@ -17,9 +17,7 @@ import {
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { CategorySelector } from "@/components/product-price-calculator/category-selector";
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
-import {
-  validateProductUrl,
-} from "@/lib/product-scraper";
+import { validateProductUrl } from "@/lib/product-scraper";
 import {
   calculateProductPrice,
   type PriceCalculationInput,
@@ -29,6 +27,8 @@ import { getOriginCountryFromCode } from "@/lib/shipping-rates";
 import { useProductData } from "@/lib/hooks/useProductData";
 import { warehouseApi } from "@/lib/api/warehouses";
 import type { Warehouse } from "@/lib/types/warehouse";
+import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
+import { useCountries } from "@/lib/hooks/useCountries";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/footer";
@@ -52,6 +52,16 @@ export default function ProductPriceCalculatorPage() {
     error: productError,
   } = useProductData(productUrl);
 
+  // Fetch source countries from Supabase
+  const { data: sourceCountries, isLoading: isLoadingSourceCountries } =
+    useSourceCountries();
+
+  // Fetch destination countries from Supabase
+  const {
+    data: destinationCountries,
+    isLoading: isLoadingDestinationCountries,
+  } = useCountries();
+
   // Auto-set source country from product data
   useEffect(() => {
     if (productData && !sourceCountryCode) {
@@ -72,9 +82,9 @@ export default function ProductPriceCalculatorPage() {
   }, [productData, sourceCountryCode]);
 
   // Price calculation state
-  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<ReturnType<
-    typeof calculateProductPrice
-  >> | null>(null);
+  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<
+    ReturnType<typeof calculateProductPrice>
+  > | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
@@ -88,11 +98,11 @@ export default function ProductPriceCalculatorPage() {
   // Get error message from React Query error
   const productErrorMessage = useMemo(() => {
     if (!productError) return null;
-    
+
     if (productError instanceof Error) {
       return productError.message;
     }
-    
+
     return "Failed to fetch product details";
   }, [productError]);
 
@@ -130,7 +140,9 @@ export default function ProductPriceCalculatorPage() {
     // Get product price - use product data if available, otherwise require manual input
     const productPrice = productData?.price;
     if (!productPrice) {
-      setCalculationError("Please enter a product URL or provide product price");
+      setCalculationError(
+        "Please enter a product URL or provide product price"
+      );
       return;
     }
 
@@ -186,7 +198,12 @@ export default function ProductPriceCalculatorPage() {
     // 2. Category is selected
     // 3. Either product data exists or source country is selected
     // 4. Not currently calculating (prevent infinite loops)
-    if (priceBreakdown && category && (productData || sourceCountryCode) && !isCalculating) {
+    if (
+      priceBreakdown &&
+      category &&
+      (productData || sourceCountryCode) &&
+      !isCalculating
+    ) {
       handleCalculatePrice();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -364,7 +381,8 @@ export default function ProductPriceCalculatorPage() {
                             onError={(e) => {
                               // Fallback to placeholder if image fails to load
                               const target = e.target as HTMLImageElement;
-                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Crect width='96' height='96' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
+                              target.src =
+                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Crect width='96' height='96' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
                             }}
                             loading="lazy"
                           />
@@ -406,11 +424,13 @@ export default function ProductPriceCalculatorPage() {
                         }
                       }
                     }}
+                    sourceCountries={sourceCountries}
+                    disabled={isLoadingSourceCountries}
                   />
                   <p className="text-xs text-muted-foreground">
                     Select the country where the warehouse is located
                   </p>
-                  
+
                   {/* Warehouses Display */}
                   {sourceCountryCode && (
                     <div className="mt-2">
@@ -430,13 +450,19 @@ export default function ProductPriceCalculatorPage() {
                                 key={warehouse.warehouse_id}
                                 className="text-xs p-2 bg-gray-50 rounded border"
                               >
-                                <p className="font-medium">{warehouse.name || "Warehouse"}</p>
+                                <p className="font-medium">
+                                  {warehouse.name || "Warehouse"}
+                                </p>
                                 <p className="text-muted-foreground">
                                   {warehouse.address_line1}
-                                  {warehouse.address_line2 && `, ${warehouse.address_line2}`}
-                                  {warehouse.postal_code && `, ${warehouse.postal_code}`}
+                                  {warehouse.address_line2 &&
+                                    `, ${warehouse.address_line2}`}
+                                  {warehouse.postal_code &&
+                                    `, ${warehouse.postal_code}`}
                                 </p>
-                                <p className="text-muted-foreground">{warehouse.country}</p>
+                                <p className="text-muted-foreground">
+                                  {warehouse.country}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -457,6 +483,8 @@ export default function ProductPriceCalculatorPage() {
                     type="destination"
                     value={destinationCountry}
                     onValueChange={setDestinationCountry}
+                    destinationCountries={destinationCountries}
+                    disabled={isLoadingDestinationCountries}
                   />
                   <p className="text-xs text-muted-foreground">
                     Select the country where the product will be delivered
@@ -505,7 +533,11 @@ export default function ProductPriceCalculatorPage() {
                 {/* Calculate Button */}
                 <Button
                   onClick={handleCalculatePrice}
-                  disabled={(!productData && !sourceCountryCode) || !category || isCalculating}
+                  disabled={
+                    (!productData && !sourceCountryCode) ||
+                    !category ||
+                    isCalculating
+                  }
                   className="w-full"
                   size="lg"
                 >
@@ -579,7 +611,7 @@ export default function ProductPriceCalculatorPage() {
                 quantity={quantity}
                 originCountry={
                   sourceCountryCode
-                    ? (getOriginCountryFromCode(sourceCountryCode) || "india")
+                    ? getOriginCountryFromCode(sourceCountryCode) || "india"
                     : productData?.originCountry || "india"
                 }
                 category={category}

@@ -49,6 +49,7 @@ import { useState, useEffect } from "react";
 import { fetchProductData } from "@/lib/product-scraper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
+import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 
 interface ProductsStepProps {
   index: number;
@@ -342,6 +343,10 @@ export function ProductsStep({
   const watchedItems = watch(`shipments.${index}.items`);
   const queryClient = useQueryClient();
 
+  // Fetch source countries from Supabase
+  const { data: sourceCountries, isLoading: isLoadingSourceCountries } =
+    useSourceCountries();
+
   // State to track product images for preview panel
   const [productImages, setProductImages] = useState<{
     [key: number]: ProductImage;
@@ -571,11 +576,14 @@ export function ProductsStep({
                     type="source"
                     value={field.value || ""}
                     onValueChange={field.onChange}
+                    sourceCountries={sourceCountries}
+                    disabled={isLoadingSourceCountries}
                   />
                 )}
               />
               <p className="text-xs text-muted-foreground">
-                Select the country where the warehouse is located or where products will be shipped from
+                Select the country where the warehouse is located or where
+                products will be shipped from
               </p>
               <ErrorMessage
                 error={errors.shipments?.[index]?.sourceCountryCode}
