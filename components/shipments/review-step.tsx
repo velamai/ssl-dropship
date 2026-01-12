@@ -1,5 +1,7 @@
 "use client";
 
+import { ShipmentPriceBreakdown } from "@/components/shipments/price-breakdown";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,11 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Send, Loader2, FileText } from "lucide-react";
-import { ShipmentPriceBreakdown } from "@/components/shipments/price-breakdown";
+import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
+import { ArrowLeft, FileText, Loader2, Send } from "lucide-react";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
@@ -21,6 +22,8 @@ interface ReviewStepProps {
   addOnTotal: number;
   priceBreakdown: ShipmentPriceBreakdownType | null;
   isCalculatingBreakdown?: boolean;
+  sourceCountryCode?: string;
+  destinationCountryCode?: string;
   onBack: () => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -32,6 +35,8 @@ export function ReviewStep({
   addOnTotal,
   priceBreakdown,
   isCalculatingBreakdown = false,
+  sourceCountryCode,
+  destinationCountryCode,
   onBack,
   onSubmit,
   isSubmitting,
@@ -42,7 +47,22 @@ export function ReviewStep({
       maximumFractionDigits: 2,
     })}`;
 
-  const grandTotal = baseAmount + addOnTotal;
+  const { data: sourceCountries } = useSourceCountries();
+
+  const destinationCurrencyCode =
+    sourceCountries?.find((country) => country.code === destinationCountryCode)
+      ?.currency || "USD";
+
+  const sourceCurrencyCode =
+    sourceCountries?.find((country) => country.code === sourceCountryCode)
+      ?.currency || "INR";
+
+  // Calculate grand total: itemPriceOrigin + domesticCourier + warehouseHandling + addOnTotal
+  const itemPrice = priceBreakdown?.itemPriceOrigin || 0;
+  const domesticCourierCharge = priceBreakdown?.domesticCourier || 0;
+  const warehouseHandlingCharge = priceBreakdown?.warehouseHandling || 0;
+  const grandTotal =
+    itemPrice + domesticCourierCharge + warehouseHandlingCharge + addOnTotal;
 
   return (
     <div className="space-y-6">
@@ -59,7 +79,13 @@ export function ReviewStep({
       )}
 
       {priceBreakdown && !isCalculatingBreakdown && (
-        <ShipmentPriceBreakdown breakdown={priceBreakdown} />
+        <ShipmentPriceBreakdown
+          breakdown={priceBreakdown}
+          sourceCountryCode={sourceCountryCode}
+          destinationCountryCode={destinationCountryCode}
+          destinationCurrencyCode={destinationCurrencyCode}
+          sourceCurrencyCode={sourceCurrencyCode}
+        />
       )}
 
       <Card>
@@ -77,15 +103,23 @@ export function ReviewStep({
           <div className="flex flex-col gap-2 rounded-md border border-dashed p-4 text-sm">
             <p className="font-medium text-foreground">Order summary</p>
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>Base amount</span>
-              <span>{formatCurrency(baseAmount)}</span>
+              <span>Items Price</span>
+              <span>{formatCurrency(itemPrice)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Domestic Courier Charge</span>
+              <span>{formatCurrency(domesticCourierCharge)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Warehouse Handling Charge</span>
+              <span>{formatCurrency(warehouseHandlingCharge)}</span>
             </div>
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Add-ons ({selectedAddOns.length})</span>
               <span>{formatCurrency(addOnTotal)}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-2 text-foreground">
-              <span className="text-sm font-semibold">Total</span>
+              <span className="text-sm font-semibold">Grand Total</span>
               <span className="text-base font-semibold">
                 {formatCurrency(grandTotal)}
               </span>
@@ -106,8 +140,9 @@ export function ReviewStep({
                     These Conditions of Carriage and Service ("Terms") EXCLUDE
                     LIABILITY on the part of Universal Mail and its employees or
                     agents for loss, damage, and delay in certain circumstances,
-                    LIMIT LIABILITY to stated amounts where liability is accepted,
-                    and REQUIRE NOTICE OF CLAIMS within strict time limits.
+                    LIMIT LIABILITY to stated amounts where liability is
+                    accepted, and REQUIRE NOTICE OF CLAIMS within strict time
+                    limits.
                   </p>
                   <p className="mt-2">
                     Customers are strongly advised to read these conditions
@@ -124,17 +159,18 @@ export function ReviewStep({
                   <p>Universal Mail provides two categories of service:</p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>
-                      <strong>(a) Warehouse Service:</strong> Customers may order
-                      goods from any online platform and ship them to the address
-                      of our warehouse in the chosen country. Upon receipt,
-                      Universal Mail will forward the parcel to the customer's
-                      designated delivery address in another country.
+                      <strong>(a) Warehouse Service:</strong> Customers may
+                      order goods from any online platform and ship them to the
+                      address of our warehouse in the chosen country. Upon
+                      receipt, Universal Mail will forward the parcel to the
+                      customer's designated delivery address in another country.
                     </li>
                     <li>
                       <strong>(b) Link Service:</strong> Customers may submit a
                       product link (e.g., from Amazon, eBay, AliExpress, etc.).
                       Universal Mail will purchase the item on behalf of the
-                      customer and ship it to their provided destination address.
+                      customer and ship it to their provided destination
+                      address.
                     </li>
                   </ul>
                 </section>
@@ -159,18 +195,19 @@ export function ReviewStep({
                     4. QUOTATIONS AND CHARGES
                   </h2>
                   <p>
-                    Rates and service quotations provided by Universal Mail staff
-                    or agents are based on information provided by the sender but
-                    are subject to final verification after shipment inspection.
+                    Rates and service quotations provided by Universal Mail
+                    staff or agents are based on information provided by the
+                    sender but are subject to final verification after shipment
+                    inspection.
                   </p>
                   <p className="mt-2">
-                    Final rates may differ depending on actual weight, dimensions,
-                    and applicable courier tariffs.
+                    Final rates may differ depending on actual weight,
+                    dimensions, and applicable courier tariffs.
                   </p>
                   <p className="mt-2">
                     Universal Mail will not be liable for, nor issue any refund,
-                    credit, or adjustment due to discrepancies between preliminary
-                    quotations and final invoiced rates.
+                    credit, or adjustment due to discrepancies between
+                    preliminary quotations and final invoiced rates.
                   </p>
                   <p className="mt-2">
                     Dimensional weight may apply. It is calculated as{" "}
@@ -178,12 +215,12 @@ export function ReviewStep({
                       (Length × Height × Width in cm) ÷ 5000
                     </span>
                     , or any updated divisor specified by Universal Mail. If the
-                    dimensional weight exceeds the actual weight, charges will be
-                    based on the dimensional weight.
+                    dimensional weight exceeds the actual weight, charges will
+                    be based on the dimensional weight.
                   </p>
                   <p className="mt-2">
-                    For bulk or multiple-piece shipments, advance arrangements are
-                    required. Details are available upon request.
+                    For bulk or multiple-piece shipments, advance arrangements
+                    are required. Details are available upon request.
                   </p>
                 </section>
 
@@ -193,23 +230,26 @@ export function ReviewStep({
                     5. RESTRICTED AND PROHIBITED ITEMS
                   </h2>
                   <p>
-                    The following items are not acceptable for carriage under any
-                    circumstances:
+                    The following items are not acceptable for carriage under
+                    any circumstances:
                   </p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>
-                      Money (coins, currency notes, negotiable instruments, etc.)
+                      Money (coins, currency notes, negotiable instruments,
+                      etc.)
                     </li>
                     <li>Explosives, fireworks, or flammable items</li>
                     <li>Human or animal remains, organs, embryos</li>
                     <li>Firearms, ammunition, or weapon parts</li>
                     <li>Perishable food, beverages requiring refrigeration</li>
-                    <li>Hazardous or bio-waste (used needles, medical waste)</li>
+                    <li>
+                      Hazardous or bio-waste (used needles, medical waste)
+                    </li>
                     <li>Counterfeit or infringing goods</li>
                     <li>Goods requiring import/export licenses or permits</li>
                     <li>
-                      Illegal, prohibited, or regulated substances under local or
-                      international law
+                      Illegal, prohibited, or regulated substances under local
+                      or international law
                     </li>
                     <li>Wet, leaking, or odorous packages</li>
                     <li>
@@ -218,8 +258,9 @@ export function ReviewStep({
                     </li>
                   </ul>
                   <p className="mt-2">
-                    Universal Mail reserves the right to reject, hold, or dispose
-                    of any prohibited shipment without notice or compensation.
+                    Universal Mail reserves the right to reject, hold, or
+                    dispose of any prohibited shipment without notice or
+                    compensation.
                   </p>
                 </section>
 
@@ -262,15 +303,15 @@ export function ReviewStep({
                     consequential, or economic losses are excluded.
                   </p>
                   <p className="mt-2">
-                    For postal and economy courier services (e.g., USPS, Singapore
-                    Post Smart, Hermes), where tracking or delivery progress is
-                    unavailable or delayed, compensation is limited to the
-                    shipping charges only.
+                    For postal and economy courier services (e.g., USPS,
+                    Singapore Post Smart, Hermes), where tracking or delivery
+                    progress is unavailable or delayed, compensation is limited
+                    to the shipping charges only.
                   </p>
                   <p className="mt-2">
                     Universal Mail shall not be responsible for delays caused by
-                    customs, public authorities, or force majeure events (natural
-                    disasters, wars, pandemics, etc.).
+                    customs, public authorities, or force majeure events
+                    (natural disasters, wars, pandemics, etc.).
                   </p>
                 </section>
 
@@ -280,18 +321,18 @@ export function ReviewStep({
                     8. CUSTOMS, DUTIES, AND COMPLIANCE
                   </h2>
                   <p>
-                    All shipments are subject to customs clearance and inspection.
-                    Any customs duties, import taxes, or additional fees charged
-                    by destination authorities are solely the receiver's
-                    responsibility.
+                    All shipments are subject to customs clearance and
+                    inspection. Any customs duties, import taxes, or additional
+                    fees charged by destination authorities are solely the
+                    receiver's responsibility.
                   </p>
                   <p className="mt-2">
                     Universal Mail acts as a forwarding agent and does not
                     guarantee clearance outcomes or timelines.
                   </p>
                   <p className="mt-2">
-                    The customer is responsible for ensuring that all goods comply
-                    with import/export laws of the origin and destination
+                    The customer is responsible for ensuring that all goods
+                    comply with import/export laws of the origin and destination
                     countries.
                   </p>
                 </section>
@@ -306,14 +347,14 @@ export function ReviewStep({
                     before dispatch for Warehouse shipments.
                   </p>
                   <p className="mt-2">
-                    Prices and currency conversion rates may fluctuate daily based
-                    on exchange rate variations.
+                    Prices and currency conversion rates may fluctuate daily
+                    based on exchange rate variations.
                   </p>
                   <p className="mt-2">
                     Additional charges such as registration, service fees, or
-                    local courier handling fees may apply. For example, a Rs. 300
-                    surcharge may be added for shipments handled through national
-                    postal services.
+                    local courier handling fees may apply. For example, a Rs.
+                    300 surcharge may be added for shipments handled through
+                    national postal services.
                   </p>
                   <p className="mt-2">
                     Universal Mail reserves the right to revise service rates
@@ -355,15 +396,17 @@ export function ReviewStep({
                     cancelled.
                   </p>
                   <p className="mt-2">
-                    If the product is unavailable or discontinued, Universal Mail
-                    will issue a refund or wallet credit for the product amount.
+                    If the product is unavailable or discontinued, Universal
+                    Mail will issue a refund or wallet credit for the product
+                    amount.
                   </p>
                   <p className="mt-2">
-                    Shipping fees are non-refundable once a parcel is dispatched.
+                    Shipping fees are non-refundable once a parcel is
+                    dispatched.
                   </p>
                   <p className="mt-2">
-                    Refunds for overpayment or cancelled orders will be processed
-                    within 7–10 business days.
+                    Refunds for overpayment or cancelled orders will be
+                    processed within 7–10 business days.
                   </p>
                 </section>
 
@@ -379,9 +422,9 @@ export function ReviewStep({
                     <span className="underline">Privacy Policy</span>.
                   </p>
                   <p className="mt-2">
-                    Universal Mail may share necessary shipment data with customs,
-                    couriers, and payment partners as required for lawful
-                    operations.
+                    Universal Mail may share necessary shipment data with
+                    customs, couriers, and payment partners as required for
+                    lawful operations.
                   </p>
                 </section>
 
@@ -442,4 +485,3 @@ export function ReviewStep({
     </div>
   );
 }
-

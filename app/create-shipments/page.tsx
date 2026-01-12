@@ -165,11 +165,13 @@ function CreateShipmentPageContent() {
   // State for fetched data
   const [countries, setCountries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // State for price breakdown
-  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<ReturnType<
-    typeof import("@/lib/shipment-price-calculator").calculateShipmentPriceBreakdown
-  >> | null>(null);
+  const [priceBreakdown, setPriceBreakdown] = useState<Awaited<
+    ReturnType<
+      typeof import("@/lib/shipment-price-calculator").calculateShipmentPriceBreakdown
+    >
+  > | null>(null);
   const [isCalculatingBreakdown, setIsCalculatingBreakdown] = useState(false);
 
   // Calculate total price from all product items
@@ -228,7 +230,8 @@ function CreateShipmentPageContent() {
 
       // Check if items have prices
       const hasValidItems = shipment.items.some(
-        (item) => item.price && item.price > 0 && item.quantity && item.quantity > 0
+        (item) =>
+          item.price && item.price > 0 && item.quantity && item.quantity > 0
       );
 
       if (!hasValidItems) {
@@ -667,10 +670,74 @@ function CreateShipmentPageContent() {
     try {
       setIsSubmitting(true);
       const transformedShipment = transformShipmentData(data.shipments[0]);
+
+      // Calculate grand_total: itemPriceOrigin + domesticCourier + warehouseHandling + addOnTotal
+      let grandTotal = 0;
+
+      const shipment = data.shipments[0];
+      if (
+        shipment.items &&
+        shipment.items.length > 0 &&
+        shipment.sourceCountryCode &&
+        shipment.receiver?.receivingCountry
+      ) {
+        try {
+          const { calculateShipmentPriceBreakdown } = await import(
+            "@/lib/shipment-price-calculator"
+          );
+
+          const items = shipment.items.map((item) => ({
+            price: item.price || 0,
+            quantity: item.quantity || 1,
+            valueCurrency: item.valueCurrency || "INR",
+          }));
+
+          const breakdown = await calculateShipmentPriceBreakdown({
+            items,
+            sourceCountryCode: shipment.sourceCountryCode,
+            destinationCountryCode: shipment.receiver.receivingCountry,
+          });
+
+          if (breakdown) {
+            grandTotal =
+              breakdown.itemPriceOrigin +
+              breakdown.domesticCourier +
+              breakdown.warehouseHandling +
+              addOnTotal;
+          } else {
+            // Fallback: calculate from items only if breakdown fails
+            const itemsTotal = items.reduce(
+              (sum, item) => sum + item.price * item.quantity,
+              0
+            );
+            grandTotal = itemsTotal + addOnTotal;
+          }
+        } catch (error) {
+          console.error("Error calculating price breakdown:", error);
+          // Fallback: calculate from items only
+          const itemsTotal = shipment.items.reduce((sum, item) => {
+            const itemPrice = item.price || 0;
+            const itemQuantity = item.quantity || 1;
+            return sum + itemPrice * itemQuantity;
+          }, 0);
+          grandTotal = itemsTotal + addOnTotal;
+        }
+      } else {
+        // Fallback: calculate from items only if required fields are missing
+        const itemsTotal =
+          shipment.items?.reduce((sum, item) => {
+            const itemPrice = item.price || 0;
+            const itemQuantity = item.quantity || 1;
+            return sum + itemPrice * itemQuantity;
+          }, 0) || 0;
+        grandTotal = itemsTotal + addOnTotal;
+      }
+
       const payload = {
         ...transformedShipment,
         drop_and_ship_add_ons: selectedAddOns,
         drop_and_ship_add_ons_total: addOnTotal,
+        grand_total: grandTotal,
       };
 
       const { data: responseData, error } = await supabase.functions.invoke(
@@ -972,6 +1039,10 @@ function CreateShipmentPageContent() {
                 addOnTotal={addOnTotal}
                 priceBreakdown={priceBreakdown}
                 isCalculatingBreakdown={isCalculatingBreakdown}
+                sourceCountryCode={watch("shipments.0.sourceCountryCode")}
+                destinationCountryCode={watch(
+                  "shipments.0.receiver.receivingCountry"
+                )}
                 onBack={handleBack}
                 onSubmit={async () => {
                   const reviewStep = isWarehouseService ? 5 : 4;

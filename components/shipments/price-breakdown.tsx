@@ -1,30 +1,60 @@
 "use client";
 
-import type { ShipmentPriceBreakdown } from "@/lib/shipment-price-calculator";
-import { formatNumber } from "@/lib/product-price-calculator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatNumber } from "@/lib/product-price-calculator";
+import type { ShipmentPriceBreakdown } from "@/lib/shipment-price-calculator";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 
 interface ShipmentPriceBreakdownProps {
   breakdown: ShipmentPriceBreakdown;
+  sourceCountryCode?: string;
+  destinationCountryCode?: string;
+  destinationCurrencyCode?: string;
+  sourceCurrencyCode?: string;
 }
 
+const supabase = getSupabaseBrowserClient();
 export function ShipmentPriceBreakdown({
   breakdown,
+  sourceCountryCode,
+  destinationCountryCode,
+  destinationCurrencyCode,
+  sourceCurrencyCode,
 }: ShipmentPriceBreakdownProps) {
   const {
     itemPriceOrigin,
-    itemPriceDestination,
     domesticCourier,
     warehouseHandling,
     totalPriceOrigin,
-    totalPriceDestination,
-    exchangeRate,
     originCurrency,
-    destinationCurrency,
   } = breakdown;
+
+  const { data: exchangeRateData } = useQuery({
+    queryKey: ["exchange-rate", sourceCurrencyCode, destinationCurrencyCode],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exchange_rates")
+        .select("rate")
+        .eq("from_currency", sourceCurrencyCode)
+        .eq("to_currency", destinationCurrencyCode)
+        .eq("is_active", true)
+        .order("effective_date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error("Error fetching exchange rate:", error);
+        return null;
+      }
+
+      return data?.rate || null;
+    },
+    enabled: !!sourceCurrencyCode && !!destinationCurrencyCode,
+  });
 
   return (
     <Card className="w-full">
@@ -41,7 +71,8 @@ export function ShipmentPriceBreakdown({
                 {originCurrency} {formatNumber(itemPriceOrigin, 2)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {destinationCurrency} {formatNumber(itemPriceDestination, 2)}
+                {destinationCurrencyCode}{" "}
+                {formatNumber(itemPriceOrigin * (exchangeRateData || 0), 2)}
               </p>
             </div>
           </div>
@@ -58,10 +89,14 @@ export function ShipmentPriceBreakdown({
                 {originCurrency} {formatNumber(domesticCourier, 2)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {destinationCurrency} {formatNumber(domesticCourier * exchangeRate, 2)}
+                {destinationCurrencyCode}{" "}
+                {formatNumber(domesticCourier * (exchangeRateData || 0), 2)}
               </p>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground text-right mt-1">
+            (Fixed amount: {originCurrency} {formatNumber(domesticCourier, 2)})
+          </p>
         </div>
 
         <Separator />
@@ -75,7 +110,8 @@ export function ShipmentPriceBreakdown({
                 {originCurrency} {formatNumber(warehouseHandling, 2)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {destinationCurrency} {formatNumber(warehouseHandling * exchangeRate, 2)}
+                {destinationCurrencyCode}{" "}
+                {formatNumber(warehouseHandling * (exchangeRateData || 0), 2)}
               </p>
             </div>
           </div>
@@ -86,19 +122,33 @@ export function ShipmentPriceBreakdown({
         {/* Total Price */}
         <div className="space-y-1">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-lg">Total Price (before shipping)</span>
+            <span className="font-semibold text-lg">
+              Total Price (before shipping)
+            </span>
             <div className="text-right">
               <p className="font-bold text-lg">
                 {originCurrency} {formatNumber(totalPriceOrigin, 2)}
               </p>
               <p className="text-sm font-semibold">
-                {destinationCurrency} {formatNumber(totalPriceDestination, 2)}
+                {destinationCurrencyCode}{" "}
+                {formatNumber(totalPriceOrigin * (exchangeRateData || 0), 2)}
               </p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground text-right mt-1">
-            (Exchange Rate {originCurrency}1 = {destinationCurrency} {formatNumber(exchangeRate, 2)})
-          </p>
+          {/* <p className="text-xs text-muted-foreground text-right mt-1">
+            {isDestinationInSourceList === false && originToUsdRate ? (
+              <>
+                (Exchange Rate via USD: {originCurrency}1 = USD{" "}
+                {formatNumber(originToUsdRate, 4)} = {destinationCurrencyCode}{" "}
+                {formatNumber(exchangeRateData || 0, 4)})
+              </>
+            ) : (
+              <>
+                (Exchange Rate {originCurrency}1 = {destinationCurrency}{" "}
+                {formatNumber(exchangeRateData || 0, 4)})
+              </>
+            )}
+          </p> */}
         </div>
 
         <Separator />
@@ -109,8 +159,15 @@ export function ShipmentPriceBreakdown({
           <AlertDescription className="text-blue-800">
             <p className="font-semibold mb-2">Price Calculation:</p>
             <ul className="text-sm space-y-1 list-disc list-inside">
-              <li>The base price includes item cost, domestic shipping charges, and warehouse handling charges.</li>
-              <li>International shipping costs will be calculated separately when the package is received at the warehouse based on actual weight and dimensions.</li>
+              <li>
+                The base price includes item cost, domestic shipping charges,
+                and warehouse handling charges.
+              </li>
+              <li>
+                International shipping costs will be calculated separately when
+                the package is received at the warehouse based on actual weight
+                and dimensions.
+              </li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -118,4 +175,3 @@ export function ShipmentPriceBreakdown({
     </Card>
   );
 }
-

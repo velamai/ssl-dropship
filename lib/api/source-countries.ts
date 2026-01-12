@@ -5,6 +5,9 @@ const supabase = getSupabaseBrowserClient();
 export interface SourceCountry {
   code: string;
   name: string;
+  currency?: string; // Currency code (e.g., "INR", "AED", "USD")
+  domestic_courier_charge?: number; // Percentage value (e.g., 5 for 5%)
+  warehouse_handling_charges?: number; // Percentage value (e.g., 10 for 10%)
   created_at?: string;
   updated_at?: string;
 }
@@ -14,7 +17,9 @@ export const sourceCountriesApi = {
   async getSourceCountries(): Promise<SourceCountry[]> {
     const { data, error } = await supabase
       .from("drop_and_ship_source_countries")
-      .select("code, name, created_at, updated_at")
+      .select(
+        "code, name, currency, domestic_courier_charge, warehouse_handling_charges, created_at, updated_at"
+      )
       .order("name", { ascending: true });
 
     if (error) {

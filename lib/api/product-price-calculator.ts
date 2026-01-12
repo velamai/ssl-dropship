@@ -12,7 +12,8 @@ export interface ExchangeRate {
 export interface DomesticCourierCharge {
   charge_id: string;
   origin_country_code: string;
-  charge_amount: number;
+  charge_type: "percentage" | "fixed";
+  charge_value: number; // Percentage (e.g., 5.0) or fixed amount
   is_active: boolean;
 }
 
@@ -85,10 +86,10 @@ export const productPriceCalculatorApi = {
    */
   async getDomesticCourierCharge(
     originCountryCode: string
-  ): Promise<number | null> {
+  ): Promise<DomesticCourierCharge | null> {
     const { data, error } = await supabase
       .from("domestic_courier_charges")
-      .select("charge_amount")
+      .select("*")
       .eq("origin_country_code", originCountryCode)
       .eq("is_active", true)
       .single();
@@ -98,7 +99,43 @@ export const productPriceCalculatorApi = {
       return null;
     }
 
-    return data?.charge_amount || null;
+    return data || null;
+  },
+
+  /**
+   * Calculate domestic courier amount based on percentage from drop_and_ship_source_countries table
+   */
+  async calculateDomesticCourier(
+    originCountryCode: string,
+    itemPrice: number
+  ): Promise<number> {
+    // Get source country data which includes domestic_courier_charge percentage
+    const { sourceCountriesApi } = await import("./source-countries");
+    const sourceCountries = await sourceCountriesApi.getSourceCountries();
+    const sourceCountry = sourceCountries.find(
+      (sc) => sc.code === originCountryCode
+    );
+
+    if (
+      sourceCountry &&
+      sourceCountry.domestic_courier_charge !== undefined &&
+      sourceCountry.domestic_courier_charge !== null
+    ) {
+      // Calculate as percentage of item price
+      return (itemPrice * sourceCountry.domestic_courier_charge) / 100;
+    }
+
+    // Fallback: try old method from separate table
+    const charge = await this.getDomesticCourierCharge(originCountryCode);
+    if (charge) {
+      if (charge.charge_type === "percentage") {
+        return (itemPrice * charge.charge_value) / 100;
+      } else {
+        return charge.charge_value;
+      }
+    }
+
+    return 0;
   },
 
   /**
@@ -123,20 +160,40 @@ export const productPriceCalculatorApi = {
   },
 
   /**
-   * Calculate warehouse handling amount based on charge type
+   * Calculate warehouse handling amount based on percentage from drop_and_ship_source_countries table
+   * Now calculates based on item price only (not item + domestic courier)
    */
   async calculateWarehouseHandling(
     originCountryCode: string,
-    baseAmount: number
+    itemPrice: number
   ): Promise<number> {
-    const handling = await this.getWarehouseHandlingCharge(originCountryCode);
-    if (!handling) return 0;
+    // Get source country data which includes warehouse_handling_charges percentage
+    const { sourceCountriesApi } = await import("./source-countries");
+    const sourceCountries = await sourceCountriesApi.getSourceCountries();
+    const sourceCountry = sourceCountries.find(
+      (sc) => sc.code === originCountryCode
+    );
 
-    if (handling.charge_type === "percentage") {
-      return (baseAmount * handling.charge_value) / 100;
-    } else {
-      return handling.charge_value;
+    if (
+      sourceCountry &&
+      sourceCountry.warehouse_handling_charges !== undefined &&
+      sourceCountry.warehouse_handling_charges !== null
+    ) {
+      // Calculate as percentage of item price
+      return (itemPrice * sourceCountry.warehouse_handling_charges) / 100;
     }
+
+    // Fallback: try old method from separate table
+    const handling = await this.getWarehouseHandlingCharge(originCountryCode);
+    if (handling) {
+      if (handling.charge_type === "percentage") {
+        return (itemPrice * handling.charge_value) / 100;
+      } else {
+        return handling.charge_value;
+      }
+    }
+
+    return 0;
   },
 
   /**
@@ -230,7 +287,10 @@ export const productPriceCalculatorApi = {
       .single();
 
     if (error) {
-      console.error("Error fetching domestic shipping destination charge:", error);
+      console.error(
+        "Error fetching domestic shipping destination charge:",
+        error
+      );
       return null;
     }
 
@@ -277,4 +337,3 @@ export const productPriceCalculatorApi = {
     return data?.currency_code || null;
   },
 };
-

@@ -42,13 +42,13 @@ const EXCHANGE_RATES_FALLBACK: Record<OriginCountry, number> = {
   singapore: 250.0,
 };
 
-const DOMESTIC_CHARGES_FALLBACK: Record<OriginCountry, { currency: string; courier: number; handlingPercent: number }> = {
-  india: { currency: "INR", courier: 40, handlingPercent: 10 },
-  malaysia: { currency: "MYR", courier: 15, handlingPercent: 10 },
-  dubai: { currency: "AED", courier: 15, handlingPercent: 10 },
-  us: { currency: "USD", courier: 40, handlingPercent: 10 },
-  srilanka: { currency: "LKR", courier: 500, handlingPercent: 10 },
-  singapore: { currency: "SGD", courier: 15, handlingPercent: 10 },
+const DOMESTIC_CHARGES_FALLBACK: Record<OriginCountry, { currency: string; courierPercent: number; handlingPercent: number }> = {
+  india: { currency: "INR", courierPercent: 5, handlingPercent: 10 },
+  malaysia: { currency: "MYR", courierPercent: 5, handlingPercent: 10 },
+  dubai: { currency: "AED", courierPercent: 5, handlingPercent: 10 },
+  us: { currency: "USD", courierPercent: 5, handlingPercent: 10 },
+  srilanka: { currency: "LKR", courierPercent: 5, handlingPercent: 10 },
+  singapore: { currency: "SGD", courierPercent: 5, handlingPercent: 10 },
 };
 
 const SHIPPING_RATES_FALLBACK: Record<OriginCountry, Record<ProductCategory | "default", number>> = {
@@ -88,26 +88,34 @@ export async function getExchangeRate(
   return rate;
 }
 
-// Get domestic courier charge from database
-export async function getDomesticCourier(originCountry: OriginCountry): Promise<number> {
+// Get domestic courier charge from database (now calculates as percentage of item price)
+export async function getDomesticCourier(
+  originCountry: OriginCountry,
+  itemPrice: number
+): Promise<number> {
   const originCountryCode = getCountryCode(originCountry);
-  const charge = await productPriceCalculatorApi.getDomesticCourierCharge(originCountryCode);
+  const charge = await productPriceCalculatorApi.calculateDomesticCourier(
+    originCountryCode,
+    itemPrice
+  );
   
-  if (charge === null) {
+  if (charge === 0) {
+    // Fallback: use percentage from fallback data
     console.warn(`Domestic courier charge not found, using fallback for ${originCountry}`);
-    return DOMESTIC_CHARGES_FALLBACK[originCountry].courier;
+    const fallbackPercent = DOMESTIC_CHARGES_FALLBACK[originCountry].courierPercent;
+    return (itemPrice * fallbackPercent) / 100;
   }
 
   return charge;
 }
 
-// Get warehouse handling charge from database
+// Get warehouse handling charge from database (now calculates as percentage of item price only)
 export async function calculateWarehouseHandling(
   originCountry: OriginCountry,
-  baseAmount: number
+  itemPrice: number
 ): Promise<number> {
   const originCountryCode = getCountryCode(originCountry);
-  return await productPriceCalculatorApi.calculateWarehouseHandling(originCountryCode, baseAmount);
+  return await productPriceCalculatorApi.calculateWarehouseHandling(originCountryCode, itemPrice);
 }
 
 // Get shipping rate from database

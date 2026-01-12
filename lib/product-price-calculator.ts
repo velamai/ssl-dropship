@@ -91,11 +91,11 @@ export async function calculateProductPrice(input: PriceCalculationInput): Promi
   // Item Cost (Origin Currency)
   const itemCostOrigin = productPrice * quantity;
   
-  // Domestic Courier Charge (Origin Currency)
-  const domesticCourier = await getDomesticCourier(originCountry);
+  // Domestic Courier Charge (Origin Currency) = Item Price × percentage
+  const domesticCourier = await getDomesticCourier(originCountry, itemCostOrigin);
   
-  // Warehouse Handling (Origin Currency) = calculated from database
-  const warehouseHandling = await calculateWarehouseHandling(originCountry, itemCostOrigin + domesticCourier);
+  // Warehouse Handling (Origin Currency) = Item Price × percentage (not item + domestic courier)
+  const warehouseHandling = await calculateWarehouseHandling(originCountry, itemCostOrigin);
   
   // Price Calculator Total (Origin Currency) = Item Cost + Domestic Courier + Warehouse Handling
   const priceCalculatorTotalOrigin = itemCostOrigin + domesticCourier + warehouseHandling;

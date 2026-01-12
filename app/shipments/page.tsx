@@ -1,17 +1,12 @@
 "use client";
-import {
-  MapPin,
-  Package,
-  ShoppingBag,
-  Truck,
-  User,
-  Warehouse,
-} from "lucide-react";
+import { MapPin, Package, ShoppingBag, User, Warehouse } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Navbar } from "@/components/navbar";
+import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
+import { StatusBadge } from "@/components/shipments/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,8 +25,6 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
-import { StatusBadge } from "@/components/shipments/status-badge";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -578,11 +571,7 @@ export default function ShipmentsPage() {
                               </span>
                             </div>
                             <div className="font-medium text-primary">
-                              ₹
-                              {(shipment.total_price || 0) +
-                                (shipment.drop_and_ship_add_ons?.length || 0) *
-                                  100 || 0}{" "}
-                              /-
+                              ₹{Number(shipment.grand_total).toFixed(2) || 0}
                             </div>
                           </div>
                         </div>

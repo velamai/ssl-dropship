@@ -28,8 +28,8 @@ export interface ShipmentPriceBreakdown {
   itemPriceDestination: number; // Total item price converted to destination currency
 
   // Charges (in origin currency)
-  domesticCourier: number; // Domestic Courier Charge
-  warehouseHandling: number; // Warehouse Handling = (Item Price + Domestic Courier) × percentage
+  domesticCourier: number; // Domestic Courier Charge = Item Price × domestic_courier_charge% (from drop_and_ship_source_countries)
+  warehouseHandling: number; // Warehouse Handling = Item Price × warehouse_handling_charges% (from drop_and_ship_source_countries)
 
   // Total (in origin currency)
   totalPriceOrigin: number; // Item Price + Domestic Courier + Warehouse Handling
@@ -47,8 +47,8 @@ export interface ShipmentPriceBreakdown {
  * Calculate price breakdown for shipment items (without shipping rates)
  * Formula:
  * 1. Item Price (Origin Currency) = Sum of (item.price × item.quantity) for all items
- * 2. Domestic Courier Charge (Origin Currency) = from database
- * 3. Warehouse Handling (Origin Currency) = (Item Price + Domestic Courier) × percentage
+ * 2. Domestic Courier Charge (Origin Currency) = Item Price × domestic_courier_charge% (from drop_and_ship_source_countries table)
+ * 3. Warehouse Handling (Origin Currency) = Item Price × warehouse_handling_charges% (from drop_and_ship_source_countries table)
  * 4. Total Price (Origin Currency) = Item Price + Domestic Courier + Warehouse Handling
  * 5. Convert to destination currency using exchange rate
  */
@@ -74,13 +74,19 @@ export async function calculateShipmentPriceBreakdown(
   }
 
   // Get exchange rate from database
-  const exchangeRate = await getExchangeRate(originCountry, destinationCountryCode);
+  const exchangeRate = await getExchangeRate(
+    originCountry,
+    destinationCountryCode
+  );
   const originCurrency = await getCurrencyCode(originCountry);
 
   // Get destination currency code
-  const { productPriceCalculatorApi } = await import("./api/product-price-calculator");
+  const { productPriceCalculatorApi } = await import(
+    "./api/product-price-calculator"
+  );
   const destinationCurrencyCode =
-    (await productPriceCalculatorApi.getCurrencyCode(destinationCountryCode)) || "LKR";
+    (await productPriceCalculatorApi.getCurrencyCode(destinationCountryCode)) ||
+    "LKR";
   const destinationCurrency = destinationCurrencyCode;
 
   // 1. Calculate total item price (in origin currency)
@@ -92,16 +98,21 @@ export async function calculateShipmentPriceBreakdown(
   }, 0);
 
   // 2. Get domestic courier charge (in origin currency)
-  const domesticCourier = await getDomesticCourier(originCountry);
+  // 2. Calculate domestic courier charge (in origin currency) = Item Price × percentage
+  const domesticCourier = await getDomesticCourier(
+    originCountry,
+    itemPriceOrigin
+  );
 
-  // 3. Calculate warehouse handling (in origin currency)
+  // 3. Calculate warehouse handling (in origin currency) = Item Price × percentage
   const warehouseHandling = await calculateWarehouseHandling(
     originCountry,
-    itemPriceOrigin + domesticCourier
+    itemPriceOrigin
   );
 
   // 4. Calculate total price (in origin currency)
-  const totalPriceOrigin = itemPriceOrigin + domesticCourier + warehouseHandling;
+  const totalPriceOrigin =
+    itemPriceOrigin + domesticCourier + warehouseHandling;
 
   // 5. Convert to destination currency
   const itemPriceDestination = itemPriceOrigin * exchangeRate;
@@ -119,4 +130,3 @@ export async function calculateShipmentPriceBreakdown(
     destinationCurrency,
   };
 }
-
