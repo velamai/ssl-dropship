@@ -8,6 +8,7 @@ export interface Warehouse {
   address_line4: string | null;
   postal_code: string;
   country: string;
+  phone: string[];
   created_at: string;
   updated_at: string;
 }

@@ -34,6 +34,7 @@ export default function AddressesPage() {
   // Fetch warehouses using React Query
   const { data: warehouses, isLoading, error, refetch } = useWarehouses();
 
+
   const copyToClipboard = (text: string, identifier: string) => {
     if (text === "") return;
     navigator.clipboard.writeText(text);
@@ -367,6 +368,47 @@ export default function AddressesPage() {
                             )}
                           </button>
                         </div>
+
+                        {/* Phone Numbers */}
+                        {warehouse.phone && warehouse.phone.length > 0 && (
+                          <div className="space-y-2">
+                            {warehouse.phone.map((phoneNumber, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between group/item"
+                              >
+                                <div className="flex items-center gap-3 flex-1">
+                                  <Phone className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <p className="text-xs text-slate-500">
+                                      {index === 0 ? "Phone:" : ""}
+                                    </p>
+                                    <p className="text-sm font-medium text-slate-700">
+                                      {phoneNumber}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      phoneNumber,
+                                      `${warehouse.warehouse_id}-phone-${index}`
+                                    )
+                                  }
+                                  className="transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-purple-600 flex-shrink-0"
+                                  title="Copy"
+                                >
+                                  {copiedAddress ===
+                                  `${warehouse.warehouse_id}-phone-${index}` ? (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Copy Full Address Button */}

@@ -7,18 +7,20 @@ export function cn(...inputs: ClassValue[]) {
 
 // Get country code from country name
 export const getCountryCode = (countryName: string): string => {
+
+  console.log({countryName});
   const countryMap: Record<string, string> = {
     "United States": "US",
     Canada: "CA",
-    "United Kingdom": "GB",
+    "United Kingdom - UK": "UK",
     Australia: "AU",
-    "Sri Lanka": "LK",
+    "Sri Lanka": "SL",
     India: "IN",
     Singapore: "SG",
-    Malaysia: "MY",
+    Malaysia: "ML",
     China: "CN",
     Japan: "JP",
-    // Add more countries as needed
+    "United Arab Emirates - UAE": "UAE",
   }
 
   return countryMap[countryName] || "LK" // Default to Sri Lanka if not found
