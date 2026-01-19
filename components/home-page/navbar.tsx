@@ -60,6 +60,12 @@ export function Navbar() {
               Countries
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
+             <Link
+              href="/tracking"
+              className="text-sm font-medium hover:text-primary transition-all relative group"
+            >
+              Track Your Shipment
+            </Link>
             <Link
               href="/product-price-calculator"
               className="text-sm font-medium hover:text-primary transition-all relative group"
@@ -133,6 +139,13 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Countries
+            </Link>
+             <Link
+              href="/tracking"
+               onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+            >
+              Track Your Shipment
             </Link>
             <Link
               href="/product-price-calculator"
