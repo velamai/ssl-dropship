@@ -61,7 +61,7 @@ export const productPriceCalculatorApi = {
    */
   async getExchangeRate(
     fromCurrency: string,
-    toCurrency: string
+    toCurrency: string,
   ): Promise<number | null> {
     const { data, error } = await supabase
       .from("exchange_rates")
@@ -85,7 +85,7 @@ export const productPriceCalculatorApi = {
    * Get domestic courier charge for an origin country
    */
   async getDomesticCourierCharge(
-    originCountryCode: string
+    originCountryCode: string,
   ): Promise<DomesticCourierCharge | null> {
     const { data, error } = await supabase
       .from("domestic_courier_charges")
@@ -107,13 +107,13 @@ export const productPriceCalculatorApi = {
    */
   async calculateDomesticCourier(
     originCountryCode: string,
-    itemPrice: number
+    itemPrice: number,
   ): Promise<number> {
     // Get source country data which includes domestic_courier_charge percentage
     const { sourceCountriesApi } = await import("./source-countries");
     const sourceCountries = await sourceCountriesApi.getSourceCountries();
     const sourceCountry = sourceCountries.find(
-      (sc) => sc.code === originCountryCode
+      (sc) => sc.code === originCountryCode,
     );
 
     if (
@@ -142,7 +142,7 @@ export const productPriceCalculatorApi = {
    * Get warehouse handling charge for an origin country
    */
   async getWarehouseHandlingCharge(
-    originCountryCode: string
+    originCountryCode: string,
   ): Promise<WarehouseHandlingCharge | null> {
     const { data, error } = await supabase
       .from("warehouse_handling_charges")
@@ -165,13 +165,13 @@ export const productPriceCalculatorApi = {
    */
   async calculateWarehouseHandling(
     originCountryCode: string,
-    itemPrice: number
+    itemPrice: number,
   ): Promise<number> {
     // Get source country data which includes warehouse_handling_charges percentage
     const { sourceCountriesApi } = await import("./source-countries");
     const sourceCountries = await sourceCountriesApi.getSourceCountries();
     const sourceCountry = sourceCountries.find(
-      (sc) => sc.code === originCountryCode
+      (sc) => sc.code === originCountryCode,
     );
 
     if (
@@ -220,7 +220,7 @@ export const productPriceCalculatorApi = {
   async getShippingRate(
     originCountryCode: string,
     destinationCountryCode: string,
-    categoryCode: string
+    categoryCode: string,
   ): Promise<number | null> {
     // First get category_id from category_code
     const { data: category, error: categoryError } = await supabase
@@ -277,7 +277,7 @@ export const productPriceCalculatorApi = {
    * Get domestic shipping charge in destination country
    */
   async getDomesticShippingDestinationCharge(
-    destinationCountryCode: string
+    destinationCountryCode: string,
   ): Promise<number | null> {
     const { data, error } = await supabase
       .from("domestic_shipping_destination_charges")
@@ -289,7 +289,7 @@ export const productPriceCalculatorApi = {
     if (error) {
       console.error(
         "Error fetching domestic shipping destination charge:",
-        error
+        error,
       );
       return null;
     }
@@ -301,7 +301,7 @@ export const productPriceCalculatorApi = {
    * Get service charge percentage
    */
   async getServiceChargePercentage(
-    serviceName: string = "colombo_mail_service"
+    serviceName: string = "colombo_mail_service",
   ): Promise<number | null> {
     const { data, error } = await supabase
       .from("service_charge_config")
@@ -336,4 +336,381 @@ export const productPriceCalculatorApi = {
 
     return data?.currency_code || null;
   },
+
+  /**
+   * Get price per kg from drop_and_ship_receiving_country_price table
+   * Returns price in INR
+   */
+  async getReceivingCountryPrice(
+    fromCountry: string,
+    toCountry: string,
+  ): Promise<number | null> {
+    const { data, error } = await supabase
+      .from("drop_and_ship_receiving_country_price")
+      .select("price_per_kg")
+      .eq("from_country", fromCountry)
+      .eq("to_country", toCountry)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("Error fetching receiving country price:", error);
+      return null;
+    }
+
+    return data?.price_per_kg ? Number(data.price_per_kg) : null;
+  },
+};
+
+type CurrencyType = "USD" | "INR" | "LKR" | "GBP" | "AED" | "MYR";
+
+const countryCodeToCurrency = [
+  { code: "US", currency: "USD" },
+  { code: "IN", currency: "INR" },
+  { code: "LK", currency: "LKR" },
+  { code: "GB", currency: "GBP" },
+  { code: "AE", currency: "AED" },
+  { code: "MY", currency: "MYR" },
+];
+
+export const currenciesToCountryCode = (currency: CurrencyType) => {
+  const mapping = countryCodeToCurrency.find((c) => c.currency === currency);
+  return mapping ? mapping.code : "US";
+};
+
+export const countryCodeToCurrencies = (countryCode: string) => {
+  const mapping = countryCodeToCurrency.find((c) => c.code === countryCode);
+  return mapping ? mapping.currency : "USD";
+};
+
+const getSourceCountries = async () => {
+  const { data, error } = await supabase
+    .from("drop_and_ship_source_countries")
+    .select("code");
+
+  if (error) {
+    console.error("Error fetching source countries:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getHandlingCharge = async ({
+  itemPrice,
+  itemCurrency,
+  fromCountry,
+  toCountry,
+}: {
+  itemPrice: number;
+  itemCurrency: string;
+  fromCountry: string;
+  toCountry: string;
+}) => {
+  const itemCurrencyCountry = currenciesToCountryCode(
+    itemCurrency as CurrencyType,
+  );
+
+  /**
+   * Exchange rate:
+   * itemCurrencyCountry -> destination country
+   */
+
+  let exchangeRateToDestination;
+  let exchangeRateDestError;
+
+  const sourceCountries = await getSourceCountries();
+
+  if (sourceCountries.find((sc) => sc.code === toCountry)) {
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", toCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+    exchangeRateDestError = error;
+  } else {
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", "US")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+    exchangeRateDestError = error;
+  }
+
+  /**
+   * Exchange rate:
+   * itemCurrencyCountry -> source country
+   */
+
+  const { data: exchangeRateToSource, error: exchangeRateSourceError } =
+    await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", fromCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+  /**
+   * Warehouse handling charge (percentage)
+   */
+  const { data: warehouseData, error: warehouseHandlingChargesError } =
+    await supabase
+      .from("drop_and_ship_source_countries")
+      .select("warehouse_handling_charges")
+      .eq("code", fromCountry)
+      .limit(1)
+      .single();
+
+  if (
+    exchangeRateDestError ||
+    exchangeRateSourceError ||
+    warehouseHandlingChargesError
+  ) {
+    throw new Error("Failed to fetch handling charge data");
+  }
+
+  const warehousePercentage = warehouseData.warehouse_handling_charges / 100;
+
+  return {
+    /**
+     * Price converted to source country currency
+     * + warehouse handling charge applied
+     */
+    sourceCountryPrice:
+      itemPrice * exchangeRateToSource.rate * warehousePercentage,
+
+    /**
+     * Price converted to destination country currency
+     */
+    destinationCountryPrice: itemPrice * (exchangeRateToDestination?.rate || 1),
+  };
+};
+
+export const getDomesticCourierCharge = async ({
+  fromCountry,
+  toCountry,
+}: {
+  fromCountry: string;
+  toCountry: string;
+}) => {
+  const { data: domesticCourierChargeData, error: domesticCourierChargeError } =
+    await supabase
+      .from("drop_and_ship_source_countries")
+      .select("domestic_courier_charge")
+      .eq("code", fromCountry)
+      .limit(1)
+      .single();
+
+      
+
+  const { data: exchangeRateToSource, error: exchangeRateSourceError } =
+    await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", "IN")
+      .eq("to_country", fromCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+
+
+  let exchangeRateToDestination;
+  let exchangeRateDestError;
+
+  const sourceCountries = await getSourceCountries();
+
+  console.log({sourceCountries});
+  
+
+  if (sourceCountries.find((sc) => sc.code === toCountry)) {
+
+    console.log("Fetch from correct");
+    
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", "IN")
+      .eq("to_country", toCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+    exchangeRateDestError = error;
+  } else {
+    console.log("Fetch from USD");
+
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", "IN")
+      .eq("to_country", "US")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+    exchangeRateDestError = error;
+  }
+
+  console.log({domesticCourierChargeData, exchangeRateToSource, exchangeRateToDestination, toCountry, exchangeRateDestError});
+
+
+  if (
+    domesticCourierChargeError ||
+    exchangeRateSourceError ||
+    exchangeRateDestError
+  ) {
+    throw new Error("Failed to fetch domestic courier charge data");
+  }
+
+  return {
+    sourceCountryCharge:
+      domesticCourierChargeData.domestic_courier_charge *
+      exchangeRateToSource.rate,
+    destinationCountryCharge:
+      domesticCourierChargeData.domestic_courier_charge *
+      (exchangeRateToDestination?.rate || 1),
+  };
+};
+
+export const getProductPrice = async ({
+  productPrice,
+  productPriceCurrency,
+  fromCountry,
+  toCountry,
+}: {
+  productPrice: number;
+  productPriceCurrency: string;
+  fromCountry: string;
+  toCountry: string;
+}) => {
+  const itemCurrencyCountry = currenciesToCountryCode(
+    productPriceCurrency as CurrencyType,
+  );
+
+  /**
+   * Exchange rate:
+   * itemCurrencyCountry -> destination country
+   */
+
+  let exchangeRateToDestination;
+  let exchangeRateDestError;
+
+  const sourceCountries = await getSourceCountries();
+
+  console.log({ toCountry, sourceCountries });
+
+  if (sourceCountries.find((sc) => sc.code === toCountry)) {
+    console.log("Fetch from correct");
+
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", toCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+    exchangeRateDestError = error;
+  } else {
+    console.log("Fetch from USD");
+
+    const { data, error } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", "US")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    exchangeRateToDestination = data;
+
+    exchangeRateDestError = error;
+  }
+
+  /**
+   * Exchange rate:
+   * itemCurrencyCountry -> source country
+   */
+
+  const { data: exchangeRateToSource, error: exchangeRateSourceError } =
+    await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", itemCurrencyCountry)
+      .eq("to_country", fromCountry)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+  if (exchangeRateDestError || exchangeRateSourceError) {
+    throw new Error("Failed to fetch handling charge data");
+  }
+
+  console.log({ test: productPrice * exchangeRateToDestination?.rate });
+
+  return {
+    sourceCountryPrice: productPrice * exchangeRateToSource.rate,
+    destinationCountryPrice:
+      productPrice * (exchangeRateToDestination?.rate || 1),
+  };
+};
+
+export const convertCurrencyByCountryCode = async ({
+  amount,
+  sourceCountryCode,
+  destinationCountryCode,
+}: {
+
+  amount: number | null;
+  sourceCountryCode: string;
+  destinationCountryCode: string;
+}) => {
+  const sourceCountries = await getSourceCountries();
+
+  if (!sourceCountries.find((sc) => sc.code === destinationCountryCode)) {
+    destinationCountryCode = "US";
+  }
+
+  try {
+    const {data, error} = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("from_country", sourceCountryCode)
+      .eq("to_country", destinationCountryCode)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    if (error) {
+      throw new Error("Failed to fetch exchange rate");
+    }
+
+    if(!amount) {
+      return data.rate;
+    }
+
+    return data.rate * amount;
+  } catch (error) {
+    console.error("Error converting currency:", error);
+    return 0;
+  }
 };

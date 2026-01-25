@@ -84,11 +84,34 @@ export function CountrySelector({
       : null;
 
   // Use fetched destination countries if provided, otherwise fall back to hardcoded list
+  // Merge fetched countries with fallback to ensure all countries are included
   const destinationCountriesList =
     type === "destination"
-      ? destinationCountries && destinationCountries.length > 0
-        ? destinationCountries.map((c) => ({ code: c.code, name: c.name }))
-        : DESTINATION_COUNTRIES
+      ? (() => {
+          const fetchedCountries =
+            destinationCountries && destinationCountries.length > 0
+              ? destinationCountries.map((c) => ({
+                  code: c.code,
+                  name: c.name,
+                }))
+              : [];
+
+          // Create a map of fetched countries by code for quick lookup
+          const fetchedMap = new Map(fetchedCountries.map((c) => [c.code, c]));
+
+          // Merge: use fetched countries, but add fallback countries that aren't in fetched list
+          const mergedCountries = [...fetchedCountries];
+          DESTINATION_COUNTRIES.forEach((fallbackCountry) => {
+            if (!fetchedMap.has(fallbackCountry.code)) {
+              mergedCountries.push(fallbackCountry);
+            }
+          });
+
+          // If no fetched countries, use fallback
+          return mergedCountries.length > 0
+            ? mergedCountries
+            : DESTINATION_COUNTRIES;
+        })()
       : null;
 
   const countries =
@@ -128,7 +151,7 @@ export function CountrySelector({
                 return (
                   <CommandItem
                     key={countryCode}
-                    value={countryCode}
+                    value={`${countryCode} ${countryName}`}
                     onSelect={() => {
                       onValueChange(countryCode);
                       setOpen(false);
@@ -141,7 +164,7 @@ export function CountrySelector({
                     <Check
                       className={cn(
                         "ml-2 h-4 w-4",
-                        value === countryCode ? "opacity-100" : "opacity-0"
+                        value === countryCode ? "opacity-100" : "opacity-0",
                       )}
                     />
                   </CommandItem>

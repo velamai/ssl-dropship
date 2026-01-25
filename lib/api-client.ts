@@ -293,6 +293,79 @@ export async function fetchCountries() {
   }
 }
 
+export async function fetchCountriesByType(type?: "import" | "export") {
+  try {
+    let tableName: string;
+    
+    // Determine which table to query based on type
+    if (type === "export") {
+      tableName = "logistics_export_countries";
+    } else if (type === "import") {
+      tableName = "logistics_import_countries";
+    } else {
+      // Default to export if no type specified (for backward compatibility)
+      tableName = "logistics_export_countries";
+    }
+
+    // First, let's get the column names from the first row
+    const { data: columnData, error: columnError } = await supabase
+      .from(tableName)
+      .select("*")
+      .limit(1);
+
+    if (columnError) throw columnError;
+
+    // Determine the correct column names for code and name
+    let codeColumn = "country_code";
+    let nameColumn = "name";
+
+    if (columnData && columnData.length > 0) {
+      const columns = Object.keys(columnData[0]);
+
+      // Find the most likely column names
+      if (!columns.includes("country_code") && columns.includes("code")) {
+        codeColumn = "code";
+      } else if (!columns.includes("country_code") && columns.includes("id")) {
+        codeColumn = "id";
+      }
+
+      if (!columns.includes("country_name") && columns.includes("name")) {
+        nameColumn = "name";
+      } else if (
+        !columns.includes("country_name") &&
+        columns.includes("title")
+      ) {
+        nameColumn = "title";
+      }
+    }
+
+    // Now fetch all countries with the correct column ordering
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(`${codeColumn}, ${nameColumn}`)
+      .order(nameColumn);
+
+    if (error) throw error;
+
+    // Map the data to the expected format
+    const formattedData = data.map((country: any) => ({
+      code: country[codeColumn],
+      name: country[nameColumn],
+    }));
+
+    return formattedData || [];
+  } catch (error) {
+    console.error("Error fetching countries:", error);
+    // Return some default countries as fallback
+    return [
+      { code: "us", name: "United States" },
+      { code: "ca", name: "Canada" },
+      { code: "uk", name: "United Kingdom" },
+      { code: "au", name: "Australia" },
+    ];
+  }
+}
+
 // Function to fetch courier services from the database
 export async function fetchCourierServices(): Promise<CourierService[]> {
   try {
@@ -449,6 +522,136 @@ export async function fetchCurrencies(): Promise<Currency[]> {
         value: 0.75,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+      },
+    ];
+  }
+}
+
+
+// Function to fetch courier services from the database
+export async function fetchCourierServicesByType(type?: "import" | "export"): Promise<CourierService[]> {
+  try {
+    // Fetch courier services with all their data, filtering out soft-deleted ones
+    let query = supabase
+      .from("courier_services")
+      .select("*")
+      .is("deleted_at", null);
+
+    // Optionally filter by type if provided
+    if (type) {
+      query = query.eq("type", type);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching courier services:", error);
+    // Return some default courier services as fallback
+    return [
+      {
+        courier_service_id: "fedex",
+        name: "FedEx",
+        type: "export",
+        min_weight: 0.5,
+        max_weight: 30,
+        adding_value: 0.5,
+        countries: [
+          { code: "us", name: "United States", zone: 1 },
+          { code: "ca", name: "Canada", zone: 1 },
+          { code: "uk", name: "United Kingdom", zone: 2 },
+          { code: "au", name: "Australia", zone: 3 },
+        ],
+        rates: {
+          zone1: [
+            { weight: 1, price: 20 },
+            { weight: 5, price: 40 },
+            { weight: 10, price: 60 },
+            { weight: 30, price: 120 },
+          ],
+          zone2: [
+            { weight: 1, price: 30 },
+            { weight: 5, price: 60 },
+            { weight: 10, price: 90 },
+            { weight: 30, price: 180 },
+          ],
+          zone3: [
+            { weight: 1, price: 40 },
+            { weight: 5, price: 80 },
+            { weight: 10, price: 120 },
+            { weight: 30, price: 240 },
+          ],
+        },
+      },
+      {
+        courier_service_id: "dhl",
+        name: "DHL",
+        type: "export",
+        min_weight: 1,
+        max_weight: 50,
+        adding_value: 1,
+        countries: [
+          { code: "us", name: "United States", zone: 1 },
+          { code: "ca", name: "Canada", zone: 1 },
+          { code: "uk", name: "United Kingdom", zone: 2 },
+          { code: "au", name: "Australia", zone: 3 },
+        ],
+        rates: {
+          zone1: [
+            { weight: 1, price: 25 },
+            { weight: 5, price: 45 },
+            { weight: 10, price: 65 },
+            { weight: 50, price: 150 },
+          ],
+          zone2: [
+            { weight: 1, price: 35 },
+            { weight: 5, price: 65 },
+            { weight: 10, price: 95 },
+            { weight: 50, price: 200 },
+          ],
+          zone3: [
+            { weight: 1, price: 45 },
+            { weight: 5, price: 85 },
+            { weight: 10, price: 125 },
+            { weight: 50, price: 250 },
+          ],
+        },
+      },
+      {
+        courier_service_id: "ups",
+        name: "UPS",
+        type: "import",
+        min_weight: 0.5,
+        max_weight: 40,
+        adding_value: 0.5,
+        countries: [
+          { code: "us", name: "United States", zone: 1 },
+          { code: "ca", name: "Canada", zone: 1 },
+          { code: "uk", name: "United Kingdom", zone: 2 },
+          { code: "au", name: "Australia", zone: 3 },
+        ],
+        rates: {
+          zone1: [
+            { weight: 1, price: 22 },
+            { weight: 5, price: 42 },
+            { weight: 10, price: 62 },
+            { weight: 40, price: 140 },
+          ],
+          zone2: [
+            { weight: 1, price: 32 },
+            { weight: 5, price: 62 },
+            { weight: 10, price: 92 },
+            { weight: 40, price: 190 },
+          ],
+          zone3: [
+            { weight: 1, price: 42 },
+            { weight: 5, price: 82 },
+            { weight: 10, price: 122 },
+            { weight: 40, price: 240 },
+          ],
+        },
       },
     ];
   }

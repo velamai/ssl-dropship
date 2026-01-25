@@ -8,8 +8,8 @@ interface CountryFlagProps {
 
 export function CountryFlag({ countryCode, className = "", size = "md" }: CountryFlagProps) {
   // Convert country code to lowercase for the API
-  const code = countryCode.toLowerCase()
-  
+  const code = countryCode
+
 
   // Size mapping
   const sizeMap = {
@@ -26,7 +26,7 @@ export function CountryFlag({ countryCode, className = "", size = "md" }: Countr
       style={{ width: pixelSize, height: pixelSize }}
     >
       <Image
-        src={`/flags/${code}.png`}
+        src={`https://flagsapi.com/${code}/flat/64.png`}
         alt={`Flag of ${countryCode}`}
         width={pixelSize}
         height={pixelSize}

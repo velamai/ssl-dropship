@@ -1,37 +1,42 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import Footer from "@/components/footer";
+import { CategorySelector } from "@/components/product-price-calculator/category-selector";
+import { CountrySelector } from "@/components/product-price-calculator/country-selector";
+import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  Package,
-  Plane,
-  AlertCircle,
-  MessageCircle,
-  Mail,
-} from "lucide-react";
-import { CountrySelector } from "@/components/product-price-calculator/country-selector";
-import { CategorySelector } from "@/components/product-price-calculator/category-selector";
-import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
-import { validateProductUrl } from "@/lib/product-scraper";
+import { warehouseApi } from "@/lib/api/warehouses";
+import { useCountries } from "@/lib/hooks/useCountries";
+import { useProductData } from "@/lib/hooks/useProductData";
+import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import {
   calculateProductPrice,
   type PriceCalculationInput,
 } from "@/lib/product-price-calculator";
-import type { ProductCategory, OriginCountry } from "@/lib/shipping-rates";
-import { getOriginCountryFromCode } from "@/lib/shipping-rates";
-import { useProductData } from "@/lib/hooks/useProductData";
-import { warehouseApi } from "@/lib/api/warehouses";
+import { validateProductUrl } from "@/lib/product-scraper";
+import type { OriginCountry, ProductCategory } from "@/lib/shipping-rates";
+import {
+  getCountryCode,
+  getCurrencyCode,
+  getExchangeRate,
+  getOriginCountryFromCode,
+} from "@/lib/shipping-rates";
 import type { Warehouse } from "@/lib/types/warehouse";
-import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
-import { useCountries } from "@/lib/hooks/useCountries";
+import {
+  AlertCircle,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Package,
+  Plane,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Footer from "@/components/footer";
+import { useEffect, useMemo, useState } from "react";
 
 export default function ProductPriceCalculatorPage() {
   // Form state
@@ -39,7 +44,7 @@ export default function ProductPriceCalculatorPage() {
   const [sourceCountryCode, setSourceCountryCode] = useState<string>("");
   const [destinationCountry, setDestinationCountry] = useState("LK"); // Default to Sri Lanka
   const [category, setCategory] = useState<ProductCategory | undefined>(
-    undefined
+    undefined,
   );
   const [quantity, setQuantity] = useState(1);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -88,6 +93,13 @@ export default function ProductPriceCalculatorPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
+  // Shipping Estimate state
+  const [shippingEstimateExchangeRate, setShippingEstimateExchangeRate] =
+    useState<number>(1);
+  const [shippingEstimateOriginCurrency, setShippingEstimateOriginCurrency] =
+    useState<string>("INR");
+  const [shippingEstimateDestinationCurrency] = useState<string>("INR");
+
   // Handle product URL input
   const handleUrlChange = (url: string) => {
     setProductUrl(url);
@@ -114,22 +126,31 @@ export default function ProductPriceCalculatorPage() {
 
   // Handle price calculation
   const handleCalculatePrice = async () => {
-    // Determine origin country - use selected source country or fallback to product data
+    // Determine origin country
+    // Default to India unless receiving country is IN, MY, LK, AE, GB (UK)
+    const useActualSourceCountries = ["IN", "MY", "LK", "AE", "GB"];
     let originCountry: OriginCountry;
-    if (sourceCountryCode) {
-      const country = getOriginCountryFromCode(sourceCountryCode);
-      if (!country) {
-        setCalculationError("Invalid source country selected");
+
+    // If receiving country is in the exception list, use actual source country
+    if (useActualSourceCountries.includes(destinationCountry)) {
+      if (sourceCountryCode) {
+        const country = getOriginCountryFromCode(sourceCountryCode);
+        if (!country) {
+          setCalculationError("Invalid source country selected");
+          return;
+        }
+        originCountry = country;
+      } else if (productData) {
+        originCountry = productData.originCountry;
+      } else {
+        setCalculationError(
+          "Please select a source country or enter a product URL",
+        );
         return;
       }
-      originCountry = country;
-    } else if (productData) {
-      originCountry = productData.originCountry;
     } else {
-      setCalculationError(
-        "Please select a source country or enter a product URL"
-      );
-      return;
+      // For all other receiving countries, force India as source
+      originCountry = "india";
     }
 
     if (!category) {
@@ -141,7 +162,7 @@ export default function ProductPriceCalculatorPage() {
     const productPrice = productData?.price;
     if (!productPrice) {
       setCalculationError(
-        "Please enter a product URL or provide product price"
+        "Please enter a product URL or provide product price",
       );
       return;
     }
@@ -163,7 +184,7 @@ export default function ProductPriceCalculatorPage() {
       setPriceBreakdown(breakdown);
     } catch (error) {
       setCalculationError(
-        error instanceof Error ? error.message : "Failed to calculate price"
+        error instanceof Error ? error.message : "Failed to calculate price",
       );
     } finally {
       setIsCalculating(false);
@@ -190,6 +211,51 @@ export default function ProductPriceCalculatorPage() {
       setWarehouses([]);
     }
   }, [sourceCountryCode]);
+
+  // Calculate origin country for shipping estimate
+  // Default to India unless receiving country is IN, MY, LK, AE, GB (UK)
+  const shippingEstimateOriginCountry = useMemo<OriginCountry | null>(() => {
+    // Countries where we use actual source country
+    const useActualSourceCountries = ["IN", "MY", "LK", "AE", "GB"];
+
+    // If receiving country is in the exception list, use actual source country
+    if (useActualSourceCountries.includes(destinationCountry)) {
+      if (sourceCountryCode) {
+        return getOriginCountryFromCode(sourceCountryCode);
+      } else if (productData) {
+        return productData.originCountry;
+      }
+    }
+
+    // For all other receiving countries, force India as source
+    return "india";
+  }, [sourceCountryCode, productData, destinationCountry]);
+
+  // Calculate origin country code for shipping estimate
+  const shippingEstimateOriginCountryCode = useMemo<string>(() => {
+    if (!shippingEstimateOriginCountry) return "IN";
+    return getCountryCode(shippingEstimateOriginCountry);
+  }, [shippingEstimateOriginCountry]);
+
+  // Load exchange rate and currency for shipping estimate
+  useEffect(() => {
+    async function loadShippingEstimateData() {
+      if (!shippingEstimateOriginCountry) return;
+
+      try {
+        const [exchangeRate, originCurrency] = await Promise.all([
+          getExchangeRate(shippingEstimateOriginCountry, destinationCountry),
+          getCurrencyCode(shippingEstimateOriginCountry),
+        ]);
+        setShippingEstimateExchangeRate(exchangeRate);
+        setShippingEstimateOriginCurrency(originCurrency);
+      } catch (error) {
+        console.error("Error loading shipping estimate data:", error);
+      }
+    }
+
+    loadShippingEstimateData();
+  }, [shippingEstimateOriginCountry, destinationCountry]);
 
   // Auto-recalculate when quantity, category, source country, or destination changes after first calculation
   useEffect(() => {
@@ -287,7 +353,7 @@ export default function ProductPriceCalculatorPage() {
                               onClick={() =>
                                 window.open(
                                   "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
-                                  "_blank"
+                                  "_blank",
                                 )
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
@@ -340,7 +406,7 @@ export default function ProductPriceCalculatorPage() {
                               onClick={() =>
                                 window.open(
                                   "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
-                                  "_blank"
+                                  "_blank",
                                 )
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
@@ -572,7 +638,7 @@ export default function ProductPriceCalculatorPage() {
                               onClick={() =>
                                 window.open(
                                   "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
-                                  "_blank"
+                                  "_blank",
                                 )
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-medium transition-colors"
@@ -607,15 +673,13 @@ export default function ProductPriceCalculatorPage() {
             {priceBreakdown && category ? (
               <PriceBreakdown
                 breakdown={priceBreakdown}
+                productPrice={productData?.price || 0}
                 productName={productData?.title || "Product"}
                 quantity={quantity}
-                originCountry={
-                  sourceCountryCode
-                    ? getOriginCountryFromCode(sourceCountryCode) || "india"
-                    : productData?.originCountry || "india"
-                }
+                originCountry={shippingEstimateOriginCountry || "india"}
                 category={category}
                 destinationCountryCode={destinationCountry}
+                sourceCountryCode={sourceCountryCode}
               />
             ) : (
               <Card>
@@ -631,6 +695,8 @@ export default function ProductPriceCalculatorPage() {
           </div>
         </div>
       </div>
+
+      {/* <PriceCalculator /> */}
 
       <Footer />
     </main>

@@ -61,7 +61,7 @@ const SHIPPING_RATES_FALLBACK: Record<OriginCountry, Record<ProductCategory | "d
 };
 
 // Get country code from OriginCountry
-function getCountryCode(originCountry: OriginCountry): string {
+export function getCountryCode(originCountry: OriginCountry): string {
   return ORIGIN_COUNTRY_TO_CODE[originCountry];
 }
 

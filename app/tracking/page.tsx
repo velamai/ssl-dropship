@@ -18,7 +18,7 @@ import {
   Share2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { toast } from "sonner";
 
 const supabase = getSupabaseBrowserClient();
@@ -175,7 +175,7 @@ const getStatusColor = (status: string) => {
   return statusColors[status] || "#9ca3af";
 };
 
-export default function TrackingPage() {
+function TrackingPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const trackingNumber = searchParams.get("tracking_number") || "";
@@ -243,7 +243,7 @@ export default function TrackingPage() {
       console.error("Shipment fetch error:", e);
       setError(
         e?.message ||
-          "Failed to fetch shipment data. Please check the shipment ID."
+        "Failed to fetch shipment data. Please check the shipment ID."
       );
       setShipmentData(null);
     } finally {
@@ -294,7 +294,7 @@ export default function TrackingPage() {
         console.error("Shipment fetch error:", e);
         setError(
           e?.message ||
-            "Failed to fetch shipment data. Please check the shipment ID."
+          "Failed to fetch shipment data. Please check the shipment ID."
         );
         setShipmentData(null);
       } finally {
@@ -336,7 +336,7 @@ export default function TrackingPage() {
       console.error("UPS tracking error:", e);
       setError(
         e?.message ||
-          "Failed to fetch tracking data. Please check the tracking number."
+        "Failed to fetch tracking data. Please check the tracking number."
       );
       setUpsTrackingData(null);
     } finally {
@@ -386,13 +386,13 @@ export default function TrackingPage() {
   // Parse shipment tracking history
   const shipmentTrackingHistory: TrackingEvent[] = shipmentData?.status_timeline
     ? (typeof shipmentData.status_timeline === "string"
-        ? JSON.parse(shipmentData.status_timeline)
-        : shipmentData.status_timeline
-      ).sort((a: TrackingEvent, b: TrackingEvent) => {
-        return (
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        );
-      })
+      ? JSON.parse(shipmentData.status_timeline)
+      : shipmentData.status_timeline
+    ).sort((a: TrackingEvent, b: TrackingEvent) => {
+      return (
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    })
     : [];
 
   // Parse UPS tracking data
@@ -488,8 +488,8 @@ export default function TrackingPage() {
     trackingType === "shipment"
       ? shipmentData?.current_status
       : upsCurrentStatus?.simplifiedTextDescription ||
-        upsCurrentStatus?.description ||
-        "In Transit";
+      upsCurrentStatus?.description ||
+      "In Transit";
 
   // Calculate days in transit
   const calculateDaysInTransit = () => {
@@ -507,8 +507,8 @@ export default function TrackingPage() {
   // Get tracking link
   const trackingLink = displayId
     ? `https://www.buy2send.com/tracking?tracking_number=${encodeURIComponent(
-        displayId
-      )}`
+      displayId
+    )}`
     : "";
 
   // Copy tracking link to clipboard
@@ -538,112 +538,112 @@ export default function TrackingPage() {
         <Navbar />
         <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl mt-20">
           <div className="space-y-6">
-          {/* Tracking Input Section - Always visible */}
-          {!shipmentData && !upsTrackingData && !isLoading && (
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-2xl font-bold">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-lg">
-                    <Package className="h-6 w-6 text-white" />
-                  </div>
-                  Track Your Shipment
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-3">
-                  <Input
-                    type="text"
-                    placeholder="Enter shipment ID or tracking ID"
-                    value={inputTrackingNumber}
-                    onChange={(e) => setInputTrackingNumber(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleTrack();
-                      }
-                    }}
-                    className="flex-1 h-12 text-base"
-                  />
-                  <Button
-                    onClick={handleTrack}
-                    disabled={isLoading}
-                    className="h-12 px-6 bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg"
-                  >
-                    <Search className="h-5 w-5 mr-2" />
-                    Track
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <Card className="shadow-sm">
-              <CardContent className="py-16">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-red-600 mb-4" />
-                  <p className="text-lg text-muted-foreground font-medium">
-                    Fetching tracking information...
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Error State */}
-          {error && !isLoading && (
-            <Alert className="border-red-300 bg-red-50">
-              <AlertTitle className="text-red-700 font-bold">Error</AlertTitle>
-              <AlertDescription className="text-red-600">
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Tracking Results */}
-          {(shipmentData || upsTrackingData) && !isLoading && (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-              {/* Tracking History Card */}
-              <Card className="transition-all hover:shadow-md h-full overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <div className="p-1.5 rounded-lg bg-primary/10">
-                      <Clock className="md:size-6 size-5 text-primary" />
+            {/* Tracking Input Section - Always visible */}
+            {!shipmentData && !upsTrackingData && !isLoading && (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-2xl font-bold">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-lg">
+                      <Package className="h-6 w-6 text-white" />
                     </div>
-                    <span className="text-base md:text-lg font-semibold">
-                      Tracking History
-                    </span>
-                    {displayTrackingHistory.length > 0 && (
-                      <span className="ml-auto text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full">
-                        {displayTrackingHistory.length} updates
-                      </span>
-                    )}
+                    Track Your Shipment
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  {displayTrackingHistory.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <div className="p-4 rounded-full bg-muted/50 mb-4">
-                        <Clock className="h-8 w-8 text-muted-foreground/60" />
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Input
+                      type="text"
+                      placeholder="Enter shipment ID or tracking ID"
+                      value={inputTrackingNumber}
+                      onChange={(e) => setInputTrackingNumber(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleTrack();
+                        }
+                      }}
+                      className="flex-1 h-12 text-base"
+                    />
+                    <Button
+                      onClick={handleTrack}
+                      disabled={isLoading}
+                      className="h-12 px-6 bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg"
+                    >
+                      <Search className="h-5 w-5 mr-2" />
+                      Track
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <Card className="shadow-sm">
+                <CardContent className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-red-600 mb-4" />
+                    <p className="text-lg text-muted-foreground font-medium">
+                      Fetching tracking information...
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error State */}
+            {error && !isLoading && (
+              <Alert className="border-red-300 bg-red-50">
+                <AlertTitle className="text-red-700 font-bold">Error</AlertTitle>
+                <AlertDescription className="text-red-600">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Tracking Results */}
+            {(shipmentData || upsTrackingData) && !isLoading && (
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                {/* Tracking History Card */}
+                <Card className="transition-all hover:shadow-md h-full overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <div className="p-1.5 rounded-lg bg-primary/10">
+                        <Clock className="md:size-6 size-5 text-primary" />
                       </div>
-                      <p className="font-medium text-foreground mb-1">
-                        No Tracking History Yet
-                      </p>
-                      <p className="text-sm text-muted-foreground max-w-[250px]">
-                        {currentStatus === "Payment Requested"
-                          ? "Awaiting payment confirmation."
-                          : currentStatus === "Pick Up"
-                          ? "Waiting for pickup."
-                          : currentStatus === "Pending"
-                          ? "Shipment is being processed."
-                          : "Check back later for updates."}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      {/* Timeline vertical line */}
-                      <div
-                        className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80"
+                      <span className="text-base md:text-lg font-semibold">
+                        Tracking History
+                      </span>
+                      {displayTrackingHistory.length > 0 && (
+                        <span className="ml-auto text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full">
+                          {displayTrackingHistory.length} updates
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    {displayTrackingHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <div className="p-4 rounded-full bg-muted/50 mb-4">
+                          <Clock className="h-8 w-8 text-muted-foreground/60" />
+                        </div>
+                        <p className="font-medium text-foreground mb-1">
+                          No Tracking History Yet
+                        </p>
+                        <p className="text-sm text-muted-foreground max-w-[250px]">
+                          {currentStatus === "Payment Requested"
+                            ? "Awaiting payment confirmation."
+                            : currentStatus === "Pick Up"
+                              ? "Waiting for pickup."
+                              : currentStatus === "Pending"
+                                ? "Shipment is being processed."
+                                : "Check back later for updates."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        {/* Timeline vertical line */}
+                        <div
+                          className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80"
                         // style={{
                         //   background: `linear-gradient(to bottom, ${getStatusColor(
                         //     displayTrackingHistory[0]?.status
@@ -653,252 +653,275 @@ export default function TrackingPage() {
                         //     ]?.status
                         //   )})`,
                         // }}
-                      />
+                        />
 
-                      <div className="space-y-0">
-                        {displayTrackingHistory.map(
-                          (history: TrackingEvent, index: number) => {
-                            const isFirst = index === 0;
-                            const isLast =
-                              index === displayTrackingHistory.length - 1;
-                            const statusColor = getStatusColor(history.status);
-                            const dateTime = new Date(history.updated_at);
-                            const formattedDate = dateTime.toLocaleDateString(
-                              "en-US",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            );
-                            const formattedTime = dateTime.toLocaleTimeString(
-                              "en-US",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              }
-                            );
+                        <div className="space-y-0">
+                          {displayTrackingHistory.map(
+                            (history: TrackingEvent, index: number) => {
+                              const isFirst = index === 0;
+                              const isLast =
+                                index === displayTrackingHistory.length - 1;
+                              const statusColor = getStatusColor(history.status);
+                              const dateTime = new Date(history.updated_at);
+                              const formattedDate = dateTime.toLocaleDateString(
+                                "en-US",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              );
+                              const formattedTime = dateTime.toLocaleTimeString(
+                                "en-US",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
+                                }
+                              );
 
-                            return (
-                              <div
-                                key={index}
-                                className={`relative flex flex-col sm:flex-row gap-4 sm:gap-6 py-3 pl-3 sm:pl-6 ${
-                                  index % 2 === 0 ? "bg-slate-100" : "bg-white"
-                                }`}
-                              >
-                                {/* Content - Layout like image */}
-                                <div className="flex-1 min-w-0">
-                                  {/* Date and Time on the left */}
-                                  <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6">
-                                    <div className="flex-shrink-0 w-full sm:w-28">
-                                      <div className="text-sm font-medium text-gray-900">
-                                        {formattedDate}
+                              return (
+                                <div
+                                  key={index}
+                                  className={`relative flex flex-col sm:flex-row gap-4 sm:gap-6 py-3 pl-3 sm:pl-6 ${index % 2 === 0 ? "bg-slate-100" : "bg-white"
+                                    }`}
+                                >
+                                  {/* Content - Layout like image */}
+                                  <div className="flex-1 min-w-0">
+                                    {/* Date and Time on the left */}
+                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6">
+                                      <div className="flex-shrink-0 w-full sm:w-28">
+                                        <div className="text-sm font-medium text-gray-900">
+                                          {formattedDate}
+                                        </div>
+                                        <div className="text-sm text-gray-600 mt-0.5">
+                                          {formattedTime}
+                                        </div>
                                       </div>
-                                      <div className="text-sm text-gray-600 mt-0.5">
-                                        {formattedTime}
-                                      </div>
-                                    </div>
 
-                                    <div className="relative flex-shrink-0 z-10 mt-1 sm:mt-0">
-                                      <div
-                                        className={`flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-sm transition-all duration-300 ${
-                                          isFirst
+                                      <div className="relative flex-shrink-0 z-10 mt-1 sm:mt-0">
+                                        <div
+                                          className={`flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-sm transition-all duration-300 ${isFirst
                                             ? "ring-4 ring-slate-500 border-slate-500"
                                             : ""
-                                        }`}
-                                        style={{
-                                          borderColor: "#e0e0e0",
-                                          ...(isFirst && {
-                                            boxShadow: `0 0 0 4px ${statusColor}20`,
-                                          }),
-                                        }}
-                                      >
-                                        <div
-                                          className={`rounded-full transition-all bg-slate-500 ${
-                                            isFirst ? "size-3.5" : "size-3"
-                                          }`}
-                                        />
+                                            }`}
+                                          style={{
+                                            borderColor: "#e0e0e0",
+                                            ...(isFirst && {
+                                              boxShadow: `0 0 0 4px ${statusColor}20`,
+                                            }),
+                                          }}
+                                        >
+                                          <div
+                                            className={`rounded-full transition-all bg-slate-500 ${isFirst ? "size-3.5" : "size-3"
+                                              }`}
+                                          />
+                                        </div>
                                       </div>
-                                    </div>
 
-                                    {/* Status and Description in center */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="mb-1.5">
-                                        <StatusBadge status={history.status} />
+                                      {/* Status and Description in center */}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="mb-1.5">
+                                          <StatusBadge status={history.status} />
+                                        </div>
+                                        {history.description && (
+                                          <p className="text-sm text-gray-600 leading-relaxed">
+                                            {history.description}
+                                          </p>
+                                        )}
                                       </div>
-                                      {history.description && (
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                          {history.description}
-                                        </p>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          }
-                        )}
+                              );
+                            }
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Sidebar - Tracking Input and Details */}
-              <div className="space-y-4">
-                <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg font-semibold">
-                      Track Another Shipment
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <Input
-                        type="text"
-                        placeholder="Enter shipment ID or tracking ID"
-                        value={inputTrackingNumber}
-                        onChange={(e) => setInputTrackingNumber(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleTrack();
-                          }
-                        }}
-                        className="h-11 text-sm"
-                      />
-                      <Button
-                        onClick={handleTrack}
-                        disabled={isLoading}
-                        className="w-full h-11 bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg"
-                      >
-                        <Search className="h-4 w-4 mr-2" />
-                        Track
-                      </Button>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Tracking Details Card - Only show for shipments */}
-                {trackingType === "shipment" && shipmentData && (
+                {/* Sidebar - Tracking Input and Details */}
+                <div className="space-y-4">
                   <Card className="shadow-sm">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        {/* Tracking Number */}
-                        <div className="">
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Tracking number
-                          </label>
-                          <p className="text-sm font-semibold text-foreground">
-                            {displayId || "N/A"}
-                          </p>
-                        </div>
-
-                        {/* To */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            To
-                          </label>
-                          <p className="text-sm font-semibold text-foreground">
-                            {countryName ||
-                              shipmentData.shipment_country_code ||
-                              "N/A"}
-                          </p>
-                        </div>
-
-                        {/* Weight */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Weight
-                          </label>
-                          <p className="text-sm font-semibold text-foreground">
-                            {shipmentData.shipment_total_weight
-                              ? `${
-                                  shipmentData.shipment_total_weight / 1000
-                                } KG`
-                              : "N/A"}
-                          </p>
-                        </div>
-
-                        {/* Shipping Type */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Shipping Type
-                          </label>
-                          <p className="text-sm font-semibold capitalize text-foreground">
-                            {shipmentData.shipment_type || "N/A"}
-                          </p>
-                        </div>
-
-                        {/* Days in transit */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Days in transit
-                          </label>
-                          <p className="text-sm font-semibold text-foreground">
-                            {daysInTransit}
-                          </p>
-                        </div>
-
-                        {/* Tracking Link */}
-                        {trackingLink && (
-                          <div className="space-y-2 pt-2 border-t">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                              <Share2 className="h-3.5 w-3.5" />
-                              Tracking link
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="text"
-                                value={trackingLink}
-                                readOnly
-                                className="h-9 text-xs font-mono flex-1"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleCopyLink}
-                                className="h-9 px-3"
-                              >
-                                {copied ? (
-                                  <Check className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Bookmark this page to track parcels faster!
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Share to WhatsApp */}
-                        {trackingLink && (
-                          <div className="pt-2">
-                            <Button
-                              onClick={handleShareWhatsApp}
-                              className="w-full h-11 bg-[#25D366] hover:bg-[#20BA5A] text-white shadow-md flex items-center justify-between"
-                            >
-                              <div className="flex items-center">
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share to WhatsApp
-                              </div>
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold">
+                        Track Another Shipment
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <Input
+                          type="text"
+                          placeholder="Enter shipment ID or tracking ID"
+                          value={inputTrackingNumber}
+                          onChange={(e) => setInputTrackingNumber(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleTrack();
+                            }
+                          }}
+                          className="h-11 text-sm"
+                        />
+                        <Button
+                          onClick={handleTrack}
+                          disabled={isLoading}
+                          className="w-full h-11 bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg"
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Track
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                )}
+
+                  {/* Tracking Details Card - Only show for shipments */}
+                  {trackingType === "shipment" && shipmentData && (
+                    <Card className="shadow-sm">
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          {/* Tracking Number */}
+                          <div className="">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Tracking number
+                            </label>
+                            <p className="text-sm font-semibold text-foreground">
+                              {displayId || "N/A"}
+                            </p>
+                          </div>
+
+                          {/* To */}
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              To
+                            </label>
+                            <p className="text-sm font-semibold text-foreground">
+                              {countryName ||
+                                shipmentData.shipment_country_code ||
+                                "N/A"}
+                            </p>
+                          </div>
+
+                          {/* Weight */}
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Weight
+                            </label>
+                            <p className="text-sm font-semibold text-foreground">
+                              {shipmentData.shipment_total_weight
+                                ? `${shipmentData.shipment_total_weight / 1000
+                                } KG`
+                                : "N/A"}
+                            </p>
+                          </div>
+
+                          {/* Shipping Type */}
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Shipping Type
+                            </label>
+                            <p className="text-sm font-semibold capitalize text-foreground">
+                              {shipmentData.shipment_type || "N/A"}
+                            </p>
+                          </div>
+
+                          {/* Days in transit */}
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Days in transit
+                            </label>
+                            <p className="text-sm font-semibold text-foreground">
+                              {daysInTransit}
+                            </p>
+                          </div>
+
+                          {/* Tracking Link */}
+                          {trackingLink && (
+                            <div className="space-y-2 pt-2 border-t">
+                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                                <Share2 className="h-3.5 w-3.5" />
+                                Tracking link
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="text"
+                                  value={trackingLink}
+                                  readOnly
+                                  className="h-9 text-xs font-mono flex-1"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleCopyLink}
+                                  className="h-9 px-3"
+                                >
+                                  {copied ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Bookmark this page to track parcels faster!
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Share to WhatsApp */}
+                          {trackingLink && (
+                            <div className="pt-2">
+                              <Button
+                                onClick={handleShareWhatsApp}
+                                className="w-full h-11 bg-[#25D366] hover:bg-[#20BA5A] text-white shadow-md flex items-center justify-between"
+                              >
+                                <div className="flex items-center">
+                                  <Share2 className="h-4 w-4 mr-2" />
+                                  Share to WhatsApp
+                                </div>
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
-    <Footer />
+            )}
+          </div>
+        </main>
+      </div>
+      <Footer />
     </>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col bg-background">
+          <Navbar />
+          <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl mt-20">
+            <Card className="shadow-sm">
+              <CardContent className="py-16">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <Loader2 className="h-10 w-10 animate-spin text-red-600 mb-4" />
+                  <p className="text-lg text-muted-foreground font-medium">
+                    Loading tracking page...
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </main>
+          <Footer />
+        </div>
+      }
+    >
+      <TrackingPageContent />
+    </Suspense>
   );
 }
