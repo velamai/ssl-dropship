@@ -412,6 +412,17 @@ export const getHandlingCharge = async ({
     itemCurrency as CurrencyType,
   );
 
+    /**
+   * Warehouse handling charge (percentage)
+   */
+  const { data: warehouseData, error: warehouseHandlingChargesError } =
+    await supabase
+      .from("drop_and_ship_source_countries")
+      .select("warehouse_handling_charges")
+      .eq("code", fromCountry)
+      .limit(1)
+      .single();
+  
   /**
    * Exchange rate:
    * itemCurrencyCountry -> destination country
@@ -426,7 +437,7 @@ export const getHandlingCharge = async ({
     const { data, error } = await supabase
       .from("exchange_rates")
       .select("rate")
-      .eq("from_country", itemCurrencyCountry)
+      .eq("from_country", fromCountry)
       .eq("to_country", toCountry)
       .eq("is_active", true)
       .limit(1)
@@ -438,7 +449,7 @@ export const getHandlingCharge = async ({
     const { data, error } = await supabase
       .from("exchange_rates")
       .select("rate")
-      .eq("from_country", itemCurrencyCountry)
+      .eq("from_country", fromCountry)
       .eq("to_country", "US")
       .eq("is_active", true)
       .limit(1)
@@ -462,18 +473,6 @@ export const getHandlingCharge = async ({
       .eq("is_active", true)
       .limit(1)
       .single();
-
-  /**
-   * Warehouse handling charge (percentage)
-   */
-  const { data: warehouseData, error: warehouseHandlingChargesError } =
-    await supabase
-      .from("drop_and_ship_source_countries")
-      .select("warehouse_handling_charges")
-      .eq("code", fromCountry)
-      .limit(1)
-      .single();
-
   if (
     exchangeRateDestError ||
     exchangeRateSourceError ||
@@ -483,6 +482,8 @@ export const getHandlingCharge = async ({
   }
 
   const warehousePercentage = warehouseData.warehouse_handling_charges / 100;
+
+  const sourcePrice = itemPrice * exchangeRateToSource.rate * warehousePercentage
 
   return {
     /**
@@ -495,7 +496,7 @@ export const getHandlingCharge = async ({
     /**
      * Price converted to destination country currency
      */
-    destinationCountryPrice: itemPrice * (exchangeRateToDestination?.rate || 1),
+    destinationCountryPrice: sourcePrice * (exchangeRateToDestination?.rate || 1),
   };
 };
 

@@ -134,6 +134,29 @@ export function ShippingEstimate({
     return null;
   };
 
+  // Calculate effective weight: use the greater of actual weight or volume weight
+  const calculateEffectiveWeight = (): number | null => {
+    const weightValue = weight ? parseFloat(weight) : null;
+    const volumeWeight = calculateVolumeMetricWeight();
+
+    // If both are null/invalid, return null
+    if ((!weightValue || isNaN(weightValue) || weightValue <= 0) && !volumeWeight) {
+      return null;
+    }
+
+    // If only one is valid, return that one
+    if ((!weightValue || isNaN(weightValue) || weightValue <= 0) && volumeWeight) {
+      return volumeWeight;
+    }
+
+    if (weightValue && (!volumeWeight || volumeWeight <= 0)) {
+      return weightValue;
+    }
+
+    // Both are valid, return the greater value
+    return Math.max(weightValue!, volumeWeight!);
+  };
+
   // Load shipping rates on mount and when dependencies change
   useEffect(() => {
     const loadRates = async () => {
@@ -179,19 +202,19 @@ export function ShippingEstimate({
   // Calculate price using drop_and_ship_receiving_country_price table for specific countries
   useEffect(() => {
     const calculateReceivingCountryPrice = async () => {
-      if (!shouldUseExchangeRate || !weight || !originCode) {
+      if (!shouldUseExchangeRate || !originCode) {
+        setExchangeRatePrice(null);
+        return;
+      }
+
+      const effectiveWeight = calculateEffectiveWeight();
+      if (!effectiveWeight || effectiveWeight <= 0) {
         setExchangeRatePrice(null);
         return;
       }
 
       setIsLoadingExchangeRate(true);
       try {
-        const weightInKg = parseFloat(weight);
-        if (isNaN(weightInKg) || weightInKg <= 0) {
-          setExchangeRatePrice(null);
-          return;
-        }
-
         // Fetch price_per_kg from drop_and_ship_receiving_country_price table
         // Price is in INR
         const pricePerKg = await productPriceCalculatorApi.getReceivingCountryPrice(
@@ -200,8 +223,9 @@ export function ShippingEstimate({
         );
 
         if (pricePerKg !== null) {
-          // Price = weight (kg) * price_per_kg (INR per kg)
-          const price = weightInKg * pricePerKg;
+          // Price = effective weight (kg) * price_per_kg (INR per kg)
+          // Effective weight is the greater of actual weight or volume weight
+          const price = effectiveWeight * pricePerKg;
           setExchangeRatePrice(price);
         } else {
           setExchangeRatePrice(null);
@@ -215,7 +239,7 @@ export function ShippingEstimate({
     };
 
     calculateReceivingCountryPrice();
-  }, [weight, originCode, destinationCountryCode, shouldUseExchangeRate]);
+  }, [weight, length, width, height, originCode, destinationCountryCode, shouldUseExchangeRate]);
 
   // Calculate courier service prices when weight/dimensions change
   // Only calculate if NOT using exchange rate pricing
@@ -227,25 +251,20 @@ export function ShippingEstimate({
         return;
       }
 
-      if (!weight || courierServices.length === 0 || currencies.length === 0 || !originCode) {
+      const effectiveWeight = calculateEffectiveWeight();
+      if (!effectiveWeight || effectiveWeight <= 0 || courierServices.length === 0 || currencies.length === 0 || !originCode) {
         setCourierPriceResult(null);
         return;
       }
 
       setIsLoadingCourierPrices(true);
       try {
-        const weightInGrams = parseFloat(weight) * 1000; // Convert kg to grams
-
-        // Calculate volume in cm³
-        let volume = 0;
-        if (length && width && height) {
-          const l = parseFloat(length);
-          const w = parseFloat(width);
-          const h = parseFloat(height);
-          if (l > 0 && w > 0 && h > 0) {
-            volume = l * w * h; // Volume in cm³
-          }
-        }
+        // Use effective weight (greater of actual weight or volume weight) in grams
+        // Since we've already calculated effective weight which accounts for volumetric weight,
+        // we pass that as the weight and set volume to 0 to avoid double calculation
+        // The calculatePrice function uses volume * 2.5 for pricing, which doesn't match
+        // our volumetric weight calculation (volume / 5000), so we handle it ourselves
+        const weightInGrams = effectiveWeight * 1000; // Convert kg to grams
 
         // Determine from/to countries based on shipment type
         const fromCountry = shipmentType === "export" ? originCode : destinationCountryCode;
@@ -257,7 +276,7 @@ export function ShippingEstimate({
           selected_courier_service: null, // Show all courier services
           selected_type: shipmentType,
           selected_weight: weightInGrams,
-          selected_volume: volume,
+          selected_volume: 0, // Set to 0 since we've already accounted for volumetric weight in effectiveWeight
           currency: currencies,
           Allcourierservicesdata: courierServices,
         };
@@ -351,21 +370,23 @@ export function ShippingEstimate({
       return null;
     }
 
-    const weightValue = parseFloat(weight);
-    const volumeWeight = calculateVolumeMetricWeight();
-
-    if (!weightValue && !volumeWeight) {
+    const effectiveWeight = calculateEffectiveWeight();
+    if (!effectiveWeight || effectiveWeight <= 0) {
       return null;
     }
 
-    // Calculate weight-based international shipping
-    const weightBasedInternational = weightValue > 0 ? weightValue * shippingRatePerKg : 0;
+    const weightValue = weight ? parseFloat(weight) : null;
+    const volumeWeight = calculateVolumeMetricWeight();
 
-    // Calculate volume-based international shipping
-    const volumeBasedInternational = volumeWeight ? volumeWeight * shippingRatePerKg : 0;
+    // Calculate weight-based international shipping (for display purposes)
+    const weightBasedInternational = weightValue && weightValue > 0 ? weightValue * shippingRatePerKg : 0;
 
-    // International Shipping = Max(Weight-based, Volume-based)
-    const internationalShipping = Math.max(weightBasedInternational, volumeBasedInternational);
+    // Calculate volume-based international shipping (for display purposes)
+    const volumeBasedInternational = volumeWeight && volumeWeight > 0 ? volumeWeight * shippingRatePerKg : 0;
+
+    // International Shipping = effective weight * shipping rate per kg
+    // Effective weight is the greater of actual weight or volume weight
+    const internationalShipping = effectiveWeight * shippingRatePerKg;
 
     // Add Service Charge to International Shipping
     // Service Charge = (International Shipping + Price Calculator Total in LKR) × percentage
@@ -387,6 +408,7 @@ export function ShippingEstimate({
       shippingTotal,
       shippingRatePerKg,
       volumeWeight,
+      effectiveWeight,
     };
   };
 
@@ -418,61 +440,65 @@ export function ShippingEstimate({
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {/* Delivery/Pickup Option */}
-            <div className="space-y-3">
-              <Label>Delivery Option</Label>
-              <RadioGroup
-                value={deliveryOption}
-                onValueChange={(value) => setDeliveryOption(value as "delivery" | "pickup")}
-                className="space-y-3"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="delivery" id="estimate-delivery" />
-                  <Label htmlFor="estimate-delivery" className="font-normal cursor-pointer">
-                    Delivery to Address
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pickup" id="estimate-pickup" />
-                  <Label htmlFor="estimate-pickup" className="font-normal cursor-pointer">
-                    Pickup from Office
-                  </Label>
-                </div>
-              </RadioGroup>
+            {
+              destinationCountryCode === "LK" &&
+              <div className="space-y-3">
+                <Label>Delivery Option</Label>
+                <RadioGroup
+                  value={deliveryOption}
+                  onValueChange={(value) => setDeliveryOption(value as "delivery" | "pickup")}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="delivery" id="estimate-delivery" />
+                    <Label htmlFor="estimate-delivery" className="font-normal cursor-pointer">
+                      Delivery to Address
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="pickup" id="estimate-pickup" />
+                    <Label htmlFor="estimate-pickup" className="font-normal cursor-pointer">
+                      Pickup from Office
+                    </Label>
+                  </div>
+                </RadioGroup>
 
-              {/* Office Address Card - Show when pickup is selected */}
-              {deliveryOption === "pickup" && (
-                <Card className="bg-purple-50 border-purple-200">
-                  <CardContent className="pt-4">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">SRI LANKA OFFICE</h4>
-                      <div className="text-sm space-y-1">
-                        <p className="font-medium">SUPER SAVE LANKA (PVT) LTD.</p>
-                        <p>No.4, COUNCIL AVENUE, (NEAR DEHIWALA MUNICIPAL COUNCIL)</p>
-                        <p>DEHIWALA, SRILANKA.</p>
-                        <div className="mt-2 space-y-1">
-                          <p>
-                            <span className="font-medium">Email:</span>{" "}
-                            <a href="mailto:info@colombomail.lk" className="text-purple-600 hover:underline">
-                              info@colombomail.lk
-                            </a>
-                          </p>
-                          <p>
-                            <span className="font-medium">Phone:</span>{" "}
-                            <a href="tel:+94114896660" className="text-purple-600 hover:underline">
-                              (+94) 114 896 660
-                            </a>
-                            {", "}
-                            <a href="tel:+94755192192" className="text-purple-600 hover:underline">
-                              (+94) 755 192 192
-                            </a>
-                          </p>
+                {/* Office Address Card - Show when pickup is selected */}
+                {deliveryOption === "pickup" && (
+                  <Card className="bg-purple-50 border-purple-200">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm">SRI LANKA OFFICE</h4>
+                        <div className="text-sm space-y-1">
+                          <p className="font-medium">SUPER SAVE LANKA (PVT) LTD.</p>
+                          <p>No.4, COUNCIL AVENUE, (NEAR DEHIWALA MUNICIPAL COUNCIL)</p>
+                          <p>DEHIWALA, SRILANKA.</p>
+                          <div className="mt-2 space-y-1">
+                            <p>
+                              <span className="font-medium">Email:</span>{" "}
+                              <a href="mailto:info@colombomail.lk" className="text-purple-600 hover:underline">
+                                info@colombomail.lk
+                              </a>
+                            </p>
+                            <p>
+                              <span className="font-medium">Phone:</span>{" "}
+                              <a href="tel:+94114896660" className="text-purple-600 hover:underline">
+                                (+94) 114 896 660
+                              </a>
+                              {", "}
+                              <a href="tel:+94755192192" className="text-purple-600 hover:underline">
+                                (+94) 755 192 192
+                              </a>
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            }
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Weight Input */}
@@ -559,11 +585,26 @@ export function ShippingEstimate({
                     <div className="w-full">
                       {/* Price */}
                       <div className="text-center mb-2">
-                        <p className="text-3xl font-bold text-purple-600">
-                          {destinationCurrency} {formatNumber(exchangeRatePrice, 2)}
-                        </p>
+                        <div className="flex items-center justify-around">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              Source Currency ({originCurrency})
+                            </p>
+                            <p className="text-3xl font-bold text-purple-600">
+                              {originCurrency} {formatNumber(exchangeRatePrice * (exchangeRateData?.sourceCountryExchangeRate || 0), 2)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              Destination Currency ({destinationCurrency})
+                            </p>
+                            <p className="text-3xl font-bold text-purple-600">
+                              {destinationCurrency} {formatNumber(exchangeRatePrice * (exchangeRateData?.destinationCountryExchangeRate || 0), 2)}
+                            </p>
+                          </div>
+                        </div>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Weight: {formatNumber(parseFloat(weight), 2)} kg
+                          Effective Weight: {formatNumber(calculateEffectiveWeight() || 0, 2)} kg
                         </p>
                       </div>
                     </div>
@@ -797,21 +838,21 @@ export function ShippingEstimate({
           )}
 
           {/* No Results Message */}
-          {!shouldUseExchangeRate && !isLoadingCourierPrices && weight && sortedCourierPrices.length === 0 && (
+          {!shouldUseExchangeRate && !isLoadingCourierPrices && calculateEffectiveWeight() && sortedCourierPrices.length === 0 && (
             <div className="text-sm text-muted-foreground text-center py-4">
               No courier services available for this route and weight. Please check your inputs.
             </div>
           )}
 
           {/* Exchange Rate Error Message */}
-          {shouldUseExchangeRate && !isLoadingExchangeRate && weight && exchangeRatePrice === null && (
+          {shouldUseExchangeRate && !isLoadingExchangeRate && calculateEffectiveWeight() && exchangeRatePrice === null && (
             <div className="text-sm text-muted-foreground text-center py-4">
               Unable to calculate shipping price. Please check your inputs or try again later.
             </div>
           )}
 
           {/* Enter Weight Message */}
-          {!weight && !length && !width && !height && (
+          {!calculateEffectiveWeight() && (
             <div className="text-sm text-muted-foreground text-center py-2">
               Enter weight or dimensions to see shipping prices
             </div>

@@ -23,6 +23,7 @@ import {
   Calendar,
   Globe,
   Lightbulb,
+  Info,
 } from "lucide-react";
 import {
   Controller,
@@ -50,6 +51,7 @@ import { fetchProductData } from "@/lib/product-scraper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
+import { Alert, AlertDescription } from "../ui/alert";
 
 interface ProductsStepProps {
   index: number;
@@ -713,7 +715,7 @@ export function ProductsStep({
                   </Label>
                   {getValues &&
                     (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                      0 && (
+                    0 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -776,9 +778,8 @@ export function ProductsStep({
 
                         for (const file of files) {
                           const fileIsImage = isImageType(file.type);
-                          const fileId = `${file.name}-${
-                            file.size
-                          }-${Date.now()}`;
+                          const fileId = `${file.name}-${file.size
+                            }-${Date.now()}`;
                           newImageFiles[fileId] = fileIsImage;
 
                           if (fileIsImage) {
@@ -854,7 +855,7 @@ export function ProductsStep({
 
                   {getValues &&
                     (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                      0 && (
+                    0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {getValues(`shipments.${index}.invoiceUrls`)?.map(
                           (url: string, idx: number) => (
@@ -977,9 +978,8 @@ export function ProductsStep({
                       <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
                       <span className="text-sm text-muted-foreground group-hover:text-primary">
                         {Object.keys(productImagePreviews).length > 0
-                          ? `${
-                              Object.keys(productImagePreviews).length
-                            }/10 images - Click to add more`
+                          ? `${Object.keys(productImagePreviews).length
+                          }/10 images - Click to add more`
                           : "Click to upload or drag images here (Max 10)"}
                       </span>
                     </div>
@@ -1008,9 +1008,8 @@ export function ProductsStep({
                         const newPreviews = { ...productImagePreviews };
 
                         for (const file of files) {
-                          const fileId = `${file.name}-${
-                            file.size
-                          }-${Date.now()}`;
+                          const fileId = `${file.name}-${file.size
+                            }-${Date.now()}`;
 
                           const reader = new FileReader();
                           reader.onload = (e) => {
@@ -1088,7 +1087,7 @@ export function ProductsStep({
                               className="rounded-lg border border-border bg-muted/30"
                             >
                               {Object.values(productImagePreviews).length >
-                              idx ? (
+                                idx ? (
                                 <div className="flex items-center gap-3">
                                   <img
                                     src={
@@ -1140,10 +1139,9 @@ export function ProductsStep({
                 </div>
                 {getValues && (
                   <p className="text-xs text-muted-foreground">
-                    {`${
-                      (getValues(`shipments.${index}.productImageUrls`) || [])
-                        .length
-                    }/10 images uploaded`}
+                    {`${(getValues(`shipments.${index}.productImageUrls`) || [])
+                      .length
+                      }/10 images uploaded`}
                   </p>
                 )}
                 <ErrorMessage
@@ -1226,14 +1224,23 @@ export function ProductsStep({
                                       }}
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                    </div>
+                                    <>
+                                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                      </div>
+
+                                      <Alert className="border-yellow-200 bg-yellow-50 mt-3">
+                                        <Info className="h-4 w-4 text-yellow-600" />
+                                        <AlertDescription className="text-yellow-600 font-semibold">
+                                          The product image couldn't be fetched automatically. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
+                                      </Alert>
+                                    </>
                                   )}
                                 </div>
                                 <p className="text-xs font-medium line-clamp-2">
                                   {imageData.name}
                                 </p>
+
                               </div>
                             )}
                           </div>

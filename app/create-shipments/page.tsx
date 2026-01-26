@@ -799,46 +799,42 @@ function CreateShipmentPageContent() {
           {/* Identity Verification Banner */}
           {!isVerified && (
             <Alert
-              className={`mb-6 rounded-lg border p-4 ${
-                isPending
-                  ? "border-yellow-200 bg-yellow-50"
-                  : isRejected
+              className={`mb-6 rounded-lg border p-4 ${isPending
+                ? "border-yellow-200 bg-yellow-50"
+                : isRejected
                   ? "border-red-200 bg-red-50"
                   : "border-yellow-200 bg-yellow-50"
-              }`}
+                }`}
             >
               <AlertTriangle
-                className={`h-4 w-4 ${
-                  isPending
-                    ? "text-yellow-600"
-                    : isRejected
+                className={`h-4 w-4 ${isPending
+                  ? "text-yellow-600"
+                  : isRejected
                     ? "text-red-600"
                     : "text-yellow-600"
-                }`}
+                  }`}
               />
               <AlertTitle
-                className={`font-medium ${
-                  isPending
-                    ? "text-yellow-900"
-                    : isRejected
+                className={`font-medium ${isPending
+                  ? "text-yellow-900"
+                  : isRejected
                     ? "text-red-900"
                     : "text-yellow-900"
-                }`}
+                  }`}
               >
                 {isPending
                   ? "Identity Verification Pending"
                   : isRejected
-                  ? "Identity Verification Rejected"
-                  : "Identity Verification Required"}
+                    ? "Identity Verification Rejected"
+                    : "Identity Verification Required"}
               </AlertTitle>
               <AlertDescription
-                className={`flex flex-col gap-1 mt-1 ${
-                  isPending
-                    ? "text-yellow-700"
-                    : isRejected
+                className={`flex flex-col gap-1 mt-1 ${isPending
+                  ? "text-yellow-700"
+                  : isRejected
                     ? "text-red-700"
                     : "text-[#D48806]"
-                }`}
+                  }`}
               >
                 <span className="mt-1 text-sm">
                   {isPending ? (
@@ -867,11 +863,10 @@ function CreateShipmentPageContent() {
                     }
                   >
                     <button
-                      className={`underline text-sm font-medium w-fit p-0 h-auto ${
-                        isRejected
-                          ? "text-red-800 hover:text-red-900"
-                          : "text-yellow-800 hover:text-yellow-900"
-                      }`}
+                      className={`underline text-sm font-medium w-fit p-0 h-auto ${isRejected
+                        ? "text-red-800 hover:text-red-900"
+                        : "text-yellow-800 hover:text-yellow-900"
+                        }`}
                     >
                       {isRejected
                         ? "Re-upload Documents"
@@ -909,21 +904,18 @@ function CreateShipmentPageContent() {
                 (step) => (
                   <div key={step} className="flex items-center ">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step <= currentStep
-                          ? "bg-primary text-white"
-                          : "bg-gray-200 text-gray-500"
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step <= currentStep
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 text-gray-500"
+                        }`}
                     >
                       {step < currentStep ? <Check size={16} /> : step}
                     </div>
                     {step < (isWarehouseService ? 5 : 4) && (
                       <div
-                        className={` ${
-                          isWarehouseService ? "w-[12rem]" : "w-[19rem]"
-                        } h-1 mx-2 rounded ${
-                          step < currentStep ? "bg-primary" : "bg-gray-200"
-                        }`}
+                        className={` ${isWarehouseService ? "w-[12rem]" : "w-[19rem]"
+                          } h-1 mx-2 rounded ${step < currentStep ? "bg-primary" : "bg-gray-200"
+                          }`}
                       />
                     )}
                   </div>
@@ -1032,7 +1024,7 @@ function CreateShipmentPageContent() {
             )}
 
             {(currentStep === 4 && !isWarehouseService) ||
-            (currentStep === 5 && isWarehouseService) ? (
+              (currentStep === 5 && isWarehouseService) ? (
               <ReviewStep
                 baseAmount={baseAmount}
                 selectedAddOns={selectedAddOns}
@@ -1043,6 +1035,7 @@ function CreateShipmentPageContent() {
                 destinationCountryCode={watch(
                   "shipments.0.receiver.receivingCountry"
                 )}
+                items={watch("shipments.0.items") || []}
                 onBack={handleBack}
                 onSubmit={async () => {
                   const reviewStep = isWarehouseService ? 5 : 4;
@@ -1112,13 +1105,12 @@ function CreateShipmentPageContent() {
                     console.log(
                       "  Receiver Country:",
                       formData.shipments[0]?.receiver?.receivingCountry ||
-                        "❌ MISSING"
+                      "❌ MISSING"
                     );
                     console.log(
                       "  Receiver Name:",
-                      `${formData.shipments[0]?.receiver?.firstName || ""} ${
-                        formData.shipments[0]?.receiver?.lastName || ""
-                      }`.trim() || "❌ MISSING"
+                      `${formData.shipments[0]?.receiver?.firstName || ""} ${formData.shipments[0]?.receiver?.lastName || ""
+                        }`.trim() || "❌ MISSING"
                     );
                     console.log(
                       "  Items Count:",
@@ -1146,9 +1138,8 @@ function CreateShipmentPageContent() {
                       title: "Validation Error",
                       description:
                         allErrors.length > 0
-                          ? `Please fix: ${allErrors.slice(0, 3).join(", ")}${
-                              allErrors.length > 3 ? "..." : ""
-                            }`
+                          ? `Please fix: ${allErrors.slice(0, 3).join(", ")}${allErrors.length > 3 ? "..." : ""
+                          }`
                           : "Please fill in all required fields",
                       variant: "destructive",
                     });

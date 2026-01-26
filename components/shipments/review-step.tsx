@@ -1,6 +1,6 @@
 "use client";
 
-import { ShipmentPriceBreakdown } from "@/components/shipments/price-breakdown";
+import { ShipmentPriceBreakdown, type ShipmentItem } from "@/components/shipments/price-breakdown";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +24,7 @@ interface ReviewStepProps {
   isCalculatingBreakdown?: boolean;
   sourceCountryCode?: string;
   destinationCountryCode?: string;
+  items?: ShipmentItem[]; // Product items array
   onBack: () => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -37,6 +38,7 @@ export function ReviewStep({
   isCalculatingBreakdown = false,
   sourceCountryCode,
   destinationCountryCode,
+  items = [],
   onBack,
   onSubmit,
   isSubmitting,
@@ -46,6 +48,9 @@ export function ReviewStep({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+
+  console.log({ destinationCountryCode, sourceCountryCode });
+
 
   const { data: sourceCountries } = useSourceCountries();
 
@@ -85,6 +90,7 @@ export function ReviewStep({
           destinationCountryCode={destinationCountryCode}
           destinationCurrencyCode={destinationCurrencyCode}
           sourceCurrencyCode={sourceCurrencyCode}
+          items={items}
         />
       )}
 

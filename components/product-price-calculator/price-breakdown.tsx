@@ -92,7 +92,7 @@ export function PriceBreakdown({
             }),
             getHandlingCharge({
               itemPrice: productPrice,
-              itemCurrency: productPriceCurrency,
+              itemCurrency: "INR",
               fromCountry,
               toCountry,
             }),

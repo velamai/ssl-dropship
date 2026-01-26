@@ -191,11 +191,11 @@ function TrackingPageContent() {
   const [countryName, setCountryName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Determine if input is shipment ID (SH) or tracking ID (UN)
+  // Determine if input is shipment ID (SH) or tracking ID (CM)
   const getTrackingType = (id: string): "shipment" | "trackship" | null => {
     const trimmed = id.trim().toUpperCase();
     if (trimmed.startsWith("SH")) return "shipment";
-    if (trimmed.startsWith("UN")) return "trackship";
+    if (trimmed.startsWith("CM")) return "trackship";
     return null;
   };
 
@@ -355,7 +355,7 @@ function TrackingPageContent() {
         fetchShipmentData(trackingNumber);
       } else {
         setError(
-          "Invalid tracking number. Must start with SH (shipment) or UN (tracking)"
+          "Invalid tracking number. Must start with SH (shipment) or CM (tracking)"
         );
       }
     }
@@ -371,7 +371,7 @@ function TrackingPageContent() {
     const type = getTrackingType(inputTrackingNumber);
     if (!type) {
       toast.error(
-        "Invalid tracking number. Must start with SH (shipment) or UN (tracking)"
+        "Invalid tracking number. Must start with SH (shipment) or CM (tracking)"
       );
       return;
     }

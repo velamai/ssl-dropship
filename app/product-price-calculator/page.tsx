@@ -6,7 +6,7 @@ import { CountrySelector } from "@/components/product-price-calculator/country-s
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { warehouseApi } from "@/lib/api/warehouses";
@@ -28,6 +28,8 @@ import {
 import type { Warehouse } from "@/lib/types/warehouse";
 import {
   AlertCircle,
+  ImageIcon,
+  Info,
   Loader2,
   Mail,
   MessageCircle,
@@ -331,7 +333,7 @@ export default function ProductPriceCalculatorPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Supported: E-commerce sites from India, Sri Lanka, UAE,
-                    Malaysia, Singapore, and USA
+                    and Malaysia
                   </p>
                 </div>
 
@@ -364,8 +366,8 @@ export default function ProductPriceCalculatorPage() {
                             </button>
                             <button
                               onClick={() =>
-                                (window.location.href =
-                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              (window.location.href =
+                                "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
                               title="Send email"
@@ -417,8 +419,8 @@ export default function ProductPriceCalculatorPage() {
                             </button>
                             <button
                               onClick={() =>
-                                (window.location.href =
-                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              (window.location.href =
+                                "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-green-200 hover:bg-green-300/70 text-green-600 text-xs font-medium transition-colors"
                               title="Send email"
@@ -434,7 +436,7 @@ export default function ProductPriceCalculatorPage() {
                 )}
 
                 {/* Product Preview */}
-                {productData && (
+                {/* {productData && (
                   <div className="border rounded-lg p-4 space-y-4">
                     <div className="flex gap-4">
                       {productData.image ? (
@@ -472,7 +474,7 @@ export default function ProductPriceCalculatorPage() {
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Source Country */}
                 <div className="space-y-2">
@@ -649,8 +651,8 @@ export default function ProductPriceCalculatorPage() {
                             </button>
                             <button
                               onClick={() =>
-                                (window.location.href =
-                                  "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
+                              (window.location.href =
+                                "mailto:test@gmail.com?subject=Help needed with Product Price Calculator")
                               }
                               className="flex items-center gap-1 px-3 py-1 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-medium transition-colors"
                               title="Send email"
@@ -668,8 +670,83 @@ export default function ProductPriceCalculatorPage() {
             </Card>
           </div>
 
+
+
           {/* Right Column - Price Breakdown */}
-          <div>
+          <div className="space-y-2.5">
+
+            {/* Product Preview */}
+            {productData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5" />
+                    Product Preview
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Images are automatically scraped from product links
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-4 rounded-lg border bg-card">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex gap-4">
+                          <div className="flex-1 min-w-0">
+
+                            {productData.image ? (
+                              <>
+                                <div className="relative h-56 flex-shrink-0 rounded-lg overflow-hidden border bg-muted">
+                                  <Image
+                                    src={productData.image}
+                                    alt={productData.title}
+                                    fill
+                                    // className="object-contain"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src =
+                                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Crect width='128' height='128' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
+                                    }}
+                                    loading="lazy"
+                                  />
+                                </div>
+
+                                <p className="font-semibold text-base mb-1 line-clamp-2">
+                                  {productData.title}
+                                </p>
+
+                                <p className="text-lg font-bold text-purple-600 mb-2">
+                                  {/* {productData.currency}{" "} */}
+                                  Price:{" "}
+                                  {productData.price.toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </p>
+
+                              </>
+                            ) : (
+                              <>
+                                <div className="h-56  flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center border">
+                                  Image couldn't be fetched automatically
+                                </div>
+                                <Alert className="border-yellow-200 bg-yellow-50 mt-3">
+                                  <Info className="h-4 w-4 text-yellow-600" />
+                                  <AlertDescription className="text-yellow-600 font-semibold">
+                                    The product image couldn't be fetched automatically. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
+                                </Alert>
+                              </>
+                            )}
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {priceBreakdown && category ? (
               <PriceBreakdown
                 breakdown={priceBreakdown}
@@ -692,6 +769,9 @@ export default function ProductPriceCalculatorPage() {
                 </CardContent>
               </Card>
             )}
+
+
+
           </div>
         </div>
       </div>
