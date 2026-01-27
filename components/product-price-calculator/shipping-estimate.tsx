@@ -22,10 +22,10 @@ interface ShippingEstimateProps {
   exchangeRate: number;
   originCurrency: string;
   destinationCurrency: string;
-  priceCalculatorTotalLKR: number; // Price Calculator Total in LKR for service charge calculation
-  destinationCountryCode?: string; // ISO country code for destination
-  shipmentType?: "import" | "export"; // Shipment type for courier service filtering
-  originCountryCode?: string; // ISO country code for origin (for calculatePrice)
+  priceCalculatorTotalLKR: number;
+  destinationCountryCode?: string;
+  shipmentType?: "import" | "export";
+  originCountryCode?: string;
 }
 
 type ExchangeRate = {
@@ -63,8 +63,6 @@ export function ShippingEstimate({
     if (originCountryCode) return originCountryCode;
     return getCountryCode(originCountry);
   }, [originCountry, originCountryCode]);
-
-  console.log({ originCountryCode });
 
 
   useEffect(() => {
@@ -418,6 +416,7 @@ export function ShippingEstimate({
     <Card className="w-full border-dashed border-2">
       <CardHeader>
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between w-full text-left"
         >

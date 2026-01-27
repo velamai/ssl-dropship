@@ -10,6 +10,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ShippingEstimate } from "../product-price-calculator/shipping-estimate";
 
 type ProductPriceBreakDown = {
   productPriceInSourceCountry: number;
@@ -40,23 +41,17 @@ interface ShipmentPriceBreakdownProps {
 const supabase = getSupabaseBrowserClient();
 export function ShipmentPriceBreakdown({
   breakdown,
-  destinationCurrencyCode,
-  sourceCurrencyCode,
   sourceCountryCode,
   destinationCountryCode,
-  items = [], // Product items array - contains all product info: uuid, productUrl, productName, productNote, price, valueCurrency, quantity
+  items = [],
 }: ShipmentPriceBreakdownProps) {
-  const {
-    itemPriceOrigin,
-    domesticCourier,
-    warehouseHandling,
-    totalPriceOrigin,
-    originCurrency,
-  } = breakdown;
 
   const [productPriceBreakdown, setProductPriceBreakdown] = useState<ProductPriceBreakDown | null>(null);
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
   const [breakdownError, setBreakdownError] = useState<string | null>(null);
+
+  console.log({ valueCurrency: items[0]?.valueCurrency });
+
 
   useEffect(() => {
     const fetchPriceBreakdown = async () => {
@@ -69,13 +64,15 @@ export function ShipmentPriceBreakdown({
 
       const totalProductPrice = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
 
+
       setIsLoadingBreakdown(true);
       setBreakdownError(null);
 
       try {
         const fromCountry = sourceCountryCode
         const toCountry = destinationCountryCode;
-        const productPriceCurrency = breakdown.originCurrency;
+        const productPriceCurrency = items[0]?.valueCurrency || "INR";
+
 
         // Call all three API functions in parallel
         const [productPriceData, handlingChargeData, courierChargeData] =
@@ -84,7 +81,7 @@ export function ShipmentPriceBreakdown({
               productPrice: totalProductPrice,
               fromCountry: sourceCountryCode,
               toCountry: destinationCountryCode,
-              productPriceCurrency: "INR",
+              productPriceCurrency: productPriceCurrency,
             }),
             getHandlingCharge({
               itemPrice: totalProductPrice,
@@ -126,29 +123,6 @@ export function ShipmentPriceBreakdown({
     fetchPriceBreakdown();
   }, [destinationCountryCode, sourceCountryCode, items]);
 
-
-  const { data: exchangeRateData } = useQuery({
-    queryKey: ["exchange-rate", sourceCurrencyCode, destinationCurrencyCode],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exchange_rates")
-        .select("rate")
-        .eq("from_currency", sourceCurrencyCode)
-        .eq("to_currency", destinationCurrencyCode)
-        .eq("is_active", true)
-        .order("effective_date", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error) {
-        console.error("Error fetching exchange rate:", error);
-        return null;
-      }
-
-      return data?.rate || null;
-    },
-    enabled: !!sourceCurrencyCode && !!destinationCurrencyCode,
-  });
 
   return (
     <Card className="w-full">
@@ -324,95 +298,21 @@ export function ShipmentPriceBreakdown({
 
           </>
         )}
-
-        {/* 
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Item Price</span>
-            <div className="text-right">
-              <p className="font-semibold">
-                {originCurrency} {formatNumber(itemPriceOrigin, 2)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {destinationCurrencyCode}{" "}
-                {formatNumber(itemPriceOrigin * (exchangeRateData || 0), 2)}
-              </p>
-            </div>
-          </div>
-        </div>
-        <Separator />
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Domestic Courier Charge</span>
-            <div className="text-right">
-              <p className="font-semibold">
-                {originCurrency} {formatNumber(domesticCourier, 2)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {destinationCurrencyCode}{" "}
-                {formatNumber(domesticCourier * (exchangeRateData || 0), 2)}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground text-right mt-1">
-            (Fixed amount: {originCurrency} {formatNumber(domesticCourier, 2)})
-          </p>
-        </div>
-
-        <Separator />
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Warehouse Handling Charges</span>
-            <div className="text-right">
-              <p className="font-semibold">
-                {originCurrency} {formatNumber(warehouseHandling, 2)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {destinationCurrencyCode}{" "}
-                {formatNumber(warehouseHandling * (exchangeRateData || 0), 2)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-lg">
-              Total Price (before shipping)
-            </span>
-            <div className="text-right">
-              <p className="font-bold text-lg">
-                {originCurrency} {formatNumber(totalPriceOrigin, 2)}
-              </p>
-              <p className="text-sm font-semibold">
-                {destinationCurrencyCode}{" "}
-                {formatNumber(totalPriceOrigin * (exchangeRateData || 0), 2)}
-              </p>
-            </div>
-          </div>
-
-        </div> */}
-
-        <Separator />
-        <Alert className="border-blue-200 bg-blue-50">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <p className="font-semibold mb-2">Price Calculation:</p>
-            <ul className="text-sm space-y-1 list-disc list-inside">
-              <li>
-                The base price includes item cost, domestic shipping charges,
-                and warehouse handling charges.
-              </li>
-              <li>
-                International shipping costs will be calculated separately when
-                the package is received at the warehouse based on actual weight
-                and dimensions.
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
       </CardContent>
+
+      <div className="px-6 pb-6">
+        <ShippingEstimate
+          originCountry="india"
+          category="clothes"
+          exchangeRate={breakdown.exchangeRate}
+          originCurrency={breakdown.originCurrency}
+          destinationCurrency={breakdown.destinationCurrency}
+          priceCalculatorTotalLKR={breakdown.totalPriceOrigin}
+          destinationCountryCode={destinationCountryCode}
+          shipmentType="export"
+          originCountryCode={sourceCountryCode}
+        />
+      </div>
     </Card>
   );
 }

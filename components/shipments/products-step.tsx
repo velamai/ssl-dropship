@@ -436,7 +436,7 @@ export function ProductsStep({
               productUrl: productUrl,
               name: queryData.title || item?.productName || "Product",
               loading: false,
-              error: queryData.image ? undefined : "No image available",
+              error: queryData.image ? undefined : "Image couldn't be fetched automatically",
             },
           }));
         } else if (
@@ -451,7 +451,7 @@ export function ProductsStep({
               productUrl: productUrl,
               name: item?.productName || "Product",
               loading: false,
-              error: "No image available",
+              error: "Image couldn't be fetched automatically",
             },
           }));
         }
@@ -520,7 +520,7 @@ export function ProductsStep({
                     productUrl: productUrl,
                     name: queryData.title || item?.productName || "Product",
                     loading: false,
-                    error: queryData.image ? undefined : "No image available",
+                    error: queryData.image ? undefined : "Image couldn't be fetched automatically",
                   },
                 }));
               } else if (
@@ -534,7 +534,7 @@ export function ProductsStep({
                     productUrl: productUrl,
                     name: item?.productName || "Product",
                     loading: false,
-                    error: "No image available",
+                    error: "Image couldn't be fetched automatically",
                   },
                 }));
               }
@@ -1206,7 +1206,7 @@ export function ProductsStep({
                               <div className="flex flex-col items-center justify-center h-32 bg-muted rounded-lg text-center p-3">
                                 <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
                                 <p className="text-xs text-muted-foreground">
-                                  {imageData.error || "No image available"}
+                                  {imageData.error || "Image couldn't be fetched automatically"}
                                 </p>
                               </div>
                             ) : (
@@ -1226,7 +1226,8 @@ export function ProductsStep({
                                   ) : (
                                     <>
                                       <div className="w-full h-full flex items-center justify-center bg-muted">
-                                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                        {/* <ImageIcon className="w-8 h-8 text-muted-foreground" /> */}
+                                        Image couldn't be fetched automatically
                                       </div>
 
                                       <Alert className="border-yellow-200 bg-yellow-50 mt-3">
@@ -1243,6 +1244,18 @@ export function ProductsStep({
 
                               </div>
                             )}
+                            {
+                              (imageData.error || !imageData.imageUrl) &&
+                              (
+                                <>
+                                  <Alert className="border-yellow-400 bg-yellow-50 mt-3">
+                                    <Info className="h-4 w-4 text-yellow-600" />
+                                    <AlertDescription className="text-yellow-600 text-xs">
+                                      The image couldn't be loaded. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
+                                  </Alert>
+                                </>
+                              )
+                            }
                           </div>
                         </div>
                       </div>
