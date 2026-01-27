@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils/currency";
 import {
   Card,
   CardContent,
@@ -121,6 +122,12 @@ interface Shipment {
   drop_and_ship_warehouse_address?: { name: string | null } | null;
   total_price: number | null;
   total_quantity: number | null;
+
+  // Currency fields
+  source_currency_code?: string | null;
+  destination_currency_code?: string | null;
+  exchange_rate_source_to_inr?: number | null;
+  exchange_rate_destination_to_inr?: number | null;
 }
 
 type ShipmentWithRelations = Shipment & {
@@ -331,11 +338,11 @@ export default function ShipmentsPage() {
   const getRecipientName = (shipment: ShipmentWithRelations): string => {
     // Add parameter type and return type
     return (
-      `${shipment.receiver_first_name || ""} ${
-        shipment.receiver_last_name || ""
-      }`.trim() || "Unknown recipient"
+      `${shipment.receiver_first_name || ""} ${shipment.receiver_last_name || ""
+        }`.trim() || "Unknown recipient"
     );
   };
+
 
   if (loading) {
     return (
@@ -571,7 +578,7 @@ export default function ShipmentsPage() {
                               </span>
                             </div>
                             <div className="font-medium text-primary">
-                              ₹{Number(shipment.grand_total).toFixed(2) || 0}
+                              {formatPrice(shipment.grand_total, shipment)}
                             </div>
                           </div>
                         </div>

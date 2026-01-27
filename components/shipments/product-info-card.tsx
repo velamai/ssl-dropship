@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { formatPrice } from "@/lib/utils/currency";
 import { DROP_AND_SHIP_ADD_ON_PRICE } from "./constants";
 import { formatAddOnLabel, formatCurrency, formatDate } from "./utils";
 import type { Shipment, ShipmentItem } from "./types";
@@ -134,17 +135,17 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                         )}
                       </td>
                       <td className="text-sm text-right py-2">
-                        ₹{item.declared_value || 0}
+                        {formatPrice(item.declared_value, shipment) || 0}
                       </td>
                       <td className="text-sm text-right py-2">
                         {item.quantity || 1}
                       </td>
                       <td className="text-sm font-medium text-right py-2">
-                        ₹
-                        {(
+                        {formatPrice(
                           (Number(item.declared_value) || 0) *
-                          (item.quantity || 1)
-                        ).toFixed(2)}
+                          (item.quantity || 1),
+                          shipment
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -165,7 +166,7 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                 Add-ons
               </h3>
               <span className="text-xs text-muted-foreground">
-                {formatCurrency(DROP_AND_SHIP_ADD_ON_PRICE)}
+                {formatPrice(DROP_AND_SHIP_ADD_ON_PRICE, shipment)}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -177,14 +178,14 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                 >
                   <span>{formatAddOnLabel(addon)}</span>
                   <span className="text-muted-foreground">
-                    +{formatCurrency(DROP_AND_SHIP_ADD_ON_PRICE)}
+                    +{formatPrice(DROP_AND_SHIP_ADD_ON_PRICE, shipment)}
                   </span>
                 </Badge>
               ))}
             </div>
             <div className="flex items-center justify-between text-sm font-medium">
               <span>Total add-on charges</span>
-              <span>{formatCurrency(addOnsTotal)}</span>
+              <span>{formatPrice(addOnsTotal, shipment)}</span>
             </div>
           </div>
         )}

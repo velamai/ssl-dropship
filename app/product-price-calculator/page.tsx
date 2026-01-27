@@ -1,6 +1,7 @@
 "use client";
 
 import Footer from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 import { CategorySelector } from "@/components/product-price-calculator/category-selector";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
 import { warehouseApi } from "@/lib/api/warehouses";
 import { useCountries } from "@/lib/hooks/useCountries";
 import { useProductData } from "@/lib/hooks/useProductData";
@@ -51,6 +53,8 @@ export default function ProductPriceCalculatorPage() {
   const [quantity, setQuantity] = useState(1);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(false);
+
+  const { user } = useAuth();
 
   // Use React Query for product data fetching
   const {
@@ -280,17 +284,11 @@ export default function ProductPriceCalculatorPage() {
   return (
     <main className="min-h-screen bg-[#f8f8f8]">
       {/* Header */}
-      <div className="bg-white border-b">
+      {user?.id ? <Navbar /> : (<div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              {/* <div className="w-10 h-10 rounded-lg gradient-purple flex items-center justify-center">
-                <span className="text-white font-bold text-lg">B2S</span>
-              </div> */}
               <Image src="logo.png" width={75} height={75} alt="logo" />
-              {/* <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
-                buy2send
-              </span> */}
             </Link>
             <Link
               href="/"
@@ -300,7 +298,7 @@ export default function ProductPriceCalculatorPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </div>)}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { formatPrice } from "@/lib/utils/currency";
 import { CheckCircle, Clock, CreditCard, Loader2, XCircle } from "lucide-react";
 import Image from "next/image";
 import Script from "next/script";
@@ -487,18 +488,18 @@ export function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Amount:</span>
-              <span>{Number(shipment.grand_total).toFixed(2)} INR</span>
+              <span>{formatPrice(shipment.grand_total, shipment)}</span>
             </div>
             {paymentMethod === "Online Payment" && (
               <>
                 <div className="flex justify-between text-sm">
                   <span>Online Payment Charge (3.5%):</span>
-                  <span>{onlinePaymentCharges.toFixed(2)} INR</span>
+                  <span>{formatPrice(onlinePaymentCharges, shipment)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-sm font-medium">
                   <span>Total Amount:</span>
-                  <span>{totalWithCharges.toFixed(2)} INR</span>
+                  <span>{formatPrice(totalWithCharges, shipment)}</span>
                 </div>
               </>
             )}

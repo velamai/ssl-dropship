@@ -7,10 +7,9 @@ import { countryCodeToCurrencies, getDomesticCourierCharge, getHandlingCharge, g
 import { formatNumber } from "@/lib/product-price-calculator";
 import type { ShipmentPriceBreakdown } from "@/lib/shipment-price-calculator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
 import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ShippingEstimate } from "../product-price-calculator/shipping-estimate";
+import { ShippingEstimateCreate } from "../product-price-calculator/shipping-estimate-create";
 
 type ProductPriceBreakDown = {
   productPriceInSourceCountry: number;
@@ -50,7 +49,7 @@ export function ShipmentPriceBreakdown({
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
   const [breakdownError, setBreakdownError] = useState<string | null>(null);
 
-  console.log({ valueCurrency: items[0]?.valueCurrency });
+  console.log({ valueCurrency: items[0]?.valueCurrency, sourceCountryCode, destinationCountryCode });
 
 
   useEffect(() => {
@@ -301,17 +300,7 @@ export function ShipmentPriceBreakdown({
       </CardContent>
 
       <div className="px-6 pb-6">
-        <ShippingEstimate
-          originCountry="india"
-          category="clothes"
-          exchangeRate={breakdown.exchangeRate}
-          originCurrency={breakdown.originCurrency}
-          destinationCurrency={breakdown.destinationCurrency}
-          priceCalculatorTotalLKR={breakdown.totalPriceOrigin}
-          destinationCountryCode={destinationCountryCode}
-          shipmentType="export"
-          originCountryCode={sourceCountryCode}
-        />
+        <ShippingEstimateCreate sourceCountryCode={sourceCountryCode || ""} destinationCountryCode={destinationCountryCode || ""} />
       </div>
     </Card>
   );

@@ -125,6 +125,12 @@ export interface Shipment {
   drop_and_ship_product_payment_details?: string | null;
   drop_and_ship_product_payment_status?: string | null;
   drop_and_ship_product_payment_proof_url?: string | null;
+
+  // Currency fields
+  source_currency_code?: string | null;
+  destination_currency_code?: string | null;
+  exchange_rate_source_to_inr?: number | null;
+  exchange_rate_destination_to_inr?: number | null;
 }
 
 export type ShipmentItem = {

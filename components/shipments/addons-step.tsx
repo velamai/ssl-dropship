@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowLeft, Package, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, Package, Check, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { convertCurrencyByCountryCode, countryCodeToCurrencies } from "@/lib/api/product-price-calculator";
 
 const ADD_ON_PRICE = 100;
 
@@ -42,6 +44,13 @@ interface AddOnsStepProps {
   onAddOnsChange: (selectedAddOns: AddOnId[], addOnTotal: number) => void;
   onNext: () => void;
   onBack: () => void;
+  sourceCountryCode: string;
+  destinationCountryCode: string | null;
+}
+
+type ExchangeRate = {
+  sourceCountryExchangeRate: number;
+  destinationCountryExchangeRate: number;
 }
 
 export function AddOnsStep({
@@ -50,9 +59,45 @@ export function AddOnsStep({
   onAddOnsChange,
   onNext,
   onBack,
+  sourceCountryCode,
+  destinationCountryCode,
 }: AddOnsStepProps) {
+
+  console.log({ sourceCountryCode, destinationCountryCode });
+
+  const sourceCountryCurrency = useMemo(() => {
+    return countryCodeToCurrencies(sourceCountryCode) || "INR";
+  }, [sourceCountryCode]);
+
+  const destinationCountryCurrency = useMemo(() => {
+    return countryCodeToCurrencies(destinationCountryCode || "") || "USD";
+  }, [destinationCountryCode]);
+
+  const { data: exchangeRateData, isLoading: isLoadingExchangeRateData } = useQuery({
+    queryKey: ["exchangeRate", sourceCountryCode, destinationCountryCode],
+    queryFn: async () => {
+      const [sourceCountryExchangeRate, destinationCountryExchangeRate] = await Promise.all([
+        convertCurrencyByCountryCode({
+          sourceCountryCode: "IN",
+          destinationCountryCode: sourceCountryCode,
+          amount: null,
+        }),
+        convertCurrencyByCountryCode({
+          sourceCountryCode: "IN",
+          destinationCountryCode: destinationCountryCode || "",
+          amount: null,
+        }),
+      ])
+      return {
+        sourceCountryExchangeRate: sourceCountryExchangeRate || 1,
+        destinationCountryExchangeRate: destinationCountryExchangeRate || 1,
+      }
+    },
+    enabled: !!sourceCountryCode && !!destinationCountryCode,
+  });
+
   const formatCurrency = (value: number) =>
-    `₹${value.toLocaleString("en-IN", {
+    `${value.toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -75,21 +120,33 @@ export function AddOnsStep({
             <Package className="w-5 h-5" />
             Choose Add-ons
           </CardTitle>
-          <CardDescription>
-            Enhance your shipment with optional add-ons. Each add-on costs ₹100.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-            Each add-on adds{" "}
-            <span className="font-medium text-foreground">
-              {formatCurrency(ADD_ON_PRICE)}
-            </span>{" "}
-            to your base amount of{" "}
-            <span className="font-medium text-foreground">
-              {formatCurrency(baseAmount)}
-            </span>
-            .
+            {isLoadingExchangeRateData ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading exchange rates...</span>
+              </div>
+            ) : (
+              <>
+                Each add-on adds{" "}
+                <span className="font-medium text-foreground">
+                  {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                  {destinationCountryCode && (
+                    <> ({destinationCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
+                  )}
+                </span>{" "}
+                to your base amount of{" "}
+                <span className="font-medium text-foreground">
+                  {sourceCountryCurrency} {formatCurrency(baseAmount * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                  {destinationCountryCode && (
+                    <> ({destinationCountryCurrency} {formatCurrency(baseAmount * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
+                  )}
+                </span>
+                .
+              </>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -127,7 +184,19 @@ export function AddOnsStep({
                         </p>
                       )}
                       <p className="mt-2 text-sm font-medium text-foreground">
-                        + {formatCurrency(ADD_ON_PRICE)}
+                        {isLoadingExchangeRateData ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Loading price...
+                          </span>
+                        ) : (
+                          <>
+                            + {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                            {destinationCountryCode && (
+                              <> ({destinationCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
+                            )}
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -140,9 +209,19 @@ export function AddOnsStep({
             <span className="text-sm font-medium text-muted-foreground">
               Estimated total
             </span>
-            <span className="text-lg font-semibold text-foreground">
-              {formatCurrency(grandTotal)}
-            </span>
+            {isLoadingExchangeRateData ? (
+              <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              <span className="text-lg font-semibold text-foreground">
+                {sourceCountryCurrency} {formatCurrency(grandTotal * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                {destinationCountryCode && (
+                  <> ({destinationCountryCurrency} {formatCurrency(grandTotal * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
+                )}
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>

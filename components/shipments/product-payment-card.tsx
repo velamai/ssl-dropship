@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { formatPrice } from "@/lib/utils/currency";
 import { CheckCircle, Clock, CreditCard, Loader2, XCircle } from "lucide-react";
 import Image from "next/image";
 import Script from "next/script";
@@ -209,9 +210,8 @@ export function ProductPaymentCard({
 
     try {
       // Upload file to storage
-      const filename = `product-payment-proof/${Date.now()}-${
-        selectedFile.name
-      }`;
+      const filename = `product-payment-proof/${Date.now()}-${selectedFile.name
+        }`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("colombo-storage")
         .upload(filename, selectedFile);
@@ -432,7 +432,7 @@ export function ProductPaymentCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {shipment.drop_and_ship_product_payment_proof_status ===
-              "Rejected" ? (
+                "Rejected" ? (
                 <XCircle className="h-4 w-4 text-red-600" />
               ) : shipment.drop_and_ship_product_payment_proof_status ===
                 "Approved" ? (
@@ -443,7 +443,7 @@ export function ProductPaymentCard({
               <AlertTitle>
                 Product Payment Proof{" "}
                 {shipment.drop_and_ship_product_payment_proof_status ===
-                "Rejected"
+                  "Rejected"
                   ? "Rejected"
                   : "Status"}
               </AlertTitle>
@@ -459,13 +459,13 @@ export function ProductPaymentCard({
               "Your product payment has been verified by our admin team. Your shipment will be processed shortly."}
             {shipment.drop_and_ship_product_payment_proof_status ===
               "Rejected" && (
-              <>
-                {shipment.drop_and_ship_product_payment_proof_rejection_reason}
-                <div className="mt-2">
-                  Please submit a new product payment proof.
-                </div>
-              </>
-            )}
+                <>
+                  {shipment.drop_and_ship_product_payment_proof_rejection_reason}
+                  <div className="mt-2">
+                    Please submit a new product payment proof.
+                  </div>
+                </>
+              )}
             {shipment.drop_and_ship_product_payment_proof_url &&
               (paymentMethod === "Bank Transfer" ||
                 paymentMethod === "Cash") && (
@@ -532,30 +532,30 @@ export function ProductPaymentCard({
             {itemsTotal > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Products Total:</span>
-                <span>{itemsTotal.toFixed(2)} INR</span>
+                <span>{formatPrice(itemsTotal, shipment)}</span>
               </div>
             )}
             {addOnsTotal > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Add-ons Total:</span>
-                <span>{addOnsTotal.toFixed(2)} INR</span>
+                <span>{formatPrice(addOnsTotal, shipment)}</span>
               </div>
             )}
             {(itemsTotal > 0 || addOnsTotal > 0) && <Separator />}
             <div className="flex justify-between text-sm font-medium">
               <span>Amount:</span>
-              <span>{productPaymentAmount.toFixed(2)} INR</span>
+              <span>{formatPrice(productPaymentAmount, shipment)}</span>
             </div>
             {paymentMethod === "Online Payment" && (
               <>
                 <div className="flex justify-between text-sm">
                   <span>Online Payment Charge (3.5%):</span>
-                  <span>{onlinePaymentCharges.toFixed(2)} INR</span>
+                  <span>{formatPrice(onlinePaymentCharges, shipment)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-sm font-medium">
                   <span>Total Amount:</span>
-                  <span>{totalWithCharges.toFixed(2)} INR</span>
+                  <span>{formatPrice(totalWithCharges, shipment)}</span>
                 </div>
               </>
             )}

@@ -1245,7 +1245,7 @@ export function ProductsStep({
                               </div>
                             )}
                             {
-                              (imageData.error || !imageData.imageUrl) &&
+                              (imageData.error || !imageData.imageUrl) && !imageData.loading &&
                               (
                                 <>
                                   <Alert className="border-yellow-400 bg-yellow-50 mt-3">

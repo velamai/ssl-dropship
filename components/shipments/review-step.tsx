@@ -10,9 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { convertCurrencyByCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
 import { ArrowLeft, FileText, Loader2, Send } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
@@ -26,9 +28,31 @@ interface ReviewStepProps {
   destinationCountryCode?: string;
   items?: ShipmentItem[]; // Product items array
   onBack: () => void;
-  onSubmit: () => void;
+  onSubmit: (currencyData?: {
+    sourceCurrencyCode: string;
+    destinationCurrencyCode: string;
+    exchangeRateSourceToInr: number;
+    exchangeRateDestinationToInr: number;
+    totalGrandTotal: number;
+    warehouseHandlingCharge: number;
+    courierCharge: number;
+  }) => void;
   isSubmitting: boolean;
 }
+
+export type ProductPriceBreakDown = {
+  productPriceInSourceCountry: number;
+  productPriceInDestinationCountry: number;
+  warehouseHandlingChargeInSourceCountry: number;
+  warehouseHandlingChargeInDestinationCountry: number;
+  courierChargeInSourceCountry: number;
+  courierChargeInDestinationCountry: number;
+  exchangeRate: number;
+  sourceCurrencyCode: string;
+  destinationCurrencyCode: string;
+  exchangeRateSourceToInr: number;
+  exchangeRateDestinationToInr: number;
+};
 
 export function ReviewStep({
   baseAmount,
@@ -44,30 +68,140 @@ export function ReviewStep({
   isSubmitting,
 }: ReviewStepProps) {
   const formatCurrency = (value: number) =>
-    `₹${value.toLocaleString("en-IN", {
+    `${value.toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
 
-  console.log({ destinationCountryCode, sourceCountryCode });
+  const [productPriceBreakdown, setProductPriceBreakdown] = useState<ProductPriceBreakDown | null>(null);
+  const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
+  const [breakdownError, setBreakdownError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPriceBreakdown = async () => {
+      if (
+        !destinationCountryCode ||
+        !sourceCountryCode
+      ) {
+        return;
+      }
+
+      const totalProductPrice = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+
+
+      setIsLoadingBreakdown(true);
+      setBreakdownError(null);
+
+      try {
+        const fromCountry = sourceCountryCode
+        const toCountry = destinationCountryCode;
+        const productPriceCurrency = items[0]?.valueCurrency || "INR";
+
+        // Call all API functions in parallel
+        const [productPriceData, handlingChargeData, courierChargeData, exchangeRateInrToSource, exchangeRateSourceToInr, exchangeRateDestinationToInr] =
+          await Promise.all([
+            getProductPrice({
+              productPrice: totalProductPrice,
+              fromCountry: sourceCountryCode,
+              toCountry: destinationCountryCode,
+              productPriceCurrency: productPriceCurrency,
+            }),
+            getHandlingCharge({
+              itemPrice: totalProductPrice,
+              itemCurrency: productPriceCurrency,
+              fromCountry,
+              toCountry,
+            }),
+            getDomesticCourierCharge({
+              fromCountry,
+              toCountry,
+            }),
+            convertCurrencyByCountryCode({
+              sourceCountryCode: "IN",
+              destinationCountryCode: sourceCountryCode,
+              amount: null,
+            }),
+            // Exchange rate from source currency to INR
+            convertCurrencyByCountryCode({
+              sourceCountryCode: "IN",
+              destinationCountryCode: sourceCountryCode,
+              amount: null,
+            }),
+            // Exchange rate from destination currency to INR
+            convertCurrencyByCountryCode({
+              sourceCountryCode: "IN",
+              destinationCountryCode: destinationCountryCode,
+              amount: null,
+            }),
+          ]);
+
+        // Combine results into the state structure
+        // Currency codes will be updated in a separate useEffect when sourceCountries data is available
+        setProductPriceBreakdown({
+          productPriceInSourceCountry: productPriceData.sourceCountryPrice,
+          productPriceInDestinationCountry:
+            productPriceData.destinationCountryPrice,
+          warehouseHandlingChargeInSourceCountry:
+            handlingChargeData.sourceCountryPrice,
+          warehouseHandlingChargeInDestinationCountry:
+            handlingChargeData.destinationCountryPrice,
+          courierChargeInSourceCountry: courierChargeData.sourceCountryCharge,
+          courierChargeInDestinationCountry:
+            courierChargeData.destinationCountryCharge,
+          exchangeRate: exchangeRateInrToSource,
+          sourceCurrencyCode: "INR", // Default, will be updated below
+          destinationCurrencyCode: "USD", // Default, will be updated below
+          exchangeRateSourceToInr: exchangeRateSourceToInr || 1,
+          exchangeRateDestinationToInr: exchangeRateDestinationToInr || 1,
+        });
+      } catch (error) {
+        console.error("Error fetching price breakdown:", error);
+        setBreakdownError(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch price breakdown",
+        );
+      } finally {
+        setIsLoadingBreakdown(false);
+      }
+    };
+
+    fetchPriceBreakdown();
+  }, [destinationCountryCode, sourceCountryCode, items]);
 
 
   const { data: sourceCountries } = useSourceCountries();
 
-  const destinationCurrencyCode =
+  const destinationCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === destinationCountryCode)
       ?.currency || "USD";
 
-  const sourceCurrencyCode =
+  const sourceCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === sourceCountryCode)
       ?.currency || "INR";
 
-  // Calculate grand total: itemPriceOrigin + domesticCourier + warehouseHandling + addOnTotal
-  const itemPrice = priceBreakdown?.itemPriceOrigin || 0;
-  const domesticCourierCharge = priceBreakdown?.domesticCourier || 0;
-  const warehouseHandlingCharge = priceBreakdown?.warehouseHandling || 0;
-  const grandTotal =
-    itemPrice + domesticCourierCharge + warehouseHandlingCharge + addOnTotal;
+  // Update currency codes in productPriceBreakdown when sourceCountries data is available
+  useEffect(() => {
+    if (productPriceBreakdown && sourceCountries && sourceCountryCode && destinationCountryCode) {
+      const updatedSourceCurrencyCode =
+        sourceCountries?.find((country) => country.code === sourceCountryCode)
+          ?.currency || "INR";
+      const updatedDestinationCurrencyCode =
+        sourceCountries?.find((country) => country.code === destinationCountryCode)
+          ?.currency || "USD";
+
+      if (
+        updatedSourceCurrencyCode !== productPriceBreakdown.sourceCurrencyCode ||
+        updatedDestinationCurrencyCode !== productPriceBreakdown.destinationCurrencyCode
+      ) {
+        setProductPriceBreakdown({
+          ...productPriceBreakdown,
+          sourceCurrencyCode: updatedSourceCurrencyCode,
+          destinationCurrencyCode: updatedDestinationCurrencyCode,
+        });
+      }
+    }
+  }, [sourceCountries, sourceCountryCode, destinationCountryCode, productPriceBreakdown]);
 
   return (
     <div className="space-y-6">
@@ -88,8 +222,8 @@ export function ReviewStep({
           breakdown={priceBreakdown}
           sourceCountryCode={sourceCountryCode}
           destinationCountryCode={destinationCountryCode}
-          destinationCurrencyCode={destinationCurrencyCode}
-          sourceCurrencyCode={sourceCurrencyCode}
+          destinationCurrencyCode={destinationCurrencyCodeValue}
+          sourceCurrencyCode={sourceCurrencyCodeValue}
           items={items}
         />
       )}
@@ -105,31 +239,39 @@ export function ReviewStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Order Summary */}
           <div className="flex flex-col gap-2 rounded-md border border-dashed p-4 text-sm">
             <p className="font-medium text-foreground">Order summary</p>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Items Price</span>
-              <span>{formatCurrency(itemPrice)}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Domestic Courier Charge</span>
-              <span>{formatCurrency(domesticCourierCharge)}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Warehouse Handling Charge</span>
-              <span>{formatCurrency(warehouseHandlingCharge)}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Add-ons ({selectedAddOns.length})</span>
-              <span>{formatCurrency(addOnTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between border-t pt-2 text-foreground">
-              <span className="text-sm font-semibold">Grand Total</span>
-              <span className="text-base font-semibold">
-                {formatCurrency(grandTotal)}
-              </span>
-            </div>
+            {isLoadingBreakdown ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading order summary...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Items Price</span>
+                  <span> {sourceCurrencyCodeValue}{" "} {formatCurrency(productPriceBreakdown?.productPriceInSourceCountry || 0)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Domestic Courier Charge</span>
+                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency(productPriceBreakdown?.courierChargeInSourceCountry || 0)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Warehouse Handling Charge</span>
+                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency(productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Add-ons ({selectedAddOns.length})</span>
+                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency((addOnTotal * (productPriceBreakdown?.exchangeRate || 1) || 0))}</span>
+                </div>
+                <div className="flex items-center justify-between border-t pt-2 text-foreground">
+                  <span className="text-sm font-semibold">Grand Total</span>
+                  <span className="text-base font-semibold">
+                    {sourceCurrencyCodeValue}{" "} {formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Terms and Conditions */}
@@ -471,7 +613,21 @@ export function ReviewStep({
         </Button>
         <Button
           type="button"
-          onClick={onSubmit}
+          onClick={() => {
+            if (productPriceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
+              onSubmit({
+                sourceCurrencyCode: sourceCurrencyCodeValue,
+                destinationCurrencyCode: destinationCurrencyCodeValue,
+                exchangeRateSourceToInr: productPriceBreakdown.exchangeRateSourceToInr,
+                exchangeRateDestinationToInr: productPriceBreakdown.exchangeRateDestinationToInr,
+                totalGrandTotal: productPriceBreakdown?.productPriceInSourceCountry + productPriceBreakdown?.courierChargeInSourceCountry + productPriceBreakdown?.warehouseHandlingChargeInSourceCountry + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)),
+                warehouseHandlingCharge: productPriceBreakdown?.warehouseHandlingChargeInSourceCountry,
+                courierCharge: productPriceBreakdown?.courierChargeInSourceCountry,
+              });
+            } else {
+              onSubmit();
+            }
+          }}
           disabled={isSubmitting}
           className="gap-2"
         >
@@ -483,7 +639,7 @@ export function ReviewStep({
           ) : (
             <>
               <Send className="h-4 w-4" />
-              Place Order ({formatCurrency(grandTotal)})
+              Place Order ({sourceCurrencyCodeValue}{" "}{formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)})
             </>
           )}
         </Button>

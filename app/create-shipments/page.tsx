@@ -10,7 +10,7 @@ import {
 } from "@/lib/schemas/shipmentSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Check } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -87,6 +87,16 @@ function CreateShipmentPageContent() {
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
   const [addOnTotal, setAddOnTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Use ref instead of state to ensure synchronous access during form submission
+  const currencyDataRef = useRef<{
+    sourceCurrencyCode: string;
+    destinationCurrencyCode: string;
+    exchangeRateSourceToInr: number;
+    exchangeRateDestinationToInr: number;
+    totalGrandTotal: number;
+    warehouseHandlingCharge: number;
+    courierCharge: number;
+  } | null>(null);
 
   const {
     register,
@@ -671,65 +681,37 @@ function CreateShipmentPageContent() {
       setIsSubmitting(true);
       const transformedShipment = transformShipmentData(data.shipments[0]);
 
-      // Calculate grand_total: itemPriceOrigin + domesticCourier + warehouseHandling + addOnTotal
+      // Use calculated data from review-step.tsx instead of recalculating
+      // All prices are already calculated and converted to INR in review-step
       let grandTotal = 0;
+      let warehouseHandlingCharge = 0;
+      let courierCharge = 0;
 
-      const shipment = data.shipments[0];
-      if (
-        shipment.items &&
-        shipment.items.length > 0 &&
-        shipment.sourceCountryCode &&
-        shipment.receiver?.receivingCountry
-      ) {
-        try {
-          const { calculateShipmentPriceBreakdown } = await import(
-            "@/lib/shipment-price-calculator"
-          );
 
-          const items = shipment.items.map((item) => ({
-            price: item.price || 0,
-            quantity: item.quantity || 1,
-            valueCurrency: item.valueCurrency || "INR",
-          }));
-
-          const breakdown = await calculateShipmentPriceBreakdown({
-            items,
-            sourceCountryCode: shipment.sourceCountryCode,
-            destinationCountryCode: shipment.receiver.receivingCountry,
-          });
-
-          if (breakdown) {
-            grandTotal =
-              breakdown.itemPriceOrigin +
-              breakdown.domesticCourier +
-              breakdown.warehouseHandling +
-              addOnTotal;
-          } else {
-            // Fallback: calculate from items only if breakdown fails
-            const itemsTotal = items.reduce(
-              (sum, item) => sum + item.price * item.quantity,
-              0
-            );
-            grandTotal = itemsTotal + addOnTotal;
-          }
-        } catch (error) {
-          console.error("Error calculating price breakdown:", error);
-          // Fallback: calculate from items only
-          const itemsTotal = shipment.items.reduce((sum, item) => {
-            const itemPrice = item.price || 0;
-            const itemQuantity = item.quantity || 1;
-            return sum + itemPrice * itemQuantity;
-          }, 0);
-          grandTotal = itemsTotal + addOnTotal;
-        }
+      if (currencyDataRef.current) {
+        // Use the grand total calculated in review-step (already in Source Currency)
+        grandTotal = currencyDataRef.current.totalGrandTotal / currencyDataRef.current.exchangeRateSourceToInr;
+        warehouseHandlingCharge = currencyDataRef.current.warehouseHandlingCharge / currencyDataRef.current.exchangeRateSourceToInr;
+        courierCharge = currencyDataRef.current.courierCharge / currencyDataRef.current.exchangeRateSourceToInr;
+        console.log("[onSubmitHandler] Using calculated data from review-step:", {
+          grandTotal: grandTotal,
+          totalGrandTotal: currencyDataRef.current.totalGrandTotal,
+          sourceCurrencyCode: currencyDataRef.current.sourceCurrencyCode,
+          destinationCurrencyCode: currencyDataRef.current.destinationCurrencyCode,
+          exchangeRateSourceToInr: currencyDataRef.current.exchangeRateSourceToInr,
+          exchangeRateDestinationToInr: currencyDataRef.current.exchangeRateDestinationToInr,
+        });
       } else {
-        // Fallback: calculate from items only if required fields are missing
+        // Fallback: calculate from items only if currency data is not available (assuming prices are already in INR)
+        console.warn("[onSubmitHandler] Currency data not available, using fallback calculation");
+        const shipment = data.shipments[0];
         const itemsTotal =
           shipment.items?.reduce((sum, item) => {
             const itemPrice = item.price || 0;
             const itemQuantity = item.quantity || 1;
             return sum + itemPrice * itemQuantity;
           }, 0) || 0;
+        // addOnTotal is already in INR
         grandTotal = itemsTotal + addOnTotal;
       }
 
@@ -738,7 +720,18 @@ function CreateShipmentPageContent() {
         drop_and_ship_add_ons: selectedAddOns,
         drop_and_ship_add_ons_total: addOnTotal,
         grand_total: grandTotal,
+        ...(currencyDataRef.current && {
+          source_currency_code: currencyDataRef.current.sourceCurrencyCode,
+          destination_currency_code: currencyDataRef.current.destinationCurrencyCode,
+          exchange_rate_source_to_inr: currencyDataRef.current.exchangeRateSourceToInr,
+          exchange_rate_destination_to_inr: currencyDataRef.current.exchangeRateDestinationToInr,
+          drop_and_ship_courier_charge: courierCharge,
+          drop_and_ship_handling_charges: warehouseHandlingCharge,
+        }),
       };
+
+      console.log("[onSubmitHandler] Currency data in payload:", currencyDataRef.current);
+      console.log("[onSubmitHandler] Full payload:", payload);
 
       const { data: responseData, error } = await supabase.functions.invoke(
         "drop-and-ship-order",
@@ -1010,6 +1003,8 @@ function CreateShipmentPageContent() {
                 onAddOnsChange={handleAddOnsChange}
                 onNext={handleNext}
                 onBack={handleBack}
+                sourceCountryCode={watch("shipments.0.sourceCountryCode")}
+                destinationCountryCode={watch("shipments.0.receiver.receivingCountry")}
               />
             )}
 
@@ -1020,6 +1015,8 @@ function CreateShipmentPageContent() {
                 onAddOnsChange={handleAddOnsChange}
                 onNext={handleNext}
                 onBack={handleBack}
+                sourceCountryCode={watch("shipments.0.sourceCountryCode")}
+                destinationCountryCode={watch("shipments.0.receiver.receivingCountry")}
               />
             )}
 
@@ -1037,13 +1034,22 @@ function CreateShipmentPageContent() {
                 )}
                 items={watch("shipments.0.items") || []}
                 onBack={handleBack}
-                onSubmit={async () => {
+                onSubmit={async (currencyData) => {
                   const reviewStep = isWarehouseService ? 5 : 4;
                   console.log("[ReviewStep] Starting validation:", {
                     reviewStep,
                     isWarehouseService,
                     currentStep,
+                    currencyData,
                   });
+
+                  // Store currency data in ref for synchronous access during form submission
+                  if (currencyData) {
+                    currencyDataRef.current = currencyData;
+                    console.log("[ReviewStep] Stored currency data:", currencyData);
+                  } else {
+                    console.warn("[ReviewStep] No currency data provided");
+                  }
 
                   const isValid = await validateStep(reviewStep);
                   console.log("[ReviewStep] Validation result:", isValid);

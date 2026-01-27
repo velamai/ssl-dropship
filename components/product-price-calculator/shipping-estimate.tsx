@@ -26,6 +26,7 @@ interface ShippingEstimateProps {
   destinationCountryCode?: string;
   shipmentType?: "import" | "export";
   originCountryCode?: string;
+  gridColumns?: number;
 }
 
 type ExchangeRate = {
@@ -43,6 +44,7 @@ export function ShippingEstimate({
   destinationCountryCode = "LK",
   shipmentType = "export",
   originCountryCode,
+  gridColumns = 2,
 }: ShippingEstimateProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [weight, setWeight] = useState<string>("");
@@ -154,6 +156,9 @@ export function ShippingEstimate({
     // Both are valid, return the greater value
     return Math.max(weightValue!, volumeWeight!);
   };
+
+  console.log({ convertedPrices });
+
 
   // Load shipping rates on mount and when dependencies change
   useEffect(() => {
@@ -644,7 +649,7 @@ export function ShippingEstimate({
                 )}
 
                 {/* All Courier Services Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", `md:grid-cols-${gridColumns || 2}`)}>
                   {sortedCourierPrices.map((servicePrice, index) => {
                     const serviceId = servicePrice.courier_service_id;
                     const convertedPrice = convertedPrices.get(serviceId);
