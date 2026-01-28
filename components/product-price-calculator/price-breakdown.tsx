@@ -317,13 +317,13 @@ export function PriceBreakdown({
                     )}
                 </div>
               </div>
-              {exchangeRate && (
+              {/* {exchangeRate && (
                 <p className="text-xs text-muted-foreground text-right mt-1">
                   (Exchange Rate {countryCodeToCurrencies(sourceCountryCode || "")}1
                   = {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                   {formatNumber(exchangeRate, 2)})
                 </p>
-              )}
+              )} */}
             </div>
 
             <Separator />
