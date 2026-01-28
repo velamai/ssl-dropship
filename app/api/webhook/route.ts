@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       // Check if this is a product payment or regular payment
       const isProductPayment = payment_type === "product_payment";
 
-      // Parse status_timeline (it's stored as JSON string)
+      // Parse status_timeline (handle both JSON string and array formats for backward compatibility)
       let statusTimeline = [];
       try {
         statusTimeline =
@@ -75,14 +75,14 @@ export async function POST(req: NextRequest) {
             current_status_updated_at: new Date().toISOString(),
             drop_and_ship_product_payment_id: payment_id,
             current_status: "Product Paid",
-            status_timeline: JSON.stringify([
+            status_timeline: [
               ...statusTimeline,
               {
                 status: "Product Paid",
                 updated_at: new Date().toISOString(),
                 description: "Product payment has been captured",
               },
-            ]),
+            ],
             drop_and_ship_product_payment_details: JSON.stringify(
               event.payload.payment.entity,
             ),
@@ -101,14 +101,14 @@ export async function POST(req: NextRequest) {
             paid_at: new Date().toISOString(),
             current_status_updated_at: new Date().toISOString(),
             payment_id: payment_id,
-            status_timeline: JSON.stringify([
+            status_timeline: [
               ...statusTimeline,
               {
                 status: "Paid",
                 updated_at: new Date().toISOString(),
                 description: "Payment has been captured",
               },
-            ]),
+            ],
             current_status: "Paid",
             payment_details: JSON.stringify(event.payload.payment.entity),
             payment_method: "Online Payment",
