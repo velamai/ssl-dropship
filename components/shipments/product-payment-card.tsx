@@ -62,7 +62,7 @@ export function ProductPaymentCard({
     }
   }, [shipment.drop_and_ship_product_payment_proof_url]);
 
-  // Calculate product payment amount: items total + add-ons total
+  // Calculate product payment amount: items total + add-ons total + courier charge + handling charges
   const itemsTotal = items.reduce((sum, item) => {
     const itemPrice = Number(item.declared_value) || 0;
     const itemQuantity = item.quantity || 1;
@@ -74,11 +74,15 @@ export function ProductPaymentCard({
     : [];
   const addOnsTotal = addOnSelections.length * DROP_AND_SHIP_ADD_ON_PRICE;
 
-  // Product payment amount = items total + add-ons total
-  // Use drop_and_ship_product_payment_charges if available, otherwise calculate from items + add-ons
+  // Get courier charge and handling charges from shipment
+  const courierCharge = Number(shipment.drop_and_ship_courier_charge ?? 0) || 0;
+  const handlingCharges = Number(shipment.drop_and_ship_handling_charges ?? 0) || 0;
+
+  // Product payment amount = items total + add-ons total + courier charge + handling charges
+  // Use drop_and_ship_product_payment_charges if available, otherwise calculate from items + add-ons + courier + handling
   const productPaymentAmount = shipment.drop_and_ship_product_payment_charges
     ? Number(shipment.drop_and_ship_product_payment_charges)
-    : itemsTotal + addOnsTotal;
+    : itemsTotal + addOnsTotal + courierCharge + handlingCharges;
 
   const onlinePaymentCharges = productPaymentAmount * 0.035;
   const totalWithCharges = productPaymentAmount + onlinePaymentCharges;
@@ -541,7 +545,19 @@ export function ProductPaymentCard({
                 <span>{formatPrice(addOnsTotal, shipment)}</span>
               </div>
             )}
-            {(itemsTotal > 0 || addOnsTotal > 0) && <Separator />}
+            {courierCharge > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Courier Charge:</span>
+                <span>{formatPrice(courierCharge, shipment)}</span>
+              </div>
+            )}
+            {handlingCharges > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Handling Charges:</span>
+                <span>{formatPrice(handlingCharges, shipment)}</span>
+              </div>
+            )}
+            {(itemsTotal > 0 || addOnsTotal > 0 || courierCharge > 0 || handlingCharges > 0) && <Separator />}
             <div className="flex justify-between text-sm font-medium">
               <span>Amount:</span>
               <span>{formatPrice(productPaymentAmount, shipment)}</span>
@@ -728,7 +744,19 @@ export function ProductPaymentCard({
                   <span>{addOnsTotal.toFixed(2)} INR</span>
                 </div>
               )}
-              <Separator />
+              {courierCharge > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Courier Charge:</span>
+                  <span>{courierCharge.toFixed(2)} INR</span>
+                </div>
+              )}
+              {handlingCharges > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Handling Charges:</span>
+                  <span>{handlingCharges.toFixed(2)} INR</span>
+                </div>
+              )}
+              {(itemsTotal > 0 || addOnsTotal > 0 || courierCharge > 0 || handlingCharges > 0) && <Separator />}
               <div className="flex justify-between text-sm font-medium">
                 <span>Amount:</span>
                 <span>{productPaymentAmount.toFixed(2)} INR</span>

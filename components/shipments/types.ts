@@ -62,6 +62,8 @@ export interface Shipment {
   drop_and_ship_order_type: string;
   drop_and_ship_purchase_date: string | null;
   drop_and_ship_purchase_site: string | null;
+  drop_and_ship_courier_charge?: string | null;
+  drop_and_ship_handling_charges?: string | null;
 
   // Meta
   created_at: string;

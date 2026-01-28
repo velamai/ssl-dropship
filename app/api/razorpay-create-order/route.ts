@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     if (!shipmentId) {
       return NextResponse.json(
         { success: false, error: "Missing required parameters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     if (shipmentError || !shipment) {
       return NextResponse.json(
         { success: false, error: "Shipment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,7 +63,12 @@ export async function POST(req: Request) {
           : [];
         const addOnsTotal = addOnSelections.length * DROP_AND_SHIP_ADD_ON_PRICE;
 
-        baseAmount = itemsTotal + addOnsTotal;
+        const courierCharge =
+          Number(shipment.drop_and_ship_courier_charge ?? 0) || 0;
+        const handlingCharges =
+          Number(shipment.drop_and_ship_handling_charges ?? 0) || 0;
+
+        baseAmount = itemsTotal + addOnsTotal + courierCharge + handlingCharges;
       }
     } else {
       // For regular payment: use grand_total
@@ -73,7 +78,7 @@ export async function POST(req: Request) {
     if (baseAmount <= 0) {
       return NextResponse.json(
         { success: false, error: "Invalid payment amount" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +92,7 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Basic ${Buffer.from(
-          `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+          `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`,
         ).toString("base64")}`,
       },
       body: JSON.stringify({
@@ -105,7 +110,7 @@ export async function POST(req: Request) {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(
-        error.error.description || "Failed to create Razorpay order"
+        error.error.description || "Failed to create Razorpay order",
       );
     }
 
@@ -124,7 +129,7 @@ export async function POST(req: Request) {
     console.error("Error creating Razorpay order:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to create order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
