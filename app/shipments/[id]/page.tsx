@@ -14,8 +14,9 @@ import { ReceiverInfoCard } from "@/components/shipments/receiver-info-card";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { StatusOverviewCard } from "@/components/shipments/status-overview-card";
 import { TrackingHistoryCard } from "@/components/shipments/tracking-history-card";
-import type { Shipment, ShipmentItem } from "@/components/shipments/types";
+import type { Shipment, ShipmentItem, TrackingEvent } from "@/components/shipments/types";
 import { WarehouseInfoCard } from "@/components/shipments/warehouse-info-card";
+import { getStatusColor } from "@/components/shipments/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ import { generateBarcode } from "@/lib/barcode";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import {
   ArrowLeft,
+  Clock,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -59,6 +61,7 @@ export default function ShipmentDetailsPage() {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isRefetching, setIsRefetching] = useState(false);
   const [showProductImagesDialog, setShowProductImagesDialog] = useState(false);
+  const [showTrackingDialog, setShowTrackingDialog] = useState(false);
 
   const labelData = {
     destinationName: "Chinenye Ezinma",
@@ -254,7 +257,12 @@ export default function ShipmentDetailsPage() {
                     }
                   </PDFDownloadLink>
                 </Button> */}
-                <Button variant="outline" size="sm" className="gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => setShowTrackingDialog(true)}
+                >
                   <Truck className="h-4 w-4" />
                   Track Shipment
                 </Button>
@@ -404,6 +412,153 @@ export default function ShipmentDetailsPage() {
                 <p className="font-medium">No Product Images Available</p>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tracking Timeline Dialog */}
+      <Dialog
+        open={showTrackingDialog}
+        onOpenChange={setShowTrackingDialog}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              Tracking History
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {(() => {
+              // Parse tracking history from shipment
+              const trackingHistory: TrackingEvent[] = shipment?.status_timeline
+                ? (typeof shipment.status_timeline === "string"
+                  ? JSON.parse(shipment.status_timeline)
+                  : shipment.status_timeline
+                ).sort((a: TrackingEvent, b: TrackingEvent) => {
+                  return (
+                    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                  );
+                })
+                : [];
+
+              if (trackingHistory.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="p-4 rounded-full bg-muted/50 mb-4">
+                      <Clock className="h-8 w-8 text-muted-foreground/60" />
+                    </div>
+                    <p className="font-medium text-foreground mb-1">
+                      No Tracking History Yet
+                    </p>
+                    <p className="text-sm text-muted-foreground max-w-[250px]">
+                      {shipment?.current_status === "Payment Requested"
+                        ? "Awaiting payment confirmation."
+                        : shipment?.current_status === "Pick Up"
+                          ? "Waiting for pickup."
+                          : shipment?.current_status === "Pending"
+                            ? "Shipment is being processed."
+                            : "Check back later for updates."}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="relative">
+                  {/* Timeline vertical line */}
+                  <div
+                    className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80"
+                  />
+
+                  <div className="space-y-0">
+                    {trackingHistory.map(
+                      (history: TrackingEvent, index: number) => {
+                        const isFirst = index === 0;
+                        const statusColor = getStatusColor(history.status);
+                        const dateTime = new Date(history.updated_at);
+                        const formattedDate = dateTime.toLocaleDateString(
+                          "en-US",
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        );
+                        const formattedTime = dateTime.toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          }
+                        );
+
+                        return (
+                          <div
+                            key={index}
+                            className={`relative flex flex-col sm:flex-row gap-4 sm:gap-6 py-3 pl-3 sm:pl-6 ${
+                              index % 2 === 0 ? "bg-slate-100" : "bg-white"
+                            }`}
+                          >
+                            {/* Content - Layout like tracking page */}
+                            <div className="flex-1 min-w-0">
+                              {/* Date and Time on the left */}
+                              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6">
+                                <div className="flex-shrink-0 w-full sm:w-28">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-sm text-gray-600 mt-0.5">
+                                    {formattedTime}
+                                  </div>
+                                </div>
+
+                                <div className="relative flex-shrink-0 z-10 mt-1 sm:mt-0">
+                                  <div
+                                    className={`flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-sm transition-all duration-300 ${
+                                      isFirst
+                                        ? "ring-4 ring-slate-500 border-slate-500"
+                                        : ""
+                                    }`}
+                                    style={{
+                                      borderColor: "#e0e0e0",
+                                      ...(isFirst && {
+                                        boxShadow: `0 0 0 4px ${statusColor}20`,
+                                      }),
+                                    }}
+                                  >
+                                    <div
+                                      className={`rounded-full transition-all bg-slate-500 ${
+                                        isFirst ? "size-3.5" : "size-3"
+                                      }`}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Status and Description in center */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="mb-1.5">
+                                    <StatusBadge status={history.status} />
+                                  </div>
+                                  {history.description && (
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                      {history.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
