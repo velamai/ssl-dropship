@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-const RAZORPAY_WEBHOOK_SECRET = "RBJv97CiLyQ_4m7";
+const RAZORPAY_WEBHOOK_SECRET = "5cPIqu03bY6U6bGpJkyjRw0C";
 const ZEPTO_MAIL_API_URL =
   process.env.ZEPTO_MAIL_API_URL || "https://api.zeptomail.in/v1.1/email";
 const SENDER_EMAIL = "noreply@universalmail.in";
@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
           typeof shipmentData.status_timeline === "string"
             ? JSON.parse(shipmentData.status_timeline)
             : Array.isArray(shipmentData.status_timeline)
-            ? shipmentData.status_timeline
-            : [];
+              ? shipmentData.status_timeline
+              : [];
       } catch (e) {
         console.error("Error parsing status_timeline:", e);
         statusTimeline = [];
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
               },
             ]),
             drop_and_ship_product_payment_details: JSON.stringify(
-              event.payload.payment.entity
+              event.payload.payment.entity,
             ),
             drop_and_ship_product_payment_method: "Online Payment",
           })
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         const emailHtml = generatePaymentSuccessEmail(
           shipmentData,
           shipmentItems || [],
-          payment_id
+          payment_id,
         );
         await sendEmailViaZeptoMail({
           to: shipmentData.receiver_email,
@@ -179,7 +179,7 @@ function formatStatus(status: string): string {
 function generatePaymentSuccessEmail(
   shipment: any,
   items: any[],
-  paymentId: string
+  paymentId: string,
 ): string {
   const COMPANY_NAME = "Universal Mail";
   const BASE_URL =
@@ -216,7 +216,7 @@ function generatePaymentSuccessEmail(
                 item.value_currency || "INR"
               } ${(item.declared_value || 0).toFixed(2)}</td>
             </tr>
-          `
+          `,
           )
           .join("")
       : '<tr><td colspan="3" style="padding: 12px; text-align: center; border: 1px solid #e0e0e0; color: #a2a2a2;">No items added</td></tr>';
@@ -250,7 +250,7 @@ function generatePaymentSuccessEmail(
           <h4 style="margin: 0 0 15px 0; color: #3f3f3f; font-size: 16px; font-weight: 600;">Shipment Information</h4>
           <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.8;">
             <strong style="color: #3f3f3f;">Shipment Type:</strong> ${formatShipmentType(
-              shipment.shipment_type
+              shipment.shipment_type,
             )}<br>
             ${
               shipment.shipment_total_weight
@@ -268,7 +268,7 @@ function generatePaymentSuccessEmail(
               shipment.shipment_country_code?.toUpperCase() || "N/A"
             }<br>
             <strong style="color: #3f3f3f;">Status:</strong> <span style="color: #9c4cd2; font-weight: 600;">${formatStatus(
-              shipment.current_status
+              shipment.current_status,
             )}</span>
           </p>
         </div>
@@ -362,7 +362,7 @@ function generatePaymentSuccessEmail(
             <strong style="color: #3f3f3f;">Payment ID:</strong> ${paymentId}<br>
             <strong style="color: #3f3f3f;">Status:</strong> <span style="color: #10b981; font-weight: 600;">Paid Successfully</span><br>
             <strong style="color: #3f3f3f;">Paid At:</strong> ${new Date(
-              shipment.paid_at || new Date()
+              shipment.paid_at || new Date(),
             ).toLocaleString()}
           </p>
         </div>
