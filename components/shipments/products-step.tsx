@@ -144,7 +144,7 @@ function ProductItemWithQuery({
       ) {
         setValue(
           `shipments.${index}.items.${itemIndex}.productName`,
-          productData.title
+          productData.title,
         );
       }
 
@@ -155,19 +155,19 @@ function ProductItemWithQuery({
       ) {
         setValue(
           `shipments.${index}.items.${itemIndex}.price`,
-          productData.price
+          productData.price,
         );
       }
 
       if (productData.currency && !currentItem?.valueCurrency) {
         const validCurrency = ["INR", "USD", "GBP", "EUR", "LKR"].includes(
-          productData.currency
+          productData.currency,
         )
           ? (productData.currency as "INR" | "USD" | "GBP" | "EUR" | "LKR")
           : "USD";
         setValue(
           `shipments.${index}.items.${itemIndex}.valueCurrency`,
-          validCurrency
+          validCurrency,
         );
       }
     }
@@ -254,7 +254,7 @@ function ProductItemWithQuery({
         {/* Price */}
         <div className="space-y-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.price`}>
-            Price *
+            Item Price *
           </Label>
           <div className="relative">
             <Input
@@ -436,7 +436,9 @@ export function ProductsStep({
               productUrl: productUrl,
               name: queryData.title || item?.productName || "Product",
               loading: false,
-              error: queryData.image ? undefined : "Image couldn't be fetched automatically",
+              error: queryData.image
+                ? undefined
+                : "Image couldn't be fetched automatically",
             },
           }));
         } else if (
@@ -520,7 +522,9 @@ export function ProductsStep({
                     productUrl: productUrl,
                     name: queryData.title || item?.productName || "Product",
                     loading: false,
-                    error: queryData.image ? undefined : "Image couldn't be fetched automatically",
+                    error: queryData.image
+                      ? undefined
+                      : "Image couldn't be fetched automatically",
                   },
                 }));
               } else if (
@@ -619,7 +623,7 @@ export function ProductsStep({
                         const r = (Math.random() * 16) | 0;
                         const v = c === "x" ? r : (r & 0x3) | 0x8;
                         return v.toString(16);
-                      }
+                      },
                     ),
                     productUrl: "",
                     productName: "",
@@ -715,7 +719,7 @@ export function ProductsStep({
                   </Label>
                   {getValues &&
                     (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                    0 && (
+                      0 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -750,7 +754,7 @@ export function ProductsStep({
                               alt="Preview"
                               className="w-full h-full object-cover filter blur-sm opacity-30"
                             />
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -778,8 +782,9 @@ export function ProductsStep({
 
                         for (const file of files) {
                           const fileIsImage = isImageType(file.type);
-                          const fileId = `${file.name}-${file.size
-                            }-${Date.now()}`;
+                          const fileId = `${file.name}-${
+                            file.size
+                          }-${Date.now()}`;
                           newImageFiles[fileId] = fileIsImage;
 
                           if (fileIsImage) {
@@ -796,7 +801,7 @@ export function ProductsStep({
 
                         try {
                           const fileTypes = files.map(
-                            (file) => file.type || "application/pdf"
+                            (file) => file.type || "application/pdf",
                           );
                           const res = await fetch("/api/invoice-signed-url", {
                             method: "PUT",
@@ -822,15 +827,14 @@ export function ProductsStep({
                               });
                               if (!putRes.ok)
                                 throw new Error(
-                                  `Failed to upload file: ${file.name}`
+                                  `Failed to upload file: ${file.name}`,
                                 );
                               return publicUrl;
-                            }
+                            },
                           );
 
-                          const uploadedUrls = await Promise.all(
-                            uploadPromises
-                          );
+                          const uploadedUrls =
+                            await Promise.all(uploadPromises);
 
                           const currentUrls =
                             getValues?.(`shipments.${index}.invoiceUrls`) || [];
@@ -840,7 +844,7 @@ export function ProductsStep({
                             {
                               shouldValidate: true,
                               shouldDirty: true,
-                            }
+                            },
                           );
                         } catch (err) {
                           console.error(err);
@@ -855,7 +859,7 @@ export function ProductsStep({
 
                   {getValues &&
                     (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                    0 && (
+                      0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {getValues(`shipments.${index}.invoiceUrls`)?.map(
                           (url: string, idx: number) => (
@@ -885,10 +889,10 @@ export function ProductsStep({
                                     onClick={() => {
                                       const currentUrls =
                                         getValues(
-                                          `shipments.${index}.invoiceUrls`
+                                          `shipments.${index}.invoiceUrls`,
                                         ) || [];
                                       const newUrls = currentUrls.filter(
-                                        (_: any, i: number) => i !== idx
+                                        (_: any, i: number) => i !== idx,
                                       );
                                       setValue(
                                         `shipments.${index}.invoiceUrls`,
@@ -896,7 +900,7 @@ export function ProductsStep({
                                         {
                                           shouldValidate: true,
                                           shouldDirty: true,
-                                        }
+                                        },
                                       );
                                     }}
                                   >
@@ -905,7 +909,7 @@ export function ProductsStep({
                                 </div>
                               )}
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -969,7 +973,7 @@ export function ProductsStep({
                               alt="Preview"
                               className="w-full h-full object-cover filter blur-sm opacity-30"
                             />
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -978,8 +982,9 @@ export function ProductsStep({
                       <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
                       <span className="text-sm text-muted-foreground group-hover:text-primary">
                         {Object.keys(productImagePreviews).length > 0
-                          ? `${Object.keys(productImagePreviews).length
-                          }/10 images - Click to add more`
+                          ? `${
+                              Object.keys(productImagePreviews).length
+                            }/10 images - Click to add more`
                           : "Click to upload or drag images here (Max 10)"}
                       </span>
                     </div>
@@ -1000,7 +1005,7 @@ export function ProductsStep({
 
                         if (totalImages > 10) {
                           alert(
-                            `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`
+                            `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`,
                           );
                           return;
                         }
@@ -1008,8 +1013,9 @@ export function ProductsStep({
                         const newPreviews = { ...productImagePreviews };
 
                         for (const file of files) {
-                          const fileId = `${file.name}-${file.size
-                            }-${Date.now()}`;
+                          const fileId = `${file.name}-${
+                            file.size
+                          }-${Date.now()}`;
 
                           const reader = new FileReader();
                           reader.onload = (e) => {
@@ -1021,7 +1027,7 @@ export function ProductsStep({
 
                         try {
                           const fileTypes = files.map(
-                            (file) => file.type || "image/jpeg"
+                            (file) => file.type || "image/jpeg",
                           );
                           const res = await fetch("/api/invoice-signed-url", {
                             method: "PUT",
@@ -1047,15 +1053,14 @@ export function ProductsStep({
                               });
                               if (!putRes.ok)
                                 throw new Error(
-                                  `Failed to upload file: ${file.name}`
+                                  `Failed to upload file: ${file.name}`,
                                 );
                               return publicUrl;
-                            }
+                            },
                           );
 
-                          const uploadedUrls = await Promise.all(
-                            uploadPromises
-                          );
+                          const uploadedUrls =
+                            await Promise.all(uploadPromises);
 
                           const updatedUrls = [...currentUrls, ...uploadedUrls];
                           setValue(
@@ -1064,7 +1069,7 @@ export function ProductsStep({
                             {
                               shouldValidate: true,
                               shouldDirty: true,
-                            }
+                            },
                           );
                         } catch (err) {
                           console.error(err);
@@ -1087,7 +1092,7 @@ export function ProductsStep({
                               className="rounded-lg border border-border bg-muted/30"
                             >
                               {Object.values(productImagePreviews).length >
-                                idx ? (
+                              idx ? (
                                 <div className="flex items-center gap-3">
                                   <img
                                     src={
@@ -1112,10 +1117,10 @@ export function ProductsStep({
                                     onClick={() => {
                                       const currentUrls =
                                         getValues(
-                                          `shipments.${index}.productImageUrls`
+                                          `shipments.${index}.productImageUrls`,
                                         ) || [];
                                       const newUrls = currentUrls.filter(
-                                        (_: any, i: number) => i !== idx
+                                        (_: any, i: number) => i !== idx,
                                       );
                                       setValue(
                                         `shipments.${index}.productImageUrls`,
@@ -1123,7 +1128,7 @@ export function ProductsStep({
                                         {
                                           shouldValidate: true,
                                           shouldDirty: true,
-                                        }
+                                        },
                                       );
                                     }}
                                   >
@@ -1132,16 +1137,17 @@ export function ProductsStep({
                                 </div>
                               )}
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                     )}
                 </div>
                 {getValues && (
                   <p className="text-xs text-muted-foreground">
-                    {`${(getValues(`shipments.${index}.productImageUrls`) || [])
-                      .length
-                      }/10 images uploaded`}
+                    {`${
+                      (getValues(`shipments.${index}.productImageUrls`) || [])
+                        .length
+                    }/10 images uploaded`}
                   </p>
                 )}
                 <ErrorMessage
@@ -1206,7 +1212,8 @@ export function ProductsStep({
                               <div className="flex flex-col items-center justify-center h-32 bg-muted rounded-lg text-center p-3">
                                 <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
                                 <p className="text-xs text-muted-foreground">
-                                  {imageData.error || "Image couldn't be fetched automatically"}
+                                  {imageData.error ||
+                                    "Image couldn't be fetched automatically"}
                                 </p>
                               </div>
                             ) : (
@@ -1233,7 +1240,11 @@ export function ProductsStep({
                                       <Alert className="border-yellow-200 bg-yellow-50 mt-3">
                                         <Info className="h-4 w-4 text-yellow-600" />
                                         <AlertDescription className="text-yellow-600 font-semibold">
-                                          The product image couldn't be fetched automatically. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
+                                          The product image couldn't be fetched
+                                          automatically. Please continue
+                                          entering the product information and
+                                          proceed to place the order.{" "}
+                                        </AlertDescription>
                                       </Alert>
                                     </>
                                   )}
@@ -1241,25 +1252,25 @@ export function ProductsStep({
                                 <p className="text-xs font-medium line-clamp-2">
                                   {imageData.name}
                                 </p>
-
                               </div>
                             )}
-                            {
-                              (imageData.error || !imageData.imageUrl) && !imageData.loading &&
-                              (
+                            {(imageData.error || !imageData.imageUrl) &&
+                              !imageData.loading && (
                                 <>
                                   <Alert className="border-yellow-400 bg-yellow-50 mt-3">
                                     <Info className="h-4 w-4 text-yellow-600" />
                                     <AlertDescription className="text-yellow-600 text-xs">
-                                      The image couldn't be loaded. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
+                                      The image couldn't be loaded. Please
+                                      continue entering the product information
+                                      and proceed to place the order.{" "}
+                                    </AlertDescription>
                                   </Alert>
                                 </>
-                              )
-                            }
+                              )}
                           </div>
                         </div>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               )}
