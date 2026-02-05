@@ -795,6 +795,19 @@ function CreateShipmentPageContent() {
 
       console.log("Drop and Ship Order created:", responseData);
 
+      // Send order confirmation email (fire-and-forget)
+      const shipmentId =
+        responseData?.shipment_id ?? responseData?.data?.shipment_id;
+      if (shipmentId) {
+        fetch("/api/send-order-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shipment_id: shipmentId }),
+        }).catch((err) =>
+          console.error("Order confirmation email failed:", err)
+        );
+      }
+
       // Remove draft from cart when order was placed from a loaded draft
       if (loadedDraftId && loadedDraftId !== "pending-checkout") {
         deleteDraft(loadedDraftId);

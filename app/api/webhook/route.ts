@@ -1,11 +1,13 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import {
+  sendEmailViaZeptoMail,
+  formatShipmentType,
+  formatStatus,
+} from "@/lib/zepto-mail";
 
 const RAZORPAY_WEBHOOK_SECRET = "5cPIqu03bY6U6bGpJkyjRw0C";
-const ZEPTO_MAIL_API_URL =
-  process.env.ZEPTO_MAIL_API_URL || "https://api.zeptomail.in/v1.1/email";
-const SENDER_EMAIL = "noreply@universalmail.in";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -378,101 +380,4 @@ function generatePaymentSuccessEmail(
   `;
 
   return htmlBody;
-}
-
-async function sendEmailViaZeptoMail({
-  to,
-  subject,
-  htmlBody,
-  recipientName,
-}: {
-  to: string;
-  subject: string;
-  htmlBody: string;
-  recipientName: string;
-}) {
-  const startTime = Date.now();
-  console.log("[ZeptoMail] Starting email send request", {
-    to,
-    subject,
-    recipientName,
-    senderEmail: SENDER_EMAIL,
-    apiUrl: ZEPTO_MAIL_API_URL,
-    htmlBodyLength: htmlBody.length,
-    timestamp: new Date().toISOString(),
-  });
-
-  try {
-    console.log("[ZeptoMail] Preparing API request payload", {
-      from: SENDER_EMAIL,
-      to,
-      subject,
-      hasHtmlBody: !!htmlBody,
-    });
-
-    const response = await fetch(ZEPTO_MAIL_API_URL, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Zoho-enczapikey PHtE6r0KQb263WF69RYF4f65FJOnN44r/esyJQdFuYlFCvcGTU1cqtsukTDh/0gjUaUXEKLKnt1s57Oase/XLTnkNDpKX2qyqK3sx/VYSPOZsbq6x00aslkff0PUXIDocdBr1CbQs9eX`,
-      },
-      body: JSON.stringify({
-        from: { address: SENDER_EMAIL },
-        to: [{ email_address: { address: to } }],
-        subject,
-        htmlbody: htmlBody,
-      }),
-    });
-
-    const responseTime = Date.now() - startTime;
-    console.log("[ZeptoMail] Received API response", {
-      status: response.status,
-      statusText: response.statusText,
-      responseTime: `${responseTime}ms`,
-      headers: Object.fromEntries(response.headers.entries()),
-    });
-
-    const result = await response.json();
-    console.log("[ZeptoMail] API response data", {
-      success: response.ok,
-      result: result,
-    });
-
-    if (!response.ok) {
-      console.error("[ZeptoMail] Failed to send email", {
-        status: response.status,
-        statusText: response.statusText,
-        error: result,
-        to,
-        subject,
-        recipientName,
-        responseTime: `${responseTime}ms`,
-      });
-      throw new Error(`Failed to send email: ${JSON.stringify(result)}`);
-    }
-
-    const totalTime = Date.now() - startTime;
-    console.log("[ZeptoMail] Email successfully sent", {
-      to,
-      subject,
-      recipientName,
-      totalTime: `${totalTime}ms`,
-      timestamp: new Date().toISOString(),
-    });
-
-    return { success: true };
-  } catch (error) {
-    const totalTime = Date.now() - startTime;
-    console.error("[ZeptoMail] Error sending email", {
-      error: error instanceof Error ? error.message : String(error),
-      errorStack: error instanceof Error ? error.stack : undefined,
-      to,
-      subject,
-      recipientName,
-      totalTime: `${totalTime}ms`,
-      timestamp: new Date().toISOString(),
-    });
-    throw error;
-  }
 }
