@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Package, Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import Image from "next/image";
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,7 +70,11 @@ export function Navbar() {
             </Link>
             <Link
               href="/product-price-calculator"
-              className="text-sm font-medium hover:text-primary transition-all relative group"
+              className={`text-sm font-medium transition-all relative group ${
+                pathname === "/product-price-calculator"
+                  ? "text-primary"
+                  : "hover:text-primary"
+              }`}
             >
               Pricing Calculator
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
@@ -149,7 +155,11 @@ export function Navbar() {
             </Link>
             <Link
               href="/product-price-calculator"
-              className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+              className={`block py-2 text-sm font-medium transition-colors ${
+                pathname === "/product-price-calculator"
+                  ? "text-primary"
+                  : "hover:text-primary"
+              }`}
               onClick={() => setMobileMenuOpen(false)}
             >
               Pricing Calculator

@@ -1,7 +1,7 @@
 "use client";
 
-import Footer from "@/components/footer";
-import { Navbar } from "@/components/navbar";
+import { Footer as HomeFooter } from "@/components/home-page/footer";
+import { Navbar as HomeNavbar } from "@/components/home-page/navbar";
 import { CategorySelector } from "@/components/product-price-calculator/category-selector";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { PriceBreakdown } from "@/components/product-price-calculator/price-breakdown";
@@ -66,7 +66,6 @@ export default function ProductPriceCalculatorPage() {
   const [manualProductName, setManualProductName] = useState("");
   const [manualProductPrice, setManualProductPrice] = useState<number | "">("");
   const [manualProductCurrency, setManualProductCurrency] = useState("INR");
-  const [manualImageUrl, setManualImageUrl] = useState("");
 
   const { user } = useAuth();
 
@@ -117,7 +116,6 @@ export default function ProductPriceCalculatorPage() {
         const valid = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"].includes(productData.currency);
         if (valid) setManualProductCurrency(productData.currency);
       }
-      if (productData.image) setManualImageUrl((prev) => prev || productData.image || "");
     }
   }, [productData]);
 
@@ -138,7 +136,7 @@ export default function ProductPriceCalculatorPage() {
   }, [manualProductPrice, productData?.price]);
 
   const effectiveName = manualProductName || productData?.title || "Product";
-  const effectiveImage = manualImageUrl || productData?.image || null;
+  const effectiveImage = productData?.image || null;
 
   // Price calculation state
   const [priceBreakdown, setPriceBreakdown] = useState<Awaited<
@@ -164,7 +162,6 @@ export default function ProductPriceCalculatorPage() {
       setManualProductName("");
       setManualProductPrice("");
       setManualProductCurrency("INR");
-      setManualImageUrl("");
     }
   };
 
@@ -224,6 +221,11 @@ export default function ProductPriceCalculatorPage() {
 
     if (!category) {
       setCalculationError("Please select a product category");
+      return;
+    }
+
+    if (!manualProductName.trim() && !productData?.title) {
+      setCalculationError("Please enter a product URL or provide product name manually");
       return;
     }
 
@@ -346,23 +348,9 @@ export default function ProductPriceCalculatorPage() {
   }, [quantity, category, sourceCountryCode, destinationCountry, effectivePrice, manualProductPrice]);
 
   return (
-    <main className="min-h-screen bg-[#f8f8f8]">
+    <main className="min-h-screen bg-[#f8f8f8] pt-20">
       {/* Header */}
-      {user?.id ? <Navbar /> : (<div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="logo.png" width={75} height={75} alt="logo" />
-            </Link>
-            <Link
-              href="/"
-              className="px-4 py-2 rounded-full text-purple-700 font-semibold hover:bg-purple-50 transition-all"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </div>)}
+      <HomeNavbar />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -459,7 +447,7 @@ export default function ProductPriceCalculatorPage() {
                   </p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="manual-product-name">Product Name (optional)</Label>
+                      <Label htmlFor="manual-product-name">Product Name *</Label>
                       <Input
                         id="manual-product-name"
                         type="text"
@@ -506,16 +494,6 @@ export default function ProductPriceCalculatorPage() {
                           <SelectItem value="SGD">SGD</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="manual-image-url">Image URL (optional)</Label>
-                      <Input
-                        id="manual-image-url"
-                        type="url"
-                        placeholder="https://..."
-                        value={manualImageUrl}
-                        onChange={(e) => setManualImageUrl(e.target.value)}
-                      />
                     </div>
                   </div>
                 </div>
@@ -856,11 +834,7 @@ export default function ProductPriceCalculatorPage() {
                             ) : (
                               <>
                                 <div className="h-56 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center border">
-                                  {manualImageUrl ? (
-                                    <span className="text-sm text-muted-foreground">Invalid image URL</span>
-                                  ) : (
-                                    "Image couldn't be fetched automatically"
-                                  )}
+                                  Image couldn&apos;t be fetched automatically
                                 </div>
                                 {effectiveName && (
                                   <p className="font-semibold text-base mb-1 line-clamp-2 mt-2">
@@ -880,7 +854,7 @@ export default function ProductPriceCalculatorPage() {
                                   <Alert className="border-yellow-200 bg-yellow-50 mt-3">
                                     <Info className="h-4 w-4 text-yellow-600" />
                                     <AlertDescription className="text-yellow-600 font-semibold">
-                                      Enter image URL manually above if needed, or continue without it.
+                                      Image is optional. Continue without it if needed.
                                     </AlertDescription>
                                   </Alert>
                                 )}
@@ -927,7 +901,7 @@ export default function ProductPriceCalculatorPage() {
 
       {/* <PriceCalculator /> */}
 
-      <Footer />
+      <HomeFooter />
     </main>
   );
 }
