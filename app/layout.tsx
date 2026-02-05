@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { FloatingWhatsAppButton } from "@/components/floating-whatsapp-button";
 import ReactQueryProvider from "@/lib/QueryClientProvider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { OrderDraftProvider } from "@/contexts/order-draft-context";
@@ -35,6 +36,7 @@ export default function RootLayout({
             <OrderDraftProvider>
               {children}
               <OrderDraftSheetWrapper />
+              <FloatingWhatsAppButton />
               <Toaster />
             </OrderDraftProvider>
           </AuthProvider>
