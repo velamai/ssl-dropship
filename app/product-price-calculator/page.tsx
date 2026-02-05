@@ -105,19 +105,17 @@ export default function ProductPriceCalculatorPage() {
     }
   }, [productData, sourceCountryCode]);
 
-  // Sync manual fields from product data when scraper succeeds
+  // Sync manual fields from product data when scraper succeeds (overwrite when URL changes)
   useEffect(() => {
-    if (productData) {
-      if (productData.title) setManualProductName((prev) => prev || productData.title || "");
-      if (productData.price != null && productData.price > 0) {
-        setManualProductPrice((prev) => (prev === "" ? productData.price! : prev));
-      }
+    if (productData && productUrl.trim()) {
+      setManualProductName(productData.title || "");
+      setManualProductPrice(productData.price != null && productData.price > 0 ? productData.price : "");
       if (productData.currency) {
         const valid = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"].includes(productData.currency);
         if (valid) setManualProductCurrency(productData.currency);
       }
     }
-  }, [productData]);
+  }, [productData, productUrl]);
 
   // Default manual currency from source country when it changes
   useEffect(() => {
