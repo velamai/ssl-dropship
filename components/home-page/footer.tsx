@@ -109,41 +109,46 @@ export function Footer() {
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  🇮🇳 India
+                  <Image src="/flags/in.png" alt="India" width={20} height={20} className="rounded-sm object-cover" />
+                  India
                 </Link>
               </li>
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  🇱🇰 Sri Lanka
+                  <Image src="/flags/sl.png" alt="Sri Lanka" width={20} height={20} className="rounded-sm object-cover" />
+                  Sri Lanka
                 </Link>
               </li>
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  🇦🇪 Dubai (UAE)
+                  <Image src="/flags/uae.png" alt="Dubai (UAE)" width={20} height={20} className="rounded-sm object-cover" />
+                  Dubai (UAE)
                 </Link>
               </li>
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  🇲🇾 Malaysia
+                  <Image src="/flags/ml.png" alt="Malaysia" width={20} height={20} className="rounded-sm object-cover" />
+                  Malaysia
                 </Link>
               </li>
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  🇬🇧 United Kingdom
+                  <Image src="/flags/uk.png" alt="United Kingdom" width={20} height={20} className="rounded-sm object-cover" />
+                  United Kingdom
                 </Link>
               </li>
             </ul>

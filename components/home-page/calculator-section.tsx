@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +17,11 @@ import {
 import { Calculator, Sparkles } from "lucide-react";
 
 const countries = [
-  { value: "india", label: "India", flag: "🇮🇳" },
-  { value: "srilanka", label: "Sri Lanka", flag: "🇱🇰" },
-  { value: "dubai", label: "Dubai (UAE)", flag: "🇦🇪" },
-  { value: "malaysia", label: "Malaysia", flag: "🇲🇾" },
-  { value: "uk", label: "United Kingdom", flag: "🇬🇧" },
+  { value: "india", label: "India", flag: "/flags/in.png" },
+  { value: "srilanka", label: "Sri Lanka", flag: "/flags/sl.png" },
+  { value: "dubai", label: "Dubai (UAE)", flag: "/flags/uae.png" },
+  { value: "malaysia", label: "Malaysia", flag: "/flags/ml.png" },
+  { value: "uk", label: "United Kingdom", flag: "/flags/uk.png" },
 ];
 
 export function CalculatorSection() {
@@ -117,7 +118,7 @@ export function CalculatorSection() {
                       className="hover:bg-primary/10"
                     >
                       <span className="flex items-center gap-2">
-                        <span>{country.flag}</span>
+                        <Image src={country.flag} alt={country.label} width={20} height={20} className="rounded-sm object-cover" />
                         <span>{country.label}</span>
                       </span>
                     </SelectItem>

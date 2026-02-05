@@ -7,7 +7,7 @@ const warehouses = [
   {
     country: "India",
     city: "Chennai",
-    flag: "🇮🇳",
+    flag: "/flags/in.png",
     address: "GF 4, MANTHRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017",
     hours: "9:00 AM - 7:00 PM IST",
     image: "/warehouse images/Warehouse-India.png",
@@ -15,7 +15,7 @@ const warehouses = [
   {
     country: "Sri Lanka",
     city: "Dehiwala",
-    flag: "🇱🇰",
+    flag: "/flags/sl.png",
     address: "No.4, COUNCIL AVENUE, (NEAR DEHIWALA MUNICIPAL COUNCIL), DEHIWALA, SRILANKA",
     hours: "9:00 AM - 6:00 PM SLST",
     image: "/warehouse images/Warehouse-Sri Lanka.png",
@@ -23,7 +23,7 @@ const warehouses = [
   {
     country: "UAE",
     city: "Dubai",
-    flag: "🇦🇪",
+    flag: "/flags/uae.png",
     address: "ROOM 201, 22ND FLOOR, 3RD ABUBAKAR BUILDING, 37TH STREET, AL MURAQQABAT, DUBAI, UAE",
     hours: "8:00 AM - 6:00 PM GST",
     image: "/warehouse images/Warehouse-Dubai.png",
@@ -31,7 +31,7 @@ const warehouses = [
   {
     country: "Malaysia",
     city: "Shah Alam",
-    flag: "🇲🇾",
+    flag: "/flags/ml.png",
     address: "SOHO-1- FLOOR 11 NUMBER13 (11/13), VISTA ALAM SERVICE APARTMENT, JALAN IKHTISAS, SEKSYEN14, SHAH ALAM",
     hours: "9:00 AM - 6:00 PM MYT",
     image: "/warehouse images/Warehouse-Malaysia.png",
@@ -39,7 +39,7 @@ const warehouses = [
   {
     country: "United Kingdom",
     city: "Reading",
-    flag: "🇬🇧",
+    flag: "/flags/uk.png",
     address: "234 NORTHUMBERLAND AVENUE, READING, RG2 7QA, UNITED KINGDOM",
     hours: "8:00 AM - 6:00 PM GMT",
     image: "/warehouse images/Warehouse-UK.png",
@@ -95,7 +95,8 @@ export function WarehousesSection() {
               <div className="p-6 space-y-4">
                 <div>
                   <h3 className="text-2xl font-bold mb-1">{warehouse.city}</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Image src={warehouse.flag} alt={warehouse.country} width={20} height={20} className="rounded-sm object-cover" />
                     {warehouse.country}
                   </p>
                 </div>

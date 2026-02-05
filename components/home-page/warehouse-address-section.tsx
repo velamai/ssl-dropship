@@ -3,14 +3,15 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Package, Users, DollarSign } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 const warehouseCountries = [
-  { flag: "🇮🇳", name: "India", code: "IN" },
-  { flag: "🇱🇰", name: "Sri Lanka", code: "LK" },
-  { flag: "🇦🇪", name: "Dubai", code: "AE" },
-  { flag: "🇲🇾", name: "Malaysia", code: "MY" },
-  { flag: "🇬🇧", name: "United Kingdom", code: "UK" },
+  { flag: "/flags/in.png", name: "India", code: "IN" },
+  { flag: "/flags/sl.png", name: "Sri Lanka", code: "LK" },
+  { flag: "/flags/uae.png", name: "Dubai", code: "AE" },
+  { flag: "/flags/ml.png", name: "Malaysia", code: "MY" },
+  { flag: "/flags/uk.png", name: "United Kingdom", code: "UK" },
 ];
 
 const benefits = [
@@ -80,10 +81,10 @@ export function WarehouseAddressSection() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div
-                  className="text-5xl mb-3 animate-bounce-subtle"
+                  className="mb-3 animate-bounce-subtle flex justify-center"
                   style={{ animationDelay: `${index * 0.2}s` }}
                 >
-                  {country.flag}
+                  <Image src={country.flag} alt={country.name} width={48} height={48} className="rounded-sm object-cover" />
                 </div>
                 <div className="font-bold text-lg mb-1">{country.name}</div>
                 <div className="text-xs text-muted-foreground">Get Address</div>

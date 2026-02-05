@@ -5,24 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Get country code from country name
+// Get country code from country name (ISO 3166-1 alpha-2)
 export const getCountryCode = (countryName: string): string => {
-
-  console.log({countryName});
   const countryMap: Record<string, string> = {
     "United States": "US",
     Canada: "CA",
-    "United Kingdom - UK": "UK",
+    "United Kingdom - UK": "GB",
+    "United Kingdom": "GB",
     Australia: "AU",
-    "Sri Lanka": "SL",
+    "Sri Lanka": "LK",
     India: "IN",
     Singapore: "SG",
-    Malaysia: "ML",
+    Malaysia: "MY",
     China: "CN",
     Japan: "JP",
-    "United Arab Emirates - UAE": "UAE",
+    "United Arab Emirates - UAE": "AE",
+    "United Arab Emirates": "AE",
+    UAE: "AE",
+    Dubai: "AE",
   }
 
-  return countryMap[countryName] || "LK" // Default to Sri Lanka if not found
+  return countryMap[countryName] || (countryName?.length === 2 ? countryName.toUpperCase() : "")
 }
 

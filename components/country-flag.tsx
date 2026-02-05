@@ -1,5 +1,14 @@
 import Image from "next/image"
 
+const LOCAL_FLAG_PATHS: Record<string, string> = {
+  IN: "/flags/in.png",
+  LK: "/flags/sl.png",
+  AE: "/flags/uae.png",
+  MY: "/flags/ml.png",
+  GB: "/flags/uk.png",
+  UK: "/flags/uk.png",
+}
+
 interface CountryFlagProps {
   countryCode: string
   className?: string
@@ -7,11 +16,11 @@ interface CountryFlagProps {
 }
 
 export function CountryFlag({ countryCode, className = "", size = "md" }: CountryFlagProps) {
-  // Convert country code to lowercase for the API
-  const code = countryCode
+  const code = countryCode?.toUpperCase().slice(0, 2) || ""
+  if (!code) return null
+  const localPath = LOCAL_FLAG_PATHS[code]
+  const src = localPath || `https://flagsapi.com/${code}/flat/64.png`
 
-
-  // Size mapping
   const sizeMap = {
     sm: 16,
     md: 24,
@@ -26,7 +35,7 @@ export function CountryFlag({ countryCode, className = "", size = "md" }: Countr
       style={{ width: pixelSize, height: pixelSize }}
     >
       <Image
-        src={`https://flagsapi.com/${code}/flat/64.png`}
+        src={src}
         alt={`Flag of ${countryCode}`}
         width={pixelSize}
         height={pixelSize}

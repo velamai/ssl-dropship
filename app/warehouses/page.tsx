@@ -167,7 +167,11 @@ export default function AddressesPage() {
                       <div className="pb-4 border-b border-slate-100">
                         <div className="flex items-center gap-3 mb-2">
                           <CountryFlag
-                            countryCode={getCountryCode(warehouse.country)}
+                            countryCode={
+                              warehouse.country_code?.length === 2
+                                ? warehouse.country_code.toUpperCase()
+                                : getCountryCode(warehouse.country)
+                            }
                             size="md"
                           />
                           <div>
