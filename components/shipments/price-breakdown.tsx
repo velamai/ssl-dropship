@@ -3,10 +3,9 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { countryCodeToCurrencies, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
+import { convertCurrencyByCountryCode, countryCodeToCurrencies, currenciesToCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
 import { formatNumber } from "@/lib/product-price-calculator";
 import type { ShipmentPriceBreakdown } from "@/lib/shipment-price-calculator";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ShippingEstimateCreate } from "../product-price-calculator/shipping-estimate-create";
@@ -37,7 +36,6 @@ interface ShipmentPriceBreakdownProps {
   items?: ShipmentItem[]; // Product items array
 }
 
-const supabase = getSupabaseBrowserClient();
 export function ShipmentPriceBreakdown({
   breakdown,
   sourceCountryCode,
@@ -49,9 +47,6 @@ export function ShipmentPriceBreakdown({
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
   const [breakdownError, setBreakdownError] = useState<string | null>(null);
 
-  console.log({ valueCurrency: items[0]?.valueCurrency, sourceCountryCode, destinationCountryCode });
-
-
   useEffect(() => {
     const fetchPriceBreakdown = async () => {
       if (
@@ -61,30 +56,48 @@ export function ShipmentPriceBreakdown({
         return;
       }
 
-      const totalProductPrice = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-
-
       setIsLoadingBreakdown(true);
       setBreakdownError(null);
 
       try {
-        const fromCountry = sourceCountryCode
+        const fromCountry = sourceCountryCode;
         const toCountry = destinationCountryCode;
-        const productPriceCurrency = items[0]?.valueCurrency || "INR";
 
+        // Convert each item to source currency before summing (handles mixed currencies)
+        const uniqueCurrencies = [...new Set(items.map((i) => i.valueCurrency || "INR"))];
+        const ratesToSource: Record<string, number> = {};
+        await Promise.all(
+          uniqueCurrencies.map(async (currency) => {
+            const itemCountryCode = currenciesToCountryCode(currency);
+            const rate = await convertCurrencyByCountryCode({
+              sourceCountryCode: itemCountryCode,
+              destinationCountryCode: sourceCountryCode,
+              amount: null,
+            });
+            ratesToSource[currency] = rate || 1;
+          })
+        );
 
-        // Call all three API functions in parallel
+        const totalProductPriceInSource = items.reduce((sum, item) => {
+          const itemTotal = (item.price || 0) * (item.quantity || 1);
+          const rate = ratesToSource[item.valueCurrency || "INR"] || 1;
+          return sum + itemTotal * rate;
+        }, 0);
+
+        const sourceCurrency = countryCodeToCurrencies(sourceCountryCode) || "INR";
+
+        // Call all three API functions in parallel - use totalProductPriceInSource with source currency
         const [productPriceData, handlingChargeData, courierChargeData] =
           await Promise.all([
             getProductPrice({
-              productPrice: totalProductPrice,
+              productPrice: totalProductPriceInSource,
               fromCountry: sourceCountryCode,
               toCountry: destinationCountryCode,
-              productPriceCurrency: productPriceCurrency,
+              productPriceCurrency: sourceCurrency,
             }),
             getHandlingCharge({
-              itemPrice: totalProductPrice,
-              itemCurrency: productPriceCurrency,
+              itemPrice: totalProductPriceInSource,
+              itemCurrency: sourceCurrency,
               fromCountry,
               toCountry,
             }),
@@ -253,7 +266,7 @@ export function ShipmentPriceBreakdown({
                       <p className="text-sm font-semibold">
                         {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                         {formatNumber(
-                          productPriceBreakdown.productPriceInDestinationCountry *
+                          productPriceBreakdown.productPriceInDestinationCountry +
                           productPriceBreakdown.courierChargeInDestinationCountry +
                           productPriceBreakdown.warehouseHandlingChargeInDestinationCountry,
                         )}

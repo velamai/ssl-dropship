@@ -17,6 +17,9 @@ export const CURRENCY_OPTIONS = [
   { value: "GBP", label: "GBP - British Pound" },
   { value: "EUR", label: "EUR - Euro" },
   { value: "LKR", label: "LKR - Sri Lankan Rupee" },
+  { value: "AED", label: "AED - UAE Dirham" },
+  { value: "MYR", label: "MYR - Malaysian Ringgit" },
+  { value: "SGD", label: "SGD - Singapore Dollar" },
 ] as const;
 
 export type CurrencyCode = (typeof CURRENCY_OPTIONS)[number]["value"];
@@ -48,7 +51,7 @@ export const ItemSchema = z.object({
       .positive({ message: "Price must be positive" })
       .optional()
   ),
-  valueCurrency: z.enum(["INR", "USD", "GBP", "EUR", "LKR"]).default("INR"), // Default currency is INR
+  valueCurrency: z.enum(["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"]).default("INR"), // Default currency is INR
   quantity: z.preprocess(
     (val) =>
       val === "" || val === null || val === undefined ? undefined : Number(val),

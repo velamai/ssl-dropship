@@ -9,6 +9,10 @@ import {
   getCurrencyCode,
   getOriginCountryFromCode,
 } from "./shipping-rates";
+import {
+  convertCurrencyByCountryCode,
+  currenciesToCountryCode,
+} from "./api/product-price-calculator";
 
 export interface ShipmentItem {
   price: number; // in origin currency
@@ -90,11 +94,25 @@ export async function calculateShipmentPriceBreakdown(
   const destinationCurrency = destinationCurrencyCode;
 
   // 1. Calculate total item price (in origin currency)
-  // Note: Items may have different currencies, but we'll sum them as-is
-  // In a real scenario, you might want to convert all to origin currency first
+  // Convert each item to origin/source currency before summing (handles mixed currencies)
+  const uniqueCurrencies = [...new Set(items.map((i) => i.valueCurrency || "INR"))];
+  const ratesToSource: Record<string, number> = {};
+  await Promise.all(
+    uniqueCurrencies.map(async (currency) => {
+      const itemCountryCode = currenciesToCountryCode(currency);
+      const rate = await convertCurrencyByCountryCode({
+        sourceCountryCode: itemCountryCode,
+        destinationCountryCode: sourceCountryCode,
+        amount: null,
+      });
+      ratesToSource[currency] = rate || 1;
+    })
+  );
+
   const itemPriceOrigin = items.reduce((sum, item) => {
     const itemTotal = (item.price || 0) * (item.quantity || 1);
-    return sum + itemTotal;
+    const rate = ratesToSource[item.valueCurrency || "INR"] || 1;
+    return sum + itemTotal * rate;
   }, 0);
 
   // 2. Get domestic courier charge (in origin currency)

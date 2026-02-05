@@ -363,7 +363,7 @@ export const productPriceCalculatorApi = {
   },
 };
 
-type CurrencyType = "USD" | "INR" | "LKR" | "GBP" | "AED" | "MYR";
+type CurrencyType = "USD" | "INR" | "LKR" | "GBP" | "AED" | "MYR" | "SGD" | "EUR";
 
 const countryCodeToCurrency = [
   { code: "US", currency: "USD" },
@@ -372,6 +372,8 @@ const countryCodeToCurrency = [
   { code: "GB", currency: "GBP" },
   { code: "AE", currency: "AED" },
   { code: "MY", currency: "MYR" },
+  { code: "SG", currency: "SGD" },
+  { code: "DE", currency: "EUR" },
 ];
 
 export const currenciesToCountryCode = (currency: CurrencyType) => {

@@ -29,6 +29,7 @@ import { AddOnsStep } from "@/components/shipments/addons-step";
 import { ReviewStep } from "@/components/shipments/review-step";
 import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
 import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
+import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -87,6 +88,7 @@ function CreateShipmentPageContent() {
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
   const [addOnTotal, setAddOnTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOrderSuccessDialog, setShowOrderSuccessDialog] = useState(false);
   // Use ref instead of state to ensure synchronous access during form submission
   const currencyDataRef = useRef<{
     sourceCurrencyCode: string;
@@ -745,13 +747,8 @@ function CreateShipmentPageContent() {
         throw new Error(error.message);
       }
 
-      toast({
-        title: "Success",
-        description: "Drop and Ship Order created successfully",
-      });
       console.log("Drop and Ship Order created:", responseData);
-
-      router.push("/shipments");
+      setShowOrderSuccessDialog(true);
     } catch (error: any) {
       console.error("Error creating shipments:", error);
       toast({
@@ -785,6 +782,17 @@ function CreateShipmentPageContent() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <OrderSuccessDialog
+        open={showOrderSuccessDialog}
+        onOpenChange={(open) => {
+          setShowOrderSuccessDialog(open);
+          if (!open) router.push("/shipments");
+        }}
+        onRedirect={() => {
+          setShowOrderSuccessDialog(false);
+          router.push("/shipments");
+        }}
+      />
       <Navbar activePage="create-shipments" />
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">

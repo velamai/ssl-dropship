@@ -135,35 +135,29 @@ function ProductItemWithQuery({
     name: `shipments.${index}.items.${itemIndex}`,
   });
 
-  // Auto-populate fields when product data is fetched
+  // Auto-populate fields when product data is fetched - always update when new
+  // productData arrives for the current URL (including when user re-enters a different link)
   useEffect(() => {
-    if (productData) {
-      if (
-        productData.title &&
-        (!currentItem?.productName || currentItem.productName?.trim() === "")
-      ) {
+    if (productData && debouncedUrl) {
+      if (productData.title) {
         setValue(
           `shipments.${index}.items.${itemIndex}.productName`,
           productData.title,
         );
       }
 
-      if (
-        productData.price &&
-        productData.price > 0 &&
-        (!currentItem?.price || currentItem.price === 0)
-      ) {
+      if (productData.price && productData.price > 0) {
         setValue(
           `shipments.${index}.items.${itemIndex}.price`,
           productData.price,
         );
       }
 
-      if (productData.currency && !currentItem?.valueCurrency) {
-        const validCurrency = ["INR", "USD", "GBP", "EUR", "LKR"].includes(
+      if (productData.currency) {
+        const validCurrency = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"].includes(
           productData.currency,
         )
-          ? (productData.currency as "INR" | "USD" | "GBP" | "EUR" | "LKR")
+          ? (productData.currency as "INR" | "USD" | "GBP" | "EUR" | "LKR" | "AED" | "MYR" | "SGD")
           : "USD";
         setValue(
           `shipments.${index}.items.${itemIndex}.valueCurrency`,
@@ -171,7 +165,7 @@ function ProductItemWithQuery({
         );
       }
     }
-  }, [productData, currentItem, index, itemIndex, setValue]);
+  }, [productData, debouncedUrl, index, itemIndex, setValue]);
 
   return (
     <div className="relative p-5 rounded-xl border bg-card">
@@ -294,6 +288,9 @@ function ProductItemWithQuery({
                   <SelectItem value="GBP">GBP</SelectItem>
                   <SelectItem value="INR">INR</SelectItem>
                   <SelectItem value="LKR">LKR</SelectItem>
+                  <SelectItem value="AED">AED</SelectItem>
+                  <SelectItem value="MYR">MYR</SelectItem>
+                  <SelectItem value="SGD">SGD</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -345,9 +342,31 @@ export function ProductsStep({
   const watchedItems = watch(`shipments.${index}.items`);
   const queryClient = useQueryClient();
 
+  // Watch source country for currency default
+  const sourceCountryCode = useWatch({
+    control,
+    name: `shipments.${index}.sourceCountryCode`,
+  }) as string | undefined;
+
   // Fetch source countries from Supabase
   const { data: sourceCountries, isLoading: isLoadingSourceCountries } =
     useSourceCountries();
+
+  // When source country is selected, default item currency to that country's currency
+  const validCurrencies = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"] as const;
+  useEffect(() => {
+    if (!sourceCountryCode || !sourceCountries || itemFields.length === 0) return;
+    const sourceCurrency = sourceCountries.find(
+      (c) => c.code === sourceCountryCode
+    )?.currency;
+    if (!sourceCurrency) return;
+    const currency = validCurrencies.includes(sourceCurrency as (typeof validCurrencies)[number])
+      ? sourceCurrency
+      : "USD";
+    itemFields.forEach((_, itemIndex) => {
+      setValue(`shipments.${index}.items.${itemIndex}.valueCurrency`, currency as (typeof validCurrencies)[number]);
+    });
+  }, [sourceCountryCode, sourceCountries, index, itemFields.length, setValue]);
 
   // State to track product images for preview panel
   const [productImages, setProductImages] = useState<{

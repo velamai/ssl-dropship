@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { convertCurrencyByCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
+import { convertCurrencyByCountryCode, countryCodeToCurrencies, currenciesToCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
 import { ArrowLeft, FileText, Loader2, Send } from "lucide-react";
@@ -86,29 +86,49 @@ export function ReviewStep({
         return;
       }
 
-      const totalProductPrice = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-
-
       setIsLoadingBreakdown(true);
       setBreakdownError(null);
 
       try {
-        const fromCountry = sourceCountryCode
+        const fromCountry = sourceCountryCode;
         const toCountry = destinationCountryCode;
-        const productPriceCurrency = items[0]?.valueCurrency || "INR";
 
-        // Call all API functions in parallel
+        // Convert each item to source currency before summing (handles mixed currencies)
+        const uniqueCurrencies = [...new Set(items.map((i) => i.valueCurrency || "INR"))];
+        const ratesToSource: Record<string, number> = {};
+        await Promise.all(
+          uniqueCurrencies.map(async (currency) => {
+            const itemCountryCode = currenciesToCountryCode(currency);
+            const rate = await convertCurrencyByCountryCode({
+              sourceCountryCode: itemCountryCode,
+              destinationCountryCode: sourceCountryCode,
+              amount: null,
+            });
+            ratesToSource[currency] = rate || 1;
+          })
+        );
+
+        const totalProductPriceInSource = items.reduce((sum, item) => {
+          const itemTotal = (item.price || 0) * (item.quantity || 1);
+          const rate = ratesToSource[item.valueCurrency || "INR"] || 1;
+          return sum + itemTotal * rate;
+        }, 0);
+
+        // Source currency for API calls (from source country)
+        const sourceCurrency = countryCodeToCurrencies(sourceCountryCode) || "INR";
+
+        // Call all API functions in parallel - use totalProductPriceInSource with source currency
         const [productPriceData, handlingChargeData, courierChargeData, exchangeRateInrToSource, exchangeRateSourceToInr, exchangeRateDestinationToInr] =
           await Promise.all([
             getProductPrice({
-              productPrice: totalProductPrice,
+              productPrice: totalProductPriceInSource,
               fromCountry: sourceCountryCode,
               toCountry: destinationCountryCode,
-              productPriceCurrency: productPriceCurrency,
+              productPriceCurrency: sourceCurrency,
             }),
             getHandlingCharge({
-              itemPrice: totalProductPrice,
-              itemCurrency: productPriceCurrency,
+              itemPrice: totalProductPriceInSource,
+              itemCurrency: sourceCurrency,
               fromCountry,
               toCountry,
             }),
@@ -270,6 +290,19 @@ export function ReviewStep({
                     {sourceCurrencyCodeValue}{" "} {formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)}
                   </span>
                 </div>
+                {sourceCurrencyCodeValue !== destinationCurrencyCodeValue && (
+                  <div className="flex items-center justify-between text-muted-foreground text-sm">
+                    <span>Grand Total ({destinationCurrencyCodeValue})</span>
+                    <span>
+                      {formatCurrency(
+                        (productPriceBreakdown?.productPriceInDestinationCountry || 0) +
+                        (productPriceBreakdown?.courierChargeInDestinationCountry || 0) +
+                        (productPriceBreakdown?.warehouseHandlingChargeInDestinationCountry || 0) +
+                        (addOnTotal * (productPriceBreakdown?.exchangeRateDestinationToInr || 1) || 0)
+                      )}
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </div>

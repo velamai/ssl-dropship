@@ -3,6 +3,7 @@
 import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import { Navbar } from "@/components/navbar";
 import { FormHeader } from "@/components/shipments/form-header";
+import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
 import { ShipmentCard } from "@/components/shipments/shipment-card";
 import { Accordion } from "@/components/ui/accordion";
 import {
@@ -162,6 +163,7 @@ export default function CreateShipmentPage() {
     [key: string]: PriceCalculationResult;
   }>({});
   const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [showOrderSuccessDialog, setShowOrderSuccessDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
@@ -569,14 +571,9 @@ export default function CreateShipmentPage() {
         throw new Error(error.message);
       }
 
-      toast({
-        title: "Success",
-        description: "Drop and Ship Order created successfully",
-      });
       console.log("Drop and Ship Order created:", responseData);
-
-      setShowTermsDialog(false); // Close dialog on success
-      router.push("/shipments");
+      setShowTermsDialog(false);
+      setShowOrderSuccessDialog(true);
     } catch (error: any) {
       console.error("Error creating shipments:", error);
       toast({
@@ -607,6 +604,17 @@ export default function CreateShipmentPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <OrderSuccessDialog
+        open={showOrderSuccessDialog}
+        onOpenChange={(open) => {
+          setShowOrderSuccessDialog(open);
+          if (!open) router.push("/shipments");
+        }}
+        onRedirect={() => {
+          setShowOrderSuccessDialog(false);
+          router.push("/shipments");
+        }}
+      />
       <Navbar activePage="create-shipments" />
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
