@@ -212,6 +212,15 @@ function ProductItemWithQuery({
           <ErrorMessage
             error={errors.shipments?.[index]?.items?.[itemIndex]?.productUrl}
           />
+          {/* Inline reassurance when fetch fails - neutral message, not error */}
+          {!isLoading &&
+            isValidUrl &&
+            (!!error || !productData?.image) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter the details below and continue – we&apos;ll use them for
+                your order.
+              </p>
+            )}
         </div>
 
         {/* Product Name */}
@@ -577,6 +586,14 @@ export function ProductsStep({
       unsubscribe();
     };
   }, [watchedItems, queryClient, index]);
+
+  // Show Product Preview only when at least one image is successfully fetched
+  const hasSuccessfulPreview = Object.values(productImages).some(
+    (img) => !img.loading && !!img.imageUrl?.trim()
+  );
+  const successfulPreviewEntries = Object.entries(productImages).filter(
+    ([_, img]) => !img.loading && !!img.imageUrl?.trim()
+  );
 
   return (
     <div className="grid lg:grid-cols-[1fr_400px] gap-6">
@@ -1208,33 +1225,34 @@ export function ProductsStep({
         </div>
       </div>
 
-      {/* Right Column: Image Preview */}
+      {/* Right Column: Image Preview - only show when we have successful images, or empty state */}
       <div className="hidden lg:block">
         <div className="sticky top-24 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Product Preview
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Images are automatically scraped from product links
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {Object.keys(productImages).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-3">
-                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
+          {/* Product Preview card: show only when empty (no URLs) or when at least one image fetched successfully */}
+          {(Object.keys(productImages).length === 0 || hasSuccessfulPreview) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5" />
+                  Product Preview
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Images are automatically scraped from product links
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(productImages).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Add a product link to see preview
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Add a product link to see preview
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {Object.entries(productImages).map(
-                    ([itemIndex, imageData]) => (
+                ) : (
+                  <div className="space-y-3">
+                    {successfulPreviewEntries.map(([itemIndex, imageData]) => (
                       <div
                         key={itemIndex}
                         className="p-3 rounded-lg border bg-card"
@@ -1244,78 +1262,31 @@ export function ProductsStep({
                             {Number(itemIndex) + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            {imageData.loading ? (
-                              <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
-                                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                            <div className="space-y-2">
+                              <div className="rounded-lg overflow-hidden bg-muted border">
+                                <img
+                                  src={imageData.imageUrl!}
+                                  alt={imageData.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = "none";
+                                  }}
+                                />
                               </div>
-                            ) : imageData.error || !imageData.imageUrl ? (
-                              <div className="flex flex-col items-center justify-center h-32 bg-muted rounded-lg text-center p-3">
-                                <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
-                                <p className="text-xs text-muted-foreground">
-                                  {imageData.error ||
-                                    "Image couldn't be fetched automatically"}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <div className="rounded-lg overflow-hidden bg-muted border">
-                                  {imageData.imageUrl ? (
-                                    <img
-                                      src={imageData.imageUrl}
-                                      alt={imageData.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target =
-                                          e.target as HTMLImageElement;
-                                        target.style.display = "none";
-                                      }}
-                                    />
-                                  ) : (
-                                    <>
-                                      <div className="w-full h-full flex items-center justify-center bg-muted">
-                                        {/* <ImageIcon className="w-8 h-8 text-muted-foreground" /> */}
-                                        Image couldn't be fetched automatically
-                                      </div>
-
-                                      <Alert className="border-yellow-200 bg-yellow-50 mt-3">
-                                        <Info className="h-4 w-4 text-yellow-600" />
-                                        <AlertDescription className="text-yellow-600 font-semibold">
-                                          The product image couldn't be fetched
-                                          automatically. Please continue
-                                          entering the product information and
-                                          proceed to place the order.{" "}
-                                        </AlertDescription>
-                                      </Alert>
-                                    </>
-                                  )}
-                                </div>
-                                <p className="text-xs font-medium line-clamp-2">
-                                  {imageData.name}
-                                </p>
-                              </div>
-                            )}
-                            {(imageData.error || !imageData.imageUrl) &&
-                              !imageData.loading && (
-                                <>
-                                  <Alert className="border-yellow-400 bg-yellow-50 mt-3">
-                                    <Info className="h-4 w-4 text-yellow-600" />
-                                    <AlertDescription className="text-yellow-600 text-xs">
-                                      The image couldn't be loaded. Please
-                                      continue entering the product information
-                                      and proceed to place the order.{" "}
-                                    </AlertDescription>
-                                  </Alert>
-                                </>
-                              )}
+                              <p className="text-xs font-medium line-clamp-2">
+                                {imageData.name}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    ),
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tips Card */}
           <Card className="bg-primary/5 border-primary/20">
@@ -1341,7 +1312,8 @@ export function ProductsStep({
                     <li className="flex items-start gap-2">
                       <span className="text-primary/70 mt-0.5">•</span>
                       <span>
-                        If unavailable, you can manually enter name and price
+                        If details don&apos;t load automatically, enter name and
+                        price manually – your order will work the same
                       </span>
                     </li>
                   </ul>
