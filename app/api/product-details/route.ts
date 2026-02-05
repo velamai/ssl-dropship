@@ -15,6 +15,14 @@ interface ProductData {
   };
 }
 
+/** Reject URLs that are clearly thumbnails (small icons, gallery thumbs, etc.) */
+function isThumbnailUrl(url: string): boolean {
+  if (!url || url.startsWith("data:")) return true;
+  const lower = url.toLowerCase();
+  const thumbnailIndicators = ["thumb", "thumbnail", "_thumb", "-thumb", "50x50", "100x100", "small", "_sm", "-sm", "mini", "icon"];
+  return thumbnailIndicators.some((ind) => lower.includes(ind));
+}
+
 // In-memory cache for request deduplication and caching
 interface CacheEntry {
   data: ProductData;
@@ -314,20 +322,66 @@ function parseAmazon(html: string): ProductData {
     else if (html.includes("amazon.com.my")) currency = "MYR";
   }
 
-  // Extract image
+  // Extract image - prioritize main product image, filter thumbnails
   let image = "";
-  const imagePatterns = [
-    /<img[^>]*id="landingImage"[^>]*src="([^"]+)"/i,
-    /<img[^>]*data-old-src="([^"]+)"/i,
-    /<img[^>]*data-src="([^"]+)"/i,
-    /"mainImage":\s*"([^"]+)"/i,
-  ];
 
-  for (const pattern of imagePatterns) {
-    const match = html.match(pattern);
-    if (match) {
-      image = match[1];
-      if (image) break;
+  // 1. landingImage (Amazon main image)
+  const landingMatch = html.match(/<img[^>]*id="landingImage"[^>]*src="([^"]+)"/i);
+  if (landingMatch && landingMatch[1] && !isThumbnailUrl(landingMatch[1])) {
+    image = landingMatch[1];
+  }
+
+  // 2. main-image (alternative Amazon main image ID)
+  if (!image) {
+    const mainImgMatch = html.match(/<img[^>]*id="main-image"[^>]*src="([^"]+)"/i);
+    if (mainImgMatch && mainImgMatch[1] && !isThumbnailUrl(mainImgMatch[1])) {
+      image = mainImgMatch[1];
+    }
+  }
+
+  // 3. data-a-dynamic-image (JSON with multiple sizes - pick largest/first)
+  if (!image) {
+    const dynamicMatch = html.match(/data-a-dynamic-image=["']([^"']+)["']/i);
+    if (dynamicMatch && dynamicMatch[1]) {
+      try {
+        const parsed = JSON.parse(dynamicMatch[1].replace(/&quot;/g, '"'));
+        const urls = Object.keys(parsed);
+        const best = urls
+          .filter((u) => !isThumbnailUrl(u))
+          .sort((a, b) => {
+            const dimsA = parsed[a] as number[];
+            const dimsB = parsed[b] as number[];
+            const areaA = Array.isArray(dimsA) ? dimsA[0] * (dimsA[1] ?? dimsA[0]) : 0;
+            const areaB = Array.isArray(dimsB) ? dimsB[0] * (dimsB[1] ?? dimsB[0]) : 0;
+            return areaB - areaA;
+          })[0];
+        if (best) image = best;
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }
+
+  // 4. mainImage JSON
+  if (!image) {
+    const mainImageMatch = html.match(/"mainImage":\s*"([^"]+)"/i);
+    if (mainImageMatch && mainImageMatch[1] && !isThumbnailUrl(mainImageMatch[1])) {
+      image = mainImageMatch[1];
+    }
+  }
+
+  // 5. data-old-src / data-src (fallback - may match thumbnails)
+  if (!image) {
+    const fallbackPatterns = [
+      /<img[^>]*data-old-src="([^"]+)"/i,
+      /<img[^>]*data-src="([^"]+)"/i,
+    ];
+    for (const pattern of fallbackPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1] && !isThumbnailUrl(match[1])) {
+        image = match[1];
+        break;
+      }
     }
   }
 
@@ -374,19 +428,20 @@ function parseEbay(html: string): ProductData {
     currency = currencyMatch[1];
   }
 
-  // Extract image
+  // Extract image - prioritize main image, filter thumbnails
   let image = "";
   const imagePatterns = [
     /<img[^>]*id="icImg"[^>]*src="([^"]+)"/i,
+    /<img[^>]*id="icImg"[^>]*data-src="([^"]+)"/i,
     /<img[^>]*itemprop="image"[^>]*src="([^"]+)"/i,
     /"imageUrl":\s*"([^"]+)"/i,
   ];
 
   for (const pattern of imagePatterns) {
     const match = html.match(pattern);
-    if (match) {
+    if (match && match[1] && !isThumbnailUrl(match[1])) {
       image = match[1];
-      if (image) break;
+      break;
     }
   }
 
@@ -436,7 +491,15 @@ function parseGeneric(html: string, hostname: string): ProductData {
             }
             
             if (!image && item.image) {
-              image = typeof item.image === "string" ? item.image : (Array.isArray(item.image) ? item.image[0] : item.image.url || "");
+              const candidates: string[] =
+                typeof item.image === "string"
+                  ? [item.image]
+                  : Array.isArray(item.image)
+                    ? item.image.map((x) => (typeof x === "string" ? x : (x as { url?: string })?.url)).filter(Boolean)
+                    : item.image?.url
+                      ? [item.image.url]
+                      : [];
+              image = candidates.find((c) => !isThumbnailUrl(c)) || candidates[0] || "";
             }
           }
         }
@@ -467,8 +530,9 @@ function parseGeneric(html: string, hostname: string): ProductData {
 
   if (!image) {
     const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
-    if (ogImageMatch) {
-      image = ogImageMatch[1].trim();
+    if (ogImageMatch && ogImageMatch[1]) {
+      const ogImg = ogImageMatch[1].trim();
+      if (!isThumbnailUrl(ogImg)) image = ogImg;
     }
   }
 
@@ -543,23 +607,64 @@ function parseGeneric(html: string, hostname: string): ProductData {
     }
   }
 
-  // Strategy 6: Common HTML patterns for image
+  // Strategy 6: Common HTML patterns for image - prefer main image, filter thumbnails
   if (!image) {
-    const imagePatterns = [
+    // Prefer patterns that target main/primary image
+    const mainImagePatterns = [
+      /<img[^>]*(?:class|id)=["'][^"']*(?:main|primary|hero|landing)[^"']*image[^"']*["'][^>]*src=["']([^"']+)["']/i,
+      /<img[^>]*src=["']([^"']+)["'][^>]*(?:class|id)=["'][^"']*(?:main|primary|hero|landing)[^"']*image[^"']*["']/i,
       /<img[^>]*class=["'][^"']*product[^"']*image[^"']*["'][^>]*src=["']([^"']+)["']/i,
       /<img[^>]*id=["'][^"']*product[^"']*image[^"']*["'][^>]*src=["']([^"']+)["']/i,
-      /<img[^>]*itemprop=["']image["'][^>]*src=["']([^"']+)["']/i,
-      /<img[^>]*src=["']([^"']+)["'][^>]*itemprop=["']image["']/i,
-      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
-      /"imageUrl"[\s:]*"([^"]+)"/i,
-      /"mainImage"[\s:]*"([^"]+)"/i,
     ];
-
-    for (const pattern of imagePatterns) {
+    for (const pattern of mainImagePatterns) {
       const match = html.match(pattern);
-      if (match) {
-        image = match[1].trim();
-        if (image && !image.startsWith("data:")) break; // Skip data URIs
+      if (match && match[1]) {
+        const url = match[1].trim();
+        if (!url.startsWith("data:") && !isThumbnailUrl(url)) {
+          image = url;
+          break;
+        }
+      }
+    }
+
+    // itemprop="image" - may have multiple; pick first non-thumbnail
+    if (!image) {
+      const itempropRegex = /<img[^>]*itemprop=["']image["'][^>]*src=["']([^"']+)["']/gi;
+      for (const match of html.matchAll(itempropRegex)) {
+        const url = match[1].trim();
+        if (url && !url.startsWith("data:") && !isThumbnailUrl(url)) {
+          image = url;
+          break;
+        }
+      }
+    }
+    if (!image) {
+      const itempropRegex2 = /<img[^>]*src=["']([^"']+)["'][^>]*itemprop=["']image["']/gi;
+      for (const match of html.matchAll(itempropRegex2)) {
+        const url = match[1].trim();
+        if (url && !url.startsWith("data:") && !isThumbnailUrl(url)) {
+          image = url;
+          break;
+        }
+      }
+    }
+
+    // Fallback patterns
+    if (!image) {
+      const fallbackPatterns = [
+        /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+        /"imageUrl"[\s:]*"([^"]+)"/i,
+        /"mainImage"[\s:]*"([^"]+)"/i,
+      ];
+      for (const pattern of fallbackPatterns) {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          const url = match[1].trim();
+          if (!url.startsWith("data:") && !isThumbnailUrl(url)) {
+            image = url;
+            break;
+          }
+        }
       }
     }
   }
