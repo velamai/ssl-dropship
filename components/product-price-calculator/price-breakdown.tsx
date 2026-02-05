@@ -87,7 +87,7 @@ export function PriceBreakdown({
       try {
         const fromCountry = sourceCountryCode || getCountryCode(originCountry);
         const toCountry = destinationCountryCode;
-        const productPriceCurrency = breakdown.originCurrency;
+        const productPriceCurrency = productCurrency || breakdown.originCurrency;
 
         // Call all three API functions in parallel
         const [productPriceData, handlingChargeData, courierChargeData] =
@@ -96,11 +96,11 @@ export function PriceBreakdown({
               productPrice: productPrice,
               fromCountry: sourceCountryCode,
               toCountry: destinationCountryCode,
-              productPriceCurrency: "INR",
+              productPriceCurrency,
             }),
             getHandlingCharge({
               itemPrice: productPrice,
-              itemCurrency: "INR",
+              itemCurrency: productPriceCurrency,
               fromCountry,
               toCountry,
             }),

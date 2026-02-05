@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { warehouseApi } from "@/lib/api/warehouses";
 import { useCountries } from "@/lib/hooks/useCountries";
@@ -21,6 +28,7 @@ import {
 } from "@/lib/product-price-calculator";
 import { validateProductUrl } from "@/lib/product-scraper";
 import type { OriginCountry, ProductCategory } from "@/lib/shipping-rates";
+import { countryCodeToCurrencies } from "@/lib/api/product-price-calculator";
 import {
   getCountryCode,
   getCurrencyCode,
@@ -53,6 +61,12 @@ export default function ProductPriceCalculatorPage() {
   const [quantity, setQuantity] = useState(1);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(false);
+
+  // Manual entry fields (for when scraper fails or user prefers manual input)
+  const [manualProductName, setManualProductName] = useState("");
+  const [manualProductPrice, setManualProductPrice] = useState<number | "">("");
+  const [manualProductCurrency, setManualProductCurrency] = useState("INR");
+  const [manualImageUrl, setManualImageUrl] = useState("");
 
   const { user } = useAuth();
 
@@ -92,6 +106,40 @@ export default function ProductPriceCalculatorPage() {
     }
   }, [productData, sourceCountryCode]);
 
+  // Sync manual fields from product data when scraper succeeds
+  useEffect(() => {
+    if (productData) {
+      if (productData.title) setManualProductName((prev) => prev || productData.title || "");
+      if (productData.price != null && productData.price > 0) {
+        setManualProductPrice((prev) => (prev === "" ? productData.price! : prev));
+      }
+      if (productData.currency) {
+        const valid = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"].includes(productData.currency);
+        if (valid) setManualProductCurrency(productData.currency);
+      }
+      if (productData.image) setManualImageUrl((prev) => prev || productData.image || "");
+    }
+  }, [productData]);
+
+  // Default manual currency from source country when it changes
+  useEffect(() => {
+    if (sourceCountryCode) {
+      const currency = countryCodeToCurrencies(sourceCountryCode);
+      if (currency) setManualProductCurrency(currency);
+    }
+  }, [sourceCountryCode]);
+
+  // Effective values: manual override takes precedence over scraper
+  const effectivePrice = useMemo(() => {
+    if (manualProductPrice !== "" && Number(manualProductPrice) > 0) {
+      return Number(manualProductPrice);
+    }
+    return productData?.price ?? null;
+  }, [manualProductPrice, productData?.price]);
+
+  const effectiveName = manualProductName || productData?.title || "Product";
+  const effectiveImage = manualImageUrl || productData?.image || null;
+
   // Price calculation state
   const [priceBreakdown, setPriceBreakdown] = useState<Awaited<
     ReturnType<typeof calculateProductPrice>
@@ -111,6 +159,13 @@ export default function ProductPriceCalculatorPage() {
     setProductUrl(url);
     setCalculationError(null);
     setPriceBreakdown(null);
+    // Clear manual fields when URL is cleared so we don't show stale data from previous fetch
+    if (!url.trim()) {
+      setManualProductName("");
+      setManualProductPrice("");
+      setManualProductCurrency("INR");
+      setManualImageUrl("");
+    }
   };
 
   // Get error message from React Query error
@@ -149,10 +204,18 @@ export default function ProductPriceCalculatorPage() {
       } else if (productData) {
         originCountry = productData.originCountry;
       } else {
-        setCalculationError(
-          "Please select a source country or enter a product URL",
-        );
-        return;
+        // Manual-only mode: infer source country from currency
+        const { currenciesToCountryCode } = await import("@/lib/api/product-price-calculator");
+        const inferredCode = currenciesToCountryCode(manualProductCurrency as "INR" | "USD" | "GBP" | "EUR" | "LKR" | "AED" | "MYR" | "SGD");
+        const country = getOriginCountryFromCode(inferredCode);
+        if (country) {
+          originCountry = country;
+        } else {
+          setCalculationError(
+            "Please select a source country (required for this currency)",
+          );
+          return;
+        }
       }
     } else {
       // For all other receiving countries, force India as source
@@ -164,11 +227,10 @@ export default function ProductPriceCalculatorPage() {
       return;
     }
 
-    // Get product price - use product data if available, otherwise require manual input
-    const productPrice = productData?.price;
-    if (!productPrice) {
+    // Get product price: manual override or scraper data
+    if (effectivePrice == null || effectivePrice <= 0) {
       setCalculationError(
-        "Please enter a product URL or provide product price",
+        "Please enter a product URL or provide product price manually",
       );
       return;
     }
@@ -181,7 +243,7 @@ export default function ProductPriceCalculatorPage() {
         originCountry,
         destinationCountryCode: destinationCountry,
         category,
-        productPrice,
+        productPrice: effectivePrice,
         quantity,
         deliveryOption: "delivery", // Default to delivery in main calculation
       };
@@ -263,23 +325,25 @@ export default function ProductPriceCalculatorPage() {
     loadShippingEstimateData();
   }, [shippingEstimateOriginCountry, destinationCountry]);
 
-  // Auto-recalculate when quantity, category, source country, or destination changes after first calculation
+  // Auto-recalculate when quantity, category, source country, destination, or effective price changes after first calculation
   useEffect(() => {
     // Only recalculate if:
     // 1. Price breakdown already exists (first calculation was done)
     // 2. Category is selected
-    // 3. Either product data exists or source country is selected
-    // 4. Not currently calculating (prevent infinite loops)
+    // 3. Effective price exists
+    // 4. Origin can be determined (productData, sourceCountryCode, or manual price)
+    // 5. Not currently calculating (prevent infinite loops)
     if (
       priceBreakdown &&
       category &&
-      (productData || sourceCountryCode) &&
+      effectivePrice != null &&
+      (productData || sourceCountryCode || (manualProductPrice !== "" && Number(manualProductPrice) > 0)) &&
       !isCalculating
     ) {
       handleCalculatePrice();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantity, category, sourceCountryCode, destinationCountry]);
+  }, [quantity, category, sourceCountryCode, destinationCountry, effectivePrice, manualProductPrice]);
 
   return (
     <main className="min-h-screen bg-[#f8f8f8]">
@@ -387,6 +451,74 @@ export default function ProductPriceCalculatorPage() {
                     <span>Fetching product details...</span>
                   </div>
                 )}
+
+                {/* Manual Entry Fields - for when scraper fails or user prefers manual input */}
+                <div className="space-y-4 pt-2 border-t">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Or enter manually if URL fetch fails
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="manual-product-name">Product Name (optional)</Label>
+                      <Input
+                        id="manual-product-name"
+                        type="text"
+                        placeholder="Product name"
+                        value={manualProductName}
+                        onChange={(e) => setManualProductName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-product-price">Product Price *</Label>
+                      <Input
+                        id="manual-product-price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={manualProductPrice === "" ? "" : manualProductPrice}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setManualProductPrice(v === "" ? "" : parseFloat(v) || 0);
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter manually if URL fetch fails
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-product-currency">Currency</Label>
+                      <Select
+                        value={manualProductCurrency}
+                        onValueChange={setManualProductCurrency}
+                      >
+                        <SelectTrigger id="manual-product-currency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="INR">INR</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="LKR">LKR</SelectItem>
+                          <SelectItem value="AED">AED</SelectItem>
+                          <SelectItem value="MYR">MYR</SelectItem>
+                          <SelectItem value="SGD">SGD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="manual-image-url">Image URL (optional)</Label>
+                      <Input
+                        id="manual-image-url"
+                        type="url"
+                        placeholder="https://..."
+                        value={manualImageUrl}
+                        onChange={(e) => setManualImageUrl(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Error State */}
                 {productErrorMessage && (
@@ -600,8 +732,9 @@ export default function ProductPriceCalculatorPage() {
                 <Button
                   onClick={handleCalculatePrice}
                   disabled={
-                    (!productData && !sourceCountryCode) ||
+                    !effectivePrice ||
                     !category ||
+                    (!sourceCountryCode && !productData && !(manualProductPrice !== "" && Number(manualProductPrice) > 0)) ||
                     isCalculating
                   }
                   className="w-full"
@@ -673,8 +806,8 @@ export default function ProductPriceCalculatorPage() {
           {/* Right Column - Price Breakdown */}
           <div className="space-y-2.5">
 
-            {/* Product Preview */}
-            {productData && (
+            {/* Product Preview - show when we have name, image, or price (from scraper or manual) */}
+            {(effectiveName || effectiveImage || effectivePrice != null) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -682,7 +815,7 @@ export default function ProductPriceCalculatorPage() {
                     Product Preview
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Images are automatically scraped from product links
+                    {productData ? "From product link or manual entry" : "Enter details manually if URL fetch fails"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -691,15 +824,14 @@ export default function ProductPriceCalculatorPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex gap-4">
                           <div className="flex-1 min-w-0">
-
-                            {productData.image ? (
+                            {effectiveImage ? (
                               <>
                                 <div className="relative h-56 flex-shrink-0 rounded-lg overflow-hidden border bg-muted">
                                   <Image
-                                    src={productData.image}
-                                    alt={productData.title}
+                                    src={effectiveImage}
+                                    alt={effectiveName}
                                     fill
-                                    // className="object-contain"
+                                    className="object-contain"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       target.src =
@@ -708,35 +840,53 @@ export default function ProductPriceCalculatorPage() {
                                     loading="lazy"
                                   />
                                 </div>
-
                                 <p className="font-semibold text-base mb-1 line-clamp-2">
-                                  {productData.title}
+                                  {effectiveName}
                                 </p>
-
-                                <p className="text-lg font-bold text-purple-600 mb-2">
-                                  {/* {productData.currency}{" "} */}
-                                  Price:{" "}
-                                  {productData.price.toLocaleString("en-US", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </p>
-
+                                {effectivePrice != null && (
+                                  <p className="text-lg font-bold text-purple-600 mb-2">
+                                    Price: {effectivePrice.toLocaleString("en-US", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}{" "}
+                                    {manualProductCurrency}
+                                  </p>
+                                )}
                               </>
                             ) : (
                               <>
-                                <div className="h-56  flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center border">
-                                  Image couldn't be fetched automatically
+                                <div className="h-56 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center border">
+                                  {manualImageUrl ? (
+                                    <span className="text-sm text-muted-foreground">Invalid image URL</span>
+                                  ) : (
+                                    "Image couldn't be fetched automatically"
+                                  )}
                                 </div>
-                                <Alert className="border-yellow-200 bg-yellow-50 mt-3">
-                                  <Info className="h-4 w-4 text-yellow-600" />
-                                  <AlertDescription className="text-yellow-600 font-semibold">
-                                    The product image couldn't be fetched automatically. Please continue entering the product information and proceed to place the order.                                  </AlertDescription>
-                                </Alert>
+                                {effectiveName && (
+                                  <p className="font-semibold text-base mb-1 line-clamp-2 mt-2">
+                                    {effectiveName}
+                                  </p>
+                                )}
+                                {effectivePrice != null && (
+                                  <p className="text-lg font-bold text-purple-600 mb-2">
+                                    Price: {effectivePrice.toLocaleString("en-US", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}{" "}
+                                    {manualProductCurrency}
+                                  </p>
+                                )}
+                                {!effectiveImage && (
+                                  <Alert className="border-yellow-200 bg-yellow-50 mt-3">
+                                    <Info className="h-4 w-4 text-yellow-600" />
+                                    <AlertDescription className="text-yellow-600 font-semibold">
+                                      Enter image URL manually above if needed, or continue without it.
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
                               </>
                             )}
                           </div>
-
                         </div>
                       </div>
                     </div>
@@ -748,10 +898,10 @@ export default function ProductPriceCalculatorPage() {
             {priceBreakdown && category ? (
               <PriceBreakdown
                 breakdown={priceBreakdown}
-                productPrice={productData?.price || 0}
-                productName={productData?.title || "Product"}
+                productPrice={effectivePrice ?? 0}
+                productName={effectiveName}
                 productUrl={productUrl}
-                productCurrency={productData?.currency || breakdown.originCurrency}
+                productCurrency={manualProductCurrency || priceBreakdown.originCurrency}
                 quantity={quantity}
                 originCountry={shippingEstimateOriginCountry || "india"}
                 category={category}
@@ -763,8 +913,7 @@ export default function ProductPriceCalculatorPage() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    Enter a product URL and click "Check Price" to see the
-                    breakdown
+                    Enter a product URL or manual details, then click &quot;Check Price&quot; to see the breakdown
                   </p>
                 </CardContent>
               </Card>
