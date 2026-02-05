@@ -672,6 +672,16 @@ export function ProductsStep({
                 type="button"
                 variant="outline"
                 onClick={() => {
+                  const sourceCurrency = sourceCountries?.find(
+                    (c) => c.code === sourceCountryCode
+                  )?.currency;
+                  const currency =
+                    sourceCurrency &&
+                    validCurrencies.includes(
+                      sourceCurrency as (typeof validCurrencies)[number]
+                    )
+                      ? sourceCurrency
+                      : "INR";
                   appendItem({
                     uuid: "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
                       /[xy]/g,
@@ -684,7 +694,7 @@ export function ProductsStep({
                     productUrl: "",
                     productName: "",
                     price: 0,
-                    valueCurrency: "INR",
+                    valueCurrency: currency as (typeof validCurrencies)[number],
                     quantity: 1,
                     productNote: "",
                   });
