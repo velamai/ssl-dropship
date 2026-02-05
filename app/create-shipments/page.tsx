@@ -40,7 +40,10 @@ import {
   saveDraft,
   addDraft,
   savePendingCheckoutDraft,
+  deleteDraft,
+  setDraftsInStorage,
 } from "@/lib/order-draft";
+import { deleteDraftFromDb, saveDraftToDb } from "@/lib/api/order-drafts";
 import { ShoppingCart } from "lucide-react";
 
 // Get the singleton instance
@@ -314,6 +317,7 @@ function CreateShipmentPageContent() {
   useEffect(() => {
     const draftId = searchParams.get("draft");
     const fromCheckout = searchParams.get("from") === "checkout";
+    const hasTypeInUrl = searchParams.get("type") || searchParams.get("service");
 
     if (fromCheckout) {
       const pending = getPendingCheckoutDraft();
@@ -322,17 +326,26 @@ function CreateShipmentPageContent() {
         reset(formValues);
         setLoadedDraftId("pending-checkout");
         clearPendingCheckoutDraft();
-        setCurrentStep((serviceType === "warehouse" ? 5 : 4) as Step); // Go to Review step
+        setCurrentStep((pending.serviceType === "warehouse" ? 5 : 4) as Step); // Go to Review step
+        if (!hasTypeInUrl) {
+          router.replace(`/create-shipments?from=checkout&type=${pending.serviceType}`);
+        }
       }
     } else if (draftId) {
-      const draft = getDraftById(draftId);
+      const draft = getDraftById(draftId) ?? drafts.find((d) => d.id === draftId) ?? null;
       if (draft) {
+        if (!getDraftById(draftId)) {
+          setDraftsInStorage(drafts);
+        }
         const formValues = draftToFormValues(draft);
         reset(formValues);
         setLoadedDraftId(draftId);
+        if (!hasTypeInUrl) {
+          router.replace(`/create-shipments?draft=${draftId}&type=${draft.serviceType}`);
+        }
       }
     }
-  }, [searchParams, reset]);
+  }, [searchParams, reset, router, drafts]);
 
   // Ensure shipmentType is synced with service type and clear warehouse fields for link service
   useEffect(() => {
@@ -781,6 +794,16 @@ function CreateShipmentPageContent() {
       }
 
       console.log("Drop and Ship Order created:", responseData);
+
+      // Remove draft from cart when order was placed from a loaded draft
+      if (loadedDraftId && loadedDraftId !== "pending-checkout") {
+        deleteDraft(loadedDraftId);
+        if (user?.id) {
+          deleteDraftFromDb(loadedDraftId, user.id).catch(() => {});
+        }
+        refreshDrafts();
+      }
+
       setShowOrderSuccessDialog(true);
     } catch (error: any) {
       console.error("Error creating shipments:", error);
@@ -1005,6 +1028,13 @@ function CreateShipmentPageContent() {
                     addDraft(draft);
                     setLoadedDraftId(draft.id);
                   }
+                  if (user?.id) {
+                    const draftToSave =
+                      draftId
+                        ? { ...draft, name: getDraftById(draftId)?.name ?? draft.name }
+                        : draft;
+                    saveDraftToDb(draftToSave, user.id).catch(() => {});
+                  }
                   refreshDrafts();
                   toast({
                     title: "Draft saved",
@@ -1118,12 +1148,14 @@ function CreateShipmentPageContent() {
                 onBack={handleBack}
                 user={user}
                 onLoginRequired={() => savePendingCheckoutDraft(getValues())}
+                loginRedirectUrl={`/create-shipments?from=checkout&type=${getValues("shipments.0.shipmentType") || "link"}`}
                 onSubmit={async (currencyData) => {
                   // Login gate: guests must log in before placing order
                   if (!user) {
                     savePendingCheckoutDraft(getValues());
+                    const formServiceType = getValues("shipments.0.shipmentType") || "link";
                     router.push(
-                      `/login?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`
+                      `/login?redirect=${encodeURIComponent(`/create-shipments?from=checkout&type=${formServiceType}`)}`
                     );
                     return;
                   }

@@ -1,6 +1,10 @@
 import { useAuth } from "@/contexts/auth-context";
-import { userAddressApi } from "@/lib/api/user-addresses";
-import { useQuery } from "@tanstack/react-query";
+import {
+  userAddressApi,
+  type CreateAddressPayload,
+  type UpdateAddressPayload,
+} from "@/lib/api/user-addresses";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
 export const userAddressKeys = {
@@ -48,5 +52,82 @@ export function useUserProfile() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: !!user?.id,
+  });
+}
+
+// Create address mutation
+export function useCreateAddress() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id || "";
+
+  return useMutation({
+    mutationFn: (payload: CreateAddressPayload) =>
+      userAddressApi.createAddress(userId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userAddressKeys.list(userId) });
+      queryClient.invalidateQueries({
+        queryKey: userAddressKeys.primaryDetail(userId),
+      });
+    },
+  });
+}
+
+// Update address mutation
+export function useUpdateAddress() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id || "";
+
+  return useMutation({
+    mutationFn: ({
+      addressId,
+      payload,
+    }: {
+      addressId: string;
+      payload: UpdateAddressPayload;
+    }) => userAddressApi.updateAddress(userId, addressId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userAddressKeys.list(userId) });
+      queryClient.invalidateQueries({
+        queryKey: userAddressKeys.primaryDetail(userId),
+      });
+    },
+  });
+}
+
+// Delete address mutation
+export function useDeleteAddress() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id || "";
+
+  return useMutation({
+    mutationFn: (addressId: string) =>
+      userAddressApi.deleteAddress(userId, addressId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userAddressKeys.list(userId) });
+      queryClient.invalidateQueries({
+        queryKey: userAddressKeys.primaryDetail(userId),
+      });
+    },
+  });
+}
+
+// Set primary address mutation
+export function useSetPrimaryAddress() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id || "";
+
+  return useMutation({
+    mutationFn: (addressId: string) =>
+      userAddressApi.setPrimaryAddress(userId, addressId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userAddressKeys.list(userId) });
+      queryClient.invalidateQueries({
+        queryKey: userAddressKeys.primaryDetail(userId),
+      });
+    },
   });
 }

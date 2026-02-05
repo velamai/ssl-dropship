@@ -10,10 +10,12 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useOrderDraft } from "@/contexts/order-draft-context";
+import { useAuth } from "@/contexts/auth-context";
 import {
   deleteDraft,
   type OrderDraft,
 } from "@/lib/order-draft";
+import { deleteDraftFromDb } from "@/lib/api/order-drafts";
 import { ShoppingCart, Package, Trash2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -29,17 +31,21 @@ export function OrderDraftSheet({
   onLoadDraft,
 }: OrderDraftSheetProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { drafts, refreshDrafts } = useOrderDraft();
 
   const handleDelete = (id: string) => {
     deleteDraft(id);
+    if (user?.id) {
+      deleteDraftFromDb(id, user.id).catch(() => {});
+    }
     refreshDrafts();
   };
 
   const handleProceedToCheckout = (draft?: OrderDraft) => {
     onOpenChange(false);
     if (draft) {
-      router.push(`/create-shipments?draft=${draft.id}`);
+      router.push(`/create-shipments?draft=${draft.id}&type=${draft.serviceType}`);
     } else {
       router.push("/create-shipments");
     }
@@ -50,7 +56,7 @@ export function OrderDraftSheet({
     if (onLoadDraft) {
       onLoadDraft(draft);
     } else {
-      router.push(`/create-shipments?draft=${draft.id}`);
+      router.push(`/create-shipments?draft=${draft.id}&type=${draft.serviceType}`);
     }
   };
 

@@ -31,6 +31,7 @@ interface ReviewStepProps {
   onBack: () => void;
   user?: { id: string } | null; // For login gate at Place Order
   onLoginRequired?: () => void; // Called when guest tries to place order
+  loginRedirectUrl?: string; // Redirect URL after login (includes type for link/warehouse)
   onSubmit: (currencyData?: {
     sourceCurrencyCode: string;
     destinationCurrencyCode: string;
@@ -69,6 +70,7 @@ export function ReviewStep({
   onBack,
   user,
   onLoginRequired,
+  loginRedirectUrl = "/create-shipments?from=checkout",
   onSubmit,
   isSubmitting,
 }: ReviewStepProps) {
@@ -657,7 +659,7 @@ export function ReviewStep({
             <div className="flex gap-2">
               <Button variant="outline" asChild>
                 <Link
-                  href={`/login?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`}
+                  href={`/login?redirect=${encodeURIComponent(loginRedirectUrl)}`}
                   onClick={onLoginRequired}
                 >
                   <LogIn className="h-4 w-4 mr-2" />
@@ -666,7 +668,7 @@ export function ReviewStep({
               </Button>
               <Button asChild>
                 <Link
-                  href={`/register?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`}
+                  href={`/register?redirect=${encodeURIComponent(loginRedirectUrl)}`}
                   onClick={onLoginRequired}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />

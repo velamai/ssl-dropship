@@ -12,13 +12,14 @@ import {
   User,
   Lock,
   Bell,
-  CreditCard,
   MapPin,
   LogOut,
   Edit,
   Check,
   X,
   ChevronLeft,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -120,6 +121,24 @@ const updateUserProfile = async (profileData: {
 };
 
 import { fetchIdentityVerificationData } from "@/lib/api/identity";
+import { ChangePasswordDialog } from "@/components/account/change-password-dialog";
+import { AddressFormDialog } from "@/components/account/address-form-dialog";
+import {
+  useUserAddresses,
+  useDeleteAddress,
+  useSetPrimaryAddress,
+} from "@/lib/hooks/useUserAddresses";
+import type { UserAddress } from "@/lib/api/user-addresses";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AccountPage() {
   const { user, isLoading: authLoading, signOut } = useAuth();
@@ -127,6 +146,17 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState("personal");
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showChangePasswordDialog, setShowChangePasswordDialog] =
+    useState(false);
+  const [showAddressFormDialog, setShowAddressFormDialog] = useState(false);
+  const [addressFormMode, setAddressFormMode] = useState<"add" | "edit">("add");
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+  const [deleteAddressId, setDeleteAddressId] = useState<string | null>(null);
+
+  const { data: userAddresses = [], isLoading: addressesLoading } =
+    useUserAddresses();
+  const deleteAddressMutation = useDeleteAddress();
+  const setPrimaryAddressMutation = useSetPrimaryAddress();
 
   // React Query for fetching user data
   const {
@@ -588,7 +618,11 @@ export default function AccountPage() {
                                 Last changed 3 months ago
                               </p>
                             </div>
-                            <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
+                            <button
+                              type="button"
+                              onClick={() => setShowChangePasswordDialog(true)}
+                              className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary"
+                            >
                               Change
                             </button>
                           </div>
@@ -728,78 +762,158 @@ export default function AccountPage() {
                     </div>
                     <div className="p-4">
                       <div className="mb-4 flex justify-end">
-                        <button className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddressFormMode("add");
+                            setEditingAddress(null);
+                            setShowAddressFormDialog(true);
+                          }}
+                          className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white"
+                        >
                           Add New Address
                         </button>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="rounded-lg border border-[#e2e2e2] p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center">
-                                <h3 className="font-medium text-[#3f3f3f]">
-                                  Home
-                                </h3>
-                                <span className="ml-2 rounded-full bg-[#0FA95B]/10 px-2 py-0.5 text-xs font-medium text-[#0FA95B]">
-                                  Default
-                                </span>
+                      {addressesLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-[#a2a2a2] mr-2" />
+                          <span className="text-sm text-[#a2a2a2]">
+                            Loading addresses...
+                          </span>
+                        </div>
+                      ) : !userAddresses.length ? (
+                        <div className="rounded-lg border border-[#e2e2e2] p-8 text-center">
+                          <p className="text-[#a2a2a2] mb-4">
+                            You don&apos;t have any saved addresses yet.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddressFormMode("add");
+                              setEditingAddress(null);
+                              setShowAddressFormDialog(true);
+                            }}
+                            className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white mx-auto"
+                          >
+                            Add New Address
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {userAddresses.map((addr) => (
+                            <div
+                              key={addr.user_address_id}
+                              className="rounded-lg border border-[#e2e2e2] p-4"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center">
+                                    <h3 className="font-medium text-[#3f3f3f]">
+                                      {addr.code || addr.address_line1}
+                                    </h3>
+                                    {addr.is_primary && (
+                                      <span className="ml-2 rounded-full bg-[#0FA95B]/10 px-2 py-0.5 text-xs font-medium text-[#0FA95B]">
+                                        Default
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-sm text-[#3f3f3f]">
+                                    {addr.address_line1}
+                                  </p>
+                                  {addr.address_line2 && (
+                                    <p className="text-sm text-[#3f3f3f]">
+                                      {addr.address_line2}
+                                    </p>
+                                  )}
+                                  {(addr.address_line3 || addr.pincode) && (
+                                    <p className="text-sm text-[#3f3f3f]">
+                                      {[addr.address_line3, addr.pincode]
+                                        .filter(Boolean)
+                                        .join(", ")}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-[#3f3f3f]">
+                                    {addr.country}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAddressFormMode("edit");
+                                      setEditingAddress(addr);
+                                      setShowAddressFormDialog(true);
+                                    }}
+                                    className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary"
+                                  >
+                                    <Edit size={14} className="mr-1.5" />
+                                    Edit
+                                  </button>
+                                  {!addr.is_primary && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setPrimaryAddressMutation.mutate(
+                                            addr.user_address_id,
+                                            {
+                                              onSuccess: () => {
+                                                toast({
+                                                  title: "Default address updated",
+                                                  description:
+                                                    "Your default address has been updated.",
+                                                  variant: "default",
+                                                });
+                                              },
+                                              onError: (err) => {
+                                                toast({
+                                                  title: "Failed to set default",
+                                                  description:
+                                                    err instanceof Error
+                                                      ? err.message
+                                                      : "Please try again.",
+                                                  variant: "destructive",
+                                                });
+                                              },
+                                            }
+                                          )
+                                        }
+                                        disabled={
+                                          setPrimaryAddressMutation.isPending
+                                        }
+                                        className="flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-[#3f3f3f] hover:bg-gray-100"
+                                      >
+                                        {setPrimaryAddressMutation.isPending ? (
+                                          <>
+                                            <Loader2
+                                              size={14}
+                                              className="mr-1.5 animate-spin"
+                                            />
+                                            Setting...
+                                          </>
+                                        ) : (
+                                          "Set as Default"
+                                        )}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setDeleteAddressId(addr.user_address_id)
+                                        }
+                                        className="flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50"
+                                      >
+                                        <Trash2 size={14} className="mr-1.5" />
+                                        Delete
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                              <p className="mt-1 text-sm text-[#3f3f3f]">
-                                {formData.addressLine1}
-                              </p>
-                              {formData.addressLine2 && (
-                                <p className="text-sm text-[#3f3f3f]">
-                                  {formData.addressLine2}
-                                </p>
-                              )}
-                              <p className="text-sm text-[#3f3f3f]">
-                                {formData.city}, {formData.postalCode}
-                              </p>
-                              <p className="text-sm text-[#3f3f3f]">
-                                {formData.country}
-                              </p>
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
-                                <Edit size={14} className="mr-1.5" />
-                                Edit
-                              </button>
-                            </div>
-                          </div>
+                          ))}
                         </div>
-
-                        <div className="rounded-lg border border-[#e2e2e2] p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="font-medium text-[#3f3f3f]">
-                                Office
-                              </h3>
-                              <p className="mt-1 text-sm text-[#3f3f3f]">
-                                456 Business Avenue
-                              </p>
-                              <p className="text-sm text-[#3f3f3f]">
-                                Suite 789
-                              </p>
-                              <p className="text-sm text-[#3f3f3f]">
-                                Colombo, 10500
-                              </p>
-                              <p className="text-sm text-[#3f3f3f]">
-                                Sri Lanka
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <button className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary">
-                                <Edit size={14} className="mr-1.5" />
-                                Edit
-                              </button>
-                              <button className="flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-[#3f3f3f] hover:bg-gray-100">
-                                Set as Default
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -808,6 +922,73 @@ export default function AccountPage() {
           </div>
         </div>
       </main>
+
+      <ChangePasswordDialog
+        open={showChangePasswordDialog}
+        onOpenChange={setShowChangePasswordDialog}
+      />
+
+      <AddressFormDialog
+        open={showAddressFormDialog}
+        onOpenChange={setShowAddressFormDialog}
+        mode={addressFormMode}
+        address={editingAddress}
+      />
+
+      <AlertDialog
+        open={!!deleteAddressId}
+        onOpenChange={(open) => !open && setDeleteAddressId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete address?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the
+              address from your saved addresses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                if (deleteAddressId) {
+                  try {
+                    await deleteAddressMutation.mutateAsync(deleteAddressId);
+                    toast({
+                      title: "Address deleted",
+                      description:
+                        "The address has been removed from your saved addresses.",
+                      variant: "default",
+                    });
+                    setDeleteAddressId(null);
+                  } catch (err) {
+                    toast({
+                      title: "Failed to delete address",
+                      description:
+                        err instanceof Error
+                          ? err.message
+                          : "Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }
+              }}
+              disabled={deleteAddressMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteAddressMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

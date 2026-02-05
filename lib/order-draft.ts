@@ -92,6 +92,14 @@ export function getDraftById(id: string): OrderDraft | null {
 }
 
 /**
+ * Replace all drafts in localStorage. Used when syncing from DB.
+ */
+export function setDraftsInStorage(drafts: OrderDraft[]): void {
+  if (!isClient()) return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+}
+
+/**
  * Append a single item to the most recent draft, or create a new draft if none exist.
  */
 export function addItemToLatestDraft(item: OrderDraftItem, sourceCountryCode: string, destinationCountryCode?: string): OrderDraft {

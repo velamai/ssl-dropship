@@ -22,6 +22,7 @@ import {
 import { addItemToLatestDraft } from "@/lib/order-draft";
 import { useOrderDraft } from "@/contexts/order-draft-context";
 import { useToast } from "@/components/ui/use-toast";
+import { saveDraftToDb } from "@/lib/api/order-drafts";
 
 interface PriceBreakdownProps {
   breakdown: PriceBreakdownType;
@@ -162,6 +163,9 @@ export function PriceBreakdown({
       sourceCountryCode!,
       destinationCountryCode
     );
+    if (user?.id) {
+      saveDraftToDb(draft, user.id).catch(() => {});
+    }
     refreshDrafts();
     toast({
       title: "Added to cart",
@@ -188,7 +192,8 @@ export function PriceBreakdown({
           sourceCountryCode!,
           destinationCountryCode
         );
-        router.push(`/create-shipments?draft=${draft.id}`);
+        refreshDrafts();
+        router.push(`/create-shipments?draft=${draft.id}&type=link`);
       } else {
         router.push("/create-shipments");
       }
