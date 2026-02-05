@@ -36,7 +36,10 @@ export const ItemSchema = z.object({
     .min(1, "Product URL is required")
     .url({ message: "Product URL must be a valid URL" }),
   productName: z.string().trim().min(1, "Product name is required"),
-  productNote: z.string().trim().optional(),
+  productNote: z
+    .string()
+    .trim()
+    .min(1, "Please enter color, size and other details"),
   imageUrl: z
     .union([
       z.string().url({ message: "Image URL must be a valid URL" }),

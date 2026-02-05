@@ -87,6 +87,7 @@ function ProductItemWithQuery({
   setValue,
   removeItem,
   canRemove,
+  isWarehouseService = false,
 }: {
   index: number;
   itemIndex: number;
@@ -97,7 +98,13 @@ function ProductItemWithQuery({
   setValue: UseFormSetValue<OrderFormData>;
   removeItem: (index: number) => void;
   canRemove: boolean;
+  isWarehouseService?: boolean;
 }) {
+  const sourceCountryCode = useWatch({
+    control,
+    name: `shipments.${index}.sourceCountryCode`,
+  }) as string | undefined;
+  const isCurrencyLocked = !isWarehouseService && !!sourceCountryCode;
   // Watch the product URL for this specific item
   const productUrl = useWatch({
     control,
@@ -290,7 +297,11 @@ function ProductItemWithQuery({
             name={`shipments.${index}.items.${itemIndex}.valueCurrency`}
             control={control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+                disabled={isCurrencyLocked}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -315,14 +326,17 @@ function ProductItemWithQuery({
         {/* Notes */}
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.productNote`}>
-            Product Notes (Optional)
+            Product Notes *
           </Label>
           <Textarea
             id={`shipments.${index}.items.${itemIndex}.productNote`}
             {...register(`shipments.${index}.items.${itemIndex}.productNote`)}
-            placeholder="Size, color, special instructions..."
+            placeholder="Please enter color, size and other details here"
             rows={2}
             className="resize-none"
+          />
+          <ErrorMessage
+            error={errors.shipments?.[index]?.items?.[itemIndex]?.productNote}
           />
         </div>
       </div>
@@ -650,6 +664,7 @@ export function ProductsStep({
                   setValue={setValue}
                   removeItem={removeItem}
                   canRemove={itemFields.length > 1}
+                  isWarehouseService={isWarehouseService}
                 />
               ))}
 

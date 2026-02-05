@@ -373,14 +373,14 @@ export function ShipmentItem({
             <Label
               htmlFor={`shipments.${shipmentIndex}.items.${itemIndex}.productNote`}
             >
-              Product Note
+              Product Notes *
             </Label>
             <Textarea
               id={`shipments.${shipmentIndex}.items.${itemIndex}.productNote`}
               {...register(
                 `shipments.${shipmentIndex}.items.${itemIndex}.productNote`
               )}
-              placeholder="Enter any additional notes about this product"
+              placeholder="Please enter color, size and other details here"
               rows={3}
             />
             <ErrorMessage

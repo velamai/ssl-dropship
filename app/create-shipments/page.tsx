@@ -673,7 +673,7 @@ function CreateShipmentPageContent() {
 
       return {
         shipment_type: shipmentData.shipmentType,
-        shipment_country_code: shipmentData.country,
+        shipment_country_code: shipmentData.receiver.receivingCountry || shipmentData.country || "",
         warehouse_id: shipmentData.warehouseId,
         purchased_date: shipmentData.purchasedDate?.toISOString(),
         purchased_site: shipmentData.purchasedSite,
