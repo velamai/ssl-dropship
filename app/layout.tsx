@@ -1,6 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/lib/QueryClientProvider";
 import { AuthProvider } from "@/contexts/auth-context";
+import { OrderDraftProvider } from "@/contexts/order-draft-context";
+import { OrderDraftSheetWrapper } from "@/components/shipments/order-draft-sheet-wrapper";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -30,8 +32,11 @@ export default function RootLayout({
       <body>
         <ReactQueryProvider>
           <AuthProvider>
-            {children}
-            <Toaster />
+            <OrderDraftProvider>
+              {children}
+              <OrderDraftSheetWrapper />
+              <Toaster />
+            </OrderDraftProvider>
           </AuthProvider>
         </ReactQueryProvider>
       </body>

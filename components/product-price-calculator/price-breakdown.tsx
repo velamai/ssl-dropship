@@ -7,7 +7,7 @@ import { formatNumber } from "@/lib/product-price-calculator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Info, Loader2 } from "lucide-react";
+import { ShoppingCart, Info, Loader2, Plus } from "lucide-react";
 import { ShippingEstimate } from "./shipping-estimate";
 import type { ProductCategory } from "@/lib/shipping-rates";
 import { getCountryCode } from "@/lib/shipping-rates";
@@ -19,12 +19,17 @@ import {
   getProductPrice,
   countryCodeToCurrencies,
 } from "@/lib/api/product-price-calculator";
+import { addItemToLatestDraft } from "@/lib/order-draft";
+import { useOrderDraft } from "@/contexts/order-draft-context";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PriceBreakdownProps {
   breakdown: PriceBreakdownType;
   sourceCountryCode?: string;
   productPrice: number | null;
   productName: string;
+  productUrl?: string;
+  productCurrency?: string;
   quantity: number;
   originCountry:
   | "india"
@@ -49,6 +54,8 @@ type ProductPriceBreakDown = {
 export function PriceBreakdown({
   breakdown,
   productName,
+  productUrl,
+  productCurrency = "INR",
   quantity,
   originCountry,
   category,
@@ -132,25 +139,59 @@ export function PriceBreakdown({
 
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { refreshDrafts } = useOrderDraft();
+  const { toast } = useToast();
   const {
     exchangeRate,
     originCurrency,
     destinationCurrency,
   } = breakdown;
 
-  const handlePlaceOrder = () => {
-    // Wait for auth to finish loading
-    if (isLoading) {
-      return;
-    }
+  const canAddToCart = productUrl?.trim() && productPrice != null && productPrice > 0 && sourceCountryCode;
 
-    // Check if user is authenticated
+  const handleAddToCart = () => {
+    if (!canAddToCart) return;
+    const draft = addItemToLatestDraft(
+      {
+        productUrl: productUrl!,
+        productName: productName || "Product",
+        price: productPrice,
+        valueCurrency: productCurrency,
+        quantity,
+      },
+      sourceCountryCode!,
+      destinationCountryCode
+    );
+    refreshDrafts();
+    toast({
+      title: "Added to cart",
+      description: `${productName} has been saved to your draft.`,
+    });
+  };
+
+  const handlePlaceOrder = () => {
+    if (isLoading) return;
+
     if (user) {
-      // User is logged in, redirect to create shipments
       router.push("/create-shipments");
     } else {
-      // User is not logged in, redirect to login page with redirect parameter
-      router.push(`/login?redirect=${encodeURIComponent("/create-shipments")}`);
+      // Guest: save current product to draft and go to create-shipments with it preloaded
+      if (canAddToCart) {
+        const draft = addItemToLatestDraft(
+          {
+            productUrl: productUrl!,
+            productName: productName || "Product",
+            price: productPrice!,
+            valueCurrency: productCurrency,
+            quantity,
+          },
+          sourceCountryCode!,
+          destinationCountryCode
+        );
+        router.push(`/create-shipments?draft=${draft.id}`);
+      } else {
+        router.push("/create-shipments");
+      }
     }
   };
 
@@ -351,15 +392,28 @@ export function PriceBreakdown({
               </AlertDescription>
             </Alert>
 
-            {/* Place Order Button */}
-            <Button
-              onClick={handlePlaceOrder}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
-              size="lg"
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Place Order
-            </Button>
+            {/* Add to Cart and Place Order Buttons */}
+            <div className="space-y-2">
+              {canAddToCart && (
+                <Button
+                  variant="outline"
+                  onClick={handleAddToCart}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add to Cart
+                </Button>
+              )}
+              <Button
+                onClick={handlePlaceOrder}
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                size="lg"
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Place Order
+              </Button>
+            </div>
           </>
         )}
       </CardContent>

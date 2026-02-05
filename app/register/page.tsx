@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -13,7 +13,7 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
@@ -369,8 +369,13 @@ const registerUser = async (userData: FormData) => {
   return data;
 };
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+  const loginHref = redirectParam
+    ? `/login?redirect=${encodeURIComponent(redirectParam)}`
+    : "/login";
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -1290,7 +1295,7 @@ export default function RegisterPage() {
                 <p className="text-sm">
                   After verifying your email, you can{" "}
                   <Link
-                    href="/login"
+                    href={loginHref}
                     className="font-semibold text-primary underline"
                   >
                     log in here
@@ -1353,7 +1358,7 @@ export default function RegisterPage() {
               <div className="text-center text-[13px] text-[#a2a2a2]">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="text-primary font-medium hover:underline"
                 >
                   Sign In
@@ -1380,5 +1385,19 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }

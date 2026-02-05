@@ -24,6 +24,7 @@ import {
   Globe,
   Lightbulb,
   Info,
+  Save,
 } from "lucide-react";
 import {
   Controller,
@@ -63,6 +64,8 @@ interface ProductsStepProps {
   onNext: () => void;
   isWarehouseService?: boolean;
   getValues?: any;
+  onSaveDraft?: () => void;
+  loadedDraftId?: string | null;
 }
 
 interface ProductImage {
@@ -328,6 +331,8 @@ export function ProductsStep({
   onNext,
   isWarehouseService = false,
   getValues,
+  onSaveDraft,
+  loadedDraftId,
 }: ProductsStepProps) {
   const {
     fields: itemFields,
@@ -1177,7 +1182,23 @@ export function ProductsStep({
           </>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <div>
+            {onSaveDraft && (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onSaveDraft}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {loadedDraftId && loadedDraftId !== "pending-checkout"
+                  ? "Update Draft"
+                  : "Save Draft"}
+              </Button>
+            )}
+          </div>
           <Button type="button" onClick={onNext} size="lg">
             <span>
               Continue to {isWarehouseService ? "Warehouse" : "Delivery"}

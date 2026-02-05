@@ -13,8 +13,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { convertCurrencyByCountryCode, countryCodeToCurrencies, currenciesToCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
-import { ArrowLeft, FileText, Loader2, Send } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, LogIn, Send, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
@@ -28,6 +29,8 @@ interface ReviewStepProps {
   destinationCountryCode?: string;
   items?: ShipmentItem[]; // Product items array
   onBack: () => void;
+  user?: { id: string } | null; // For login gate at Place Order
+  onLoginRequired?: () => void; // Called when guest tries to place order
   onSubmit: (currencyData?: {
     sourceCurrencyCode: string;
     destinationCurrencyCode: string;
@@ -64,6 +67,8 @@ export function ReviewStep({
   destinationCountryCode,
   items = [],
   onBack,
+  user,
+  onLoginRequired,
   onSubmit,
   isSubmitting,
 }: ReviewStepProps) {
@@ -644,38 +649,66 @@ export function ReviewStep({
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button
-          type="button"
-          onClick={() => {
-            if (productPriceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
-              onSubmit({
-                sourceCurrencyCode: sourceCurrencyCodeValue,
-                destinationCurrencyCode: destinationCurrencyCodeValue,
-                exchangeRateSourceToInr: productPriceBreakdown.exchangeRateSourceToInr,
-                exchangeRateDestinationToInr: productPriceBreakdown.exchangeRateDestinationToInr,
-                totalGrandTotal: productPriceBreakdown?.productPriceInSourceCountry + productPriceBreakdown?.courierChargeInSourceCountry + productPriceBreakdown?.warehouseHandlingChargeInSourceCountry + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)),
-                warehouseHandlingCharge: productPriceBreakdown?.warehouseHandlingChargeInSourceCountry,
-                courierCharge: productPriceBreakdown?.courierChargeInSourceCountry,
-              });
-            } else {
-              onSubmit();
-            }
-          }}
-          disabled={isSubmitting}
-          className="gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4" />
-              Place Order ({sourceCurrencyCodeValue}{" "}{formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)})
-            </>
-          )}
-        </Button>
+        {!user ? (
+          <div className="flex flex-col items-end gap-2">
+            <p className="text-sm text-muted-foreground">
+              Login or register to place your order
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link
+                  href={`/login?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`}
+                  onClick={onLoginRequired}
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Login
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link
+                  href={`/register?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`}
+                  onClick={onLoginRequired}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Register
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => {
+              if (productPriceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
+                onSubmit({
+                  sourceCurrencyCode: sourceCurrencyCodeValue,
+                  destinationCurrencyCode: destinationCurrencyCodeValue,
+                  exchangeRateSourceToInr: productPriceBreakdown.exchangeRateSourceToInr,
+                  exchangeRateDestinationToInr: productPriceBreakdown.exchangeRateDestinationToInr,
+                  totalGrandTotal: productPriceBreakdown?.productPriceInSourceCountry + productPriceBreakdown?.courierChargeInSourceCountry + productPriceBreakdown?.warehouseHandlingChargeInSourceCountry + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)),
+                  warehouseHandlingCharge: productPriceBreakdown?.warehouseHandlingChargeInSourceCountry,
+                  courierCharge: productPriceBreakdown?.courierChargeInSourceCountry,
+                });
+              } else {
+                onSubmit();
+              }
+            }}
+            disabled={isSubmitting}
+            className="gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Place Order ({sourceCurrencyCodeValue}{" "}{formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)})
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

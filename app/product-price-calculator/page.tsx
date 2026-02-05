@@ -750,6 +750,8 @@ export default function ProductPriceCalculatorPage() {
                 breakdown={priceBreakdown}
                 productPrice={productData?.price || 0}
                 productName={productData?.title || "Product"}
+                productUrl={productUrl}
+                productCurrency={productData?.currency || breakdown.originCurrency}
                 quantity={quantity}
                 originCountry={shippingEstimateOriginCountry || "india"}
                 category={category}

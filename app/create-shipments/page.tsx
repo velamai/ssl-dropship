@@ -30,6 +30,18 @@ import { ReviewStep } from "@/components/shipments/review-step";
 import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
 import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
+import { useOrderDraft } from "@/contexts/order-draft-context";
+import {
+  getDraftById,
+  getPendingCheckoutDraft,
+  clearPendingCheckoutDraft,
+  draftToFormValues,
+  formValuesToDraft,
+  saveDraft,
+  addDraft,
+  savePendingCheckoutDraft,
+} from "@/lib/order-draft";
+import { ShoppingCart } from "lucide-react";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -104,6 +116,7 @@ function CreateShipmentPageContent() {
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors },
     formState,
     watch,
@@ -292,17 +305,34 @@ function CreateShipmentPageContent() {
     getValues,
   ]);
 
-  // Redirect if not authenticated
+  // No auth redirect - guests can fill the form; login required only at Place Order
+
+  const { drafts, refreshDrafts, isCartOpen, setIsCartOpen } = useOrderDraft();
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
+
+  // Load draft from URL (?draft=<id> or ?from=checkout)
   useEffect(() => {
-    if (!authIsLoading && !user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to create shipments",
-        variant: "destructive",
-      });
-      router.push("/");
+    const draftId = searchParams.get("draft");
+    const fromCheckout = searchParams.get("from") === "checkout";
+
+    if (fromCheckout) {
+      const pending = getPendingCheckoutDraft();
+      if (pending) {
+        const formValues = draftToFormValues(pending);
+        reset(formValues);
+        setLoadedDraftId("pending-checkout");
+        clearPendingCheckoutDraft();
+        setCurrentStep((serviceType === "warehouse" ? 5 : 4) as Step); // Go to Review step
+      }
+    } else if (draftId) {
+      const draft = getDraftById(draftId);
+      if (draft) {
+        const formValues = draftToFormValues(draft);
+        reset(formValues);
+        setLoadedDraftId(draftId);
+      }
     }
-  }, [user, authIsLoading, router, toast]);
+  }, [searchParams, reset]);
 
   // Ensure shipmentType is synced with service type and clear warehouse fields for link service
   useEffect(() => {
@@ -339,7 +369,10 @@ function CreateShipmentPageContent() {
         const countriesData = await fetchCountries();
         setCountries(countriesData);
 
-        if (countriesData.length > 0) {
+        // Don't overwrite country when loading from draft (draft will set it)
+        const hasDraftInUrl =
+          searchParams.get("draft") || searchParams.get("from") === "checkout";
+        if (countriesData.length > 0 && !hasDraftInUrl) {
           setValue("shipments.0.country", countriesData[0].code, {
             shouldValidate: true,
           });
@@ -367,7 +400,7 @@ function CreateShipmentPageContent() {
     }
 
     loadData();
-  }, [toast, setValue]);
+  }, [toast, setValue, searchParams]);
 
   // Helper function to extract all validation errors
   const extractAllErrors = useCallback((errors: any, path = ""): string[] => {
@@ -797,8 +830,8 @@ function CreateShipmentPageContent() {
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
         <div className="md:container md:max-w-6xl mx-auto">
-          {/* Identity Verification Banner */}
-          {!isVerified && (
+          {/* Identity Verification Banner - only when logged in */}
+          {user && !isVerified && (
             <Alert
               className={`mb-6 rounded-lg border p-4 ${isPending
                 ? "border-yellow-200 bg-yellow-50"
@@ -891,12 +924,28 @@ function CreateShipmentPageContent() {
                 {stepLabels[currentStep - 1]}
               </p>
             </div>
-            <ServiceSelectionDialog>
-              <Button className="gap-2" variant="outline">
-                Change Service
-              </Button>
-            </ServiceSelectionDialog>
+            <div className="flex items-center gap-2">
+              {drafts.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setIsCartOpen(true)}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  View Cart
+                  <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                    {drafts.reduce((s, d) => s + d.items.length, 0)}
+                  </span>
+                </Button>
+              )}
+              <ServiceSelectionDialog>
+                <Button className="gap-2" variant="outline">
+                  Change Service
+                </Button>
+              </ServiceSelectionDialog>
+            </div>
           </div>
+
 
           {/* Progress Bar */}
           <div className="mb-6 ">
@@ -938,6 +987,31 @@ function CreateShipmentPageContent() {
                 onNext={handleNext}
                 isWarehouseService={isWarehouseService}
                 getValues={getValues}
+                onSaveDraft={() => {
+                  const shipment = getValues("shipments.0");
+                  if (!shipment) return;
+                  const draftId =
+                    loadedDraftId && loadedDraftId !== "pending-checkout"
+                      ? loadedDraftId
+                      : undefined;
+                  const draft = formValuesToDraft(shipment, draftId);
+                  if (draftId) {
+                    const existing = getDraftById(draftId);
+                    saveDraft({
+                      ...draft,
+                      name: existing?.name ?? draft.name,
+                    });
+                  } else {
+                    addDraft(draft);
+                    setLoadedDraftId(draft.id);
+                  }
+                  refreshDrafts();
+                  toast({
+                    title: "Draft saved",
+                    description: `"${draft.name}" has been saved to your cart.`,
+                  });
+                }}
+                loadedDraftId={loadedDraftId}
               />
             )}
 
@@ -1042,7 +1116,18 @@ function CreateShipmentPageContent() {
                 )}
                 items={watch("shipments.0.items") || []}
                 onBack={handleBack}
+                user={user}
+                onLoginRequired={() => savePendingCheckoutDraft(getValues())}
                 onSubmit={async (currencyData) => {
+                  // Login gate: guests must log in before placing order
+                  if (!user) {
+                    savePendingCheckoutDraft(getValues());
+                    router.push(
+                      `/login?redirect=${encodeURIComponent("/create-shipments?from=checkout")}`
+                    );
+                    return;
+                  }
+
                   const reviewStep = isWarehouseService ? 5 : 4;
                   console.log("[ReviewStep] Starting validation:", {
                     reviewStep,

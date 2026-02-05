@@ -4,6 +4,7 @@ import { IdentityVerificationDialog } from "@/components/identity-verification-v
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/auth-context";
+import { useOrderDraft } from "@/contexts/order-draft-context";
 import { fetchIdentityVerificationData } from "@/lib/api/identity";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,6 +17,7 @@ import {
   Pause,
   RefreshCcw,
   ShieldCheck,
+  ShoppingCart,
   Truck,
   User,
   WarehouseIcon,
@@ -48,6 +50,7 @@ const NavItem = ({ href, icon, label, isActive }: NavItemProps) => (
 export function Navbar({ activePage }: { activePage?: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { drafts, setIsCartOpen } = useOrderDraft();
 
   const { data: identityVerificationData } = useQuery({
     queryKey: ["identityVerificationData", user?.id],
@@ -104,6 +107,19 @@ export function Navbar({ activePage }: { activePage?: string }) {
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center space-x-4">
+          {drafts.length > 0 && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="flex items-center px-3 py-1.5 text-sm rounded-md transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-900 relative"
+              aria-label="View cart"
+            >
+              <ShoppingCart size={18} className="mr-1.5" />
+              Cart
+              <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                {drafts.reduce((s, d) => s + d.items.length, 0)}
+              </span>
+            </button>
+          )}
           {user && (
             <>
               <NavItem
@@ -219,6 +235,15 @@ export function Navbar({ activePage }: { activePage?: string }) {
                   />
                 </Link>
               </div>
+              {drafts.length > 0 && (
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="flex items-center px-3 py-3 text-base rounded-md text-gray-700 hover:bg-gray-100 w-full"
+                >
+                  <ShoppingCart size={18} className="mr-2" />
+                  Cart ({drafts.reduce((s, d) => s + d.items.length, 0)} items)
+                </button>
+              )}
               {user && (
                 <div className="flex flex-col p-2">
                   <Link
