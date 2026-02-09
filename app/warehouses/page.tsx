@@ -192,8 +192,7 @@ export default function AddressesPage() {
                               <p className="text-xs text-slate-500">Name:</p>
                               <p className="text-sm font-medium text-slate-700">
                                 {warehouses?.userFirstName}{" "}
-                                {warehouses?.userLastName}{" "}
-                                {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
+                                {warehouses?.userLastName}
                               </p>
                             </div>
                           </div>
@@ -208,7 +207,7 @@ export default function AddressesPage() {
                             title="Copy"
                           >
                             {copiedAddress ===
-                            `${warehouse.warehouse_id}-line1` ? (
+                            `${warehouse.warehouse_id}-name` ? (
                               <CheckCircle2 className="h-4 w-4" />
                             ) : (
                               <Copy className="h-4 w-4" />
@@ -223,15 +222,15 @@ export default function AddressesPage() {
                                 Address Details:
                               </p>
                               <p className="text-sm font-medium text-slate-700">
-                                {warehouse.address_line1}, {` `}
-                                {/* {`${warehouse.country_code}${warehouses?.userWarehouseId}`} */}
+                                {warehouse.address_line1},{" "}
+                                {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
                               </p>
                             </div>
                           </div>
                           <button
                             onClick={() =>
                               copyToClipboard(
-                                `${warehouse.address_line1}, `,
+                                `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
                                 `${warehouse.warehouse_id}-line1`
                               )
                             }
@@ -422,8 +421,8 @@ export default function AddressesPage() {
                           className="w-full border-slate-300 text-slate-700 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 font-medium"
                           onClick={() => {
                             const fullAddress = [
-                              `${warehouses?.userFirstName} ${warehouses?.userLastName} ${warehouse.country_code}${warehouses?.userWarehouseId}`,
-                              `${warehouse.address_line1},`,
+                              `${warehouses?.userFirstName} ${warehouses?.userLastName}`.trim(),
+                              `${warehouse.address_line1}, ${warehouse.country_code}${warehouses?.userWarehouseId}`,
                               warehouse.address_line2,
                               warehouse.address_line3,
                               warehouse.address_line4,

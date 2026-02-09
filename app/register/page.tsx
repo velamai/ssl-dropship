@@ -1320,6 +1320,27 @@ function RegisterPageContent() {
             </div>
           )}
 
+          {/* Skip & Create Account button at top - visible only on step 3 */}
+          {!registrationSuccess && currentStep === 3 && (
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={registerMutation.isPending || isUploadingFiles}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isUploadingFiles
+                  ? "Creating Account..."
+                  : registerMutation.isPending
+                  ? "Creating Account..."
+                  : formData.identityVerification.proofType &&
+                    formData.identityVerification.frontImage
+                  ? "Create Account"
+                  : "Skip KYC & Create Account"}
+              </Button>
+            </div>
+          )}
+
           {registerMutation.error && (
             <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
               {(registerMutation.error as any)?.message ||
