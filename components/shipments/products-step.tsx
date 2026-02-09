@@ -25,6 +25,8 @@ import {
   Lightbulb,
   Info,
   Save,
+  Store,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Controller,
@@ -46,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFieldArray, useWatch } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { fetchProductData } from "@/lib/product-scraper";
@@ -126,7 +129,7 @@ function ProductItemWithQuery({
 
   const isValidUrl = debouncedUrl.length > 0 && debouncedUrl.startsWith("http");
 
-  // Use React Query to fetch product data when URL is valid
+  // Use React Query to fetch product data when URL is valid (disabled for warehouse - link optional)
   const {
     data: productData,
     isLoading,
@@ -134,7 +137,7 @@ function ProductItemWithQuery({
   } = useQuery({
     queryKey: ["productData", index, itemIndex, debouncedUrl],
     queryFn: () => fetchProductData(debouncedUrl),
-    enabled: isValidUrl,
+    enabled: isValidUrl && !isWarehouseService,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
   });
@@ -162,18 +165,7 @@ function ProductItemWithQuery({
           productData.price,
         );
       }
-
-      if (productData.currency) {
-        const validCurrency = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"].includes(
-          productData.currency,
-        )
-          ? (productData.currency as "INR" | "USD" | "GBP" | "EUR" | "LKR" | "AED" | "MYR" | "SGD")
-          : "USD";
-        setValue(
-          `shipments.${index}.items.${itemIndex}.valueCurrency`,
-          validCurrency,
-        );
-      }
+      // Currency is NOT set from product - it comes from source country selected in Products step
     }
   }, [productData, debouncedUrl, index, itemIndex, setValue]);
 
@@ -199,41 +191,10 @@ function ProductItemWithQuery({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* Product URL */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor={`shipments.${index}.items.${itemIndex}.productUrl`}>
-            Product Link *
-          </Label>
-          <div className="relative">
-            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id={`shipments.${index}.items.${itemIndex}.productUrl`}
-              {...register(`shipments.${index}.items.${itemIndex}.productUrl`)}
-              placeholder="https://example.com/product"
-              className="pl-10"
-            />
-            {/* {(isLoading || (trimmedUrl && trimmedUrl !== debouncedUrl)) && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
-            )} */}
-          </div>
-          <ErrorMessage
-            error={errors.shipments?.[index]?.items?.[itemIndex]?.productUrl}
-          />
-          {/* Inline reassurance when fetch fails - neutral message, not error */}
-          {!isLoading &&
-            isValidUrl &&
-            (!!error || !productData?.image) && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter the details below and continue – we&apos;ll use them for
-                your order.
-              </p>
-            )}
-        </div>
-
-        {/* Product Name */}
+        {/* Product Name - first for warehouse */}
         <div className="space-y-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.productName`}>
-            Name *
+            Product Name *
           </Label>
           <Input
             id={`shipments.${index}.items.${itemIndex}.productName`}
@@ -243,6 +204,40 @@ function ProductItemWithQuery({
           <ErrorMessage
             error={errors.shipments?.[index]?.items?.[itemIndex]?.productName}
           />
+        </div>
+
+        {/* Product URL - optional for warehouse */}
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor={`shipments.${index}.items.${itemIndex}.productUrl`}>
+            Product Link{!isWarehouseService && " *"}
+          </Label>
+          <div className="relative">
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id={`shipments.${index}.items.${itemIndex}.productUrl`}
+              {...register(`shipments.${index}.items.${itemIndex}.productUrl`)}
+              placeholder="https://example.com/product"
+              className="pl-10"
+            />
+          </div>
+          {isWarehouseService && (
+            <p className="text-xs text-muted-foreground">
+              Optional for warehouse orders
+            </p>
+          )}
+          <ErrorMessage
+            error={errors.shipments?.[index]?.items?.[itemIndex]?.productUrl}
+          />
+          {/* Inline reassurance when fetch fails - neutral message, not error */}
+          {!isWarehouseService &&
+            !isLoading &&
+            isValidUrl &&
+            (!!error || !productData?.image) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter the details below and continue – we&apos;ll use them for
+                your order.
+              </p>
+            )}
         </div>
 
         {/* Quantity */}
@@ -264,10 +259,10 @@ function ProductItemWithQuery({
           />
         </div>
 
-        {/* Price */}
+        {/* Price / Item Value - optional for warehouse */}
         <div className="space-y-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.price`}>
-            Item Price *
+            {isWarehouseService ? "Item Value" : "Item Price *"}
           </Label>
           <div className="relative">
             <Input
@@ -286,12 +281,12 @@ function ProductItemWithQuery({
           />
         </div>
 
-        {/* Currency */}
+        {/* Currency - optional for warehouse */}
         <div className="space-y-2">
           <Label
             htmlFor={`shipments.${index}.items.${itemIndex}.valueCurrency`}
           >
-            Currency *
+            Currency{!isWarehouseService && " *"}
           </Label>
           <Controller
             name={`shipments.${index}.items.${itemIndex}.valueCurrency`}
@@ -299,11 +294,11 @@ function ProductItemWithQuery({
             render={({ field }) => (
               <Select
                 onValueChange={field.onChange}
-                value={field.value}
+                value={field.value ?? ""}
                 disabled={isCurrencyLocked}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder={isWarehouseService ? "Select (optional)" : "Select"} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD</SelectItem>
@@ -380,10 +375,10 @@ export function ProductsStep({
   const { data: sourceCountries, isLoading: isLoadingSourceCountries } =
     useSourceCountries();
 
-  // When source country is selected, default item currency to that country's currency
+  // When source country is selected, default item currency to that country's currency (link service only; warehouse currency is optional)
   const validCurrencies = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"] as const;
   useEffect(() => {
-    if (!sourceCountryCode || !sourceCountries || itemFields.length === 0) return;
+    if (!sourceCountryCode || !sourceCountries || itemFields.length === 0 || isWarehouseService) return;
     const sourceCurrency = sourceCountries.find(
       (c) => c.code === sourceCountryCode
     )?.currency;
@@ -395,6 +390,11 @@ export function ProductsStep({
       setValue(`shipments.${index}.items.${itemIndex}.valueCurrency`, currency as (typeof validCurrencies)[number]);
     });
   }, [sourceCountryCode, sourceCountries, index, itemFields.length, setValue]);
+
+  // UI-only: purchase type for warehouse (Local Shop vs Online Ecommerce)
+  const [purchaseSourceType, setPurchaseSourceType] = useState<
+    "local" | "ecommerce"
+  >("ecommerce");
 
   // State to track product images for preview panel
   const [productImages, setProductImages] = useState<{
@@ -613,6 +613,123 @@ export function ProductsStep({
     <div className="grid lg:grid-cols-[1fr_400px] gap-6">
       {/* Left Column: Form */}
       <div className="space-y-6">
+        {/* Warehouse: Purchase Information first (Source Country, purchase type, purchased site, date) */}
+        {isWarehouseService && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Purchase Information
+              </CardTitle>
+              <CardDescription>
+                Provide details about when and where you purchased the products
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Source Country - first */}
+              <div className="space-y-2">
+                <Label htmlFor={`shipments.${index}.sourceCountryCode`}>
+                  Source Country (Warehouse Location) *
+                </Label>
+                <Controller
+                  name={`shipments.${index}.sourceCountryCode`}
+                  control={control}
+                  render={({ field }) => (
+                    <CountrySelector
+                      type="source"
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      sourceCountries={sourceCountries}
+                      disabled={isLoadingSourceCountries}
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Select the country where the warehouse is located or where
+                  products will be shipped from
+                </p>
+                <ErrorMessage
+                  error={errors.shipments?.[index]?.sourceCountryCode}
+                />
+              </div>
+
+              {/* Purchase Type Switch - UI only */}
+              <div className="space-y-2">
+                <Label>Purchase From</Label>
+                <RadioGroup
+                  value={purchaseSourceType}
+                  onValueChange={(v) =>
+                    setPurchaseSourceType(v as "local" | "ecommerce")
+                  }
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="local" id="purchase-local" />
+                    <Label htmlFor="purchase-local" className="flex items-center gap-2 font-normal cursor-pointer">
+                      <Store className="h-4 w-4" />
+                      Local Shop
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="ecommerce" id="purchase-ecommerce" />
+                    <Label htmlFor="purchase-ecommerce" className="flex items-center gap-2 font-normal cursor-pointer">
+                      <ShoppingBag className="h-4 w-4" />
+                      Online Ecommerce
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Purchased Site - dynamic placeholder based on purchase type */}
+              <div className="space-y-2">
+                <Label htmlFor={`shipments.${index}.purchasedSite`}>
+                  Purchased Site *
+                </Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id={`shipments.${index}.purchasedSite`}
+                    {...register(`shipments.${index}.purchasedSite`)}
+                    type="text"
+                    placeholder={
+                      purchaseSourceType === "local"
+                        ? "Enter store name"
+                        : "Enter site name"
+                    }
+                    className="pl-10"
+                  />
+                </div>
+                <ErrorMessage
+                  error={errors.shipments?.[index]?.purchasedSite}
+                />
+              </div>
+
+              {/* Purchased Date */}
+              <div className="space-y-2">
+                <Label htmlFor={`shipments.${index}.purchasedDate`}>
+                  Purchased Date *
+                </Label>
+                <Controller
+                  name={`shipments.${index}.purchasedDate`}
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      date={field.value}
+                      setDate={field.onChange}
+                      name={field.name}
+                      required
+                    />
+                  )}
+                />
+                <ErrorMessage
+                  error={errors.shipments?.[index]?.purchasedDate}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Product Details */}
         <Card>
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
@@ -620,36 +737,40 @@ export function ProductsStep({
               Product Details
             </CardTitle>
             <CardDescription>
-              Add product links and we'll fetch the details automatically
+              {isWarehouseService
+                ? "Add your product details"
+                : "Add product links and we'll fetch the details automatically"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Source Country Selection */}
-            <div className="space-y-2">
-              <Label htmlFor={`shipments.${index}.sourceCountryCode`}>
-                Source Country (Warehouse Location) *
-              </Label>
-              <Controller
-                name={`shipments.${index}.sourceCountryCode`}
-                control={control}
-                render={({ field }) => (
-                  <CountrySelector
-                    type="source"
-                    value={field.value || ""}
-                    onValueChange={field.onChange}
-                    sourceCountries={sourceCountries}
-                    disabled={isLoadingSourceCountries}
-                  />
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                Select the country where the warehouse is located or where
-                products will be shipped from
-              </p>
-              <ErrorMessage
-                error={errors.shipments?.[index]?.sourceCountryCode}
-              />
-            </div>
+            {/* Source Country - only for link service (warehouse has it in Purchase Information) */}
+            {!isWarehouseService && (
+              <div className="space-y-2">
+                <Label htmlFor={`shipments.${index}.sourceCountryCode`}>
+                  Source Country (Warehouse Location) *
+                </Label>
+                <Controller
+                  name={`shipments.${index}.sourceCountryCode`}
+                  control={control}
+                  render={({ field }) => (
+                    <CountrySelector
+                      type="source"
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      sourceCountries={sourceCountries}
+                      disabled={isLoadingSourceCountries}
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Select the country where the warehouse is located or where
+                  products will be shipped from
+                </p>
+                <ErrorMessage
+                  error={errors.shipments?.[index]?.sourceCountryCode}
+                />
+              </div>
+            )}
 
             <div className="space-y-4">
               {itemFields.map((field, itemIndex) => (
@@ -708,64 +829,249 @@ export function ProductsStep({
           </CardContent>
         </Card>
 
-        {/* Warehouse-specific fields */}
+        {/* Warehouse: Product Images (Max 10) - third */}
         {isWarehouseService && (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Purchase Information
-                </CardTitle>
-                <CardDescription>
-                  Provide details about when and where you purchased the
-                  products
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`shipments.${index}.purchasedDate`}>
-                    Purchased Date *
-                  </Label>
-                  <Controller
-                    name={`shipments.${index}.purchasedDate`}
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                        name={field.name}
-                        required
-                      />
-                    )}
-                  />
-                  <ErrorMessage
-                    error={errors.shipments?.[index]?.purchasedDate}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`shipments.${index}.purchasedSite`}>
-                    Purchased Site *
-                  </Label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id={`shipments.${index}.purchasedSite`}
-                      {...register(`shipments.${index}.purchasedSite`)}
-                      type="text"
-                      placeholder="https://example.com"
-                      className="pl-10"
-                    />
-                  </div>
-                  <ErrorMessage
-                    error={errors.shipments?.[index]?.purchasedSite}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Product Images (Max 10)
+              </CardTitle>
+              <CardDescription>
+                Upload images of your products (Maximum 10 images)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor={`shipments.${index}.productImageFile`}
+                  className="text-sm font-semibold"
+                >
+                  Upload Product Images
+                </Label>
+                {getValues &&
+                  (getValues(`shipments.${index}.productImageUrls`) || [])
+                    .length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        setValue(`shipments.${index}.productImageUrls`, [], {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        setProductImagePreviews({});
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+              </div>
 
-            {/* Product Invoice Upload */}
-            <Card>
+              <div className="relative group">
+                <label
+                  htmlFor={`shipments.${index}.productImageFile`}
+                  className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
+                >
+                  {Object.keys(productImagePreviews).length > 0 && (
+                    <div className="absolute inset-0">
+                      {Object.values(productImagePreviews).map(
+                        (preview, idx) => (
+                          <img
+                            key={idx}
+                            src={preview}
+                            alt="Preview"
+                            className="w-full h-full object-cover filter blur-sm opacity-30"
+                          />
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                    <span className="text-sm text-muted-foreground group-hover:text-primary">
+                      {Object.keys(productImagePreviews).length > 0
+                        ? `${
+                            Object.keys(productImagePreviews).length
+                          }/10 images - Click to add more`
+                        : "Click to upload or drag images here (Max 10)"}
+                    </span>
+                  </div>
+                  <Input
+                    id={`shipments.${index}.productImageFile`}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.currentTarget.files || []);
+                      if (files.length === 0) return;
+
+                      const currentUrls =
+                        getValues?.(`shipments.${index}.productImageUrls`) ||
+                        [];
+                      const totalImages = currentUrls.length + files.length;
+
+                      if (totalImages > 10) {
+                        alert(
+                          `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`,
+                        );
+                        return;
+                      }
+
+                      const newPreviews = { ...productImagePreviews };
+
+                      for (const file of files) {
+                        const fileId = `${file.name}-${
+                          file.size
+                        }-${Date.now()}`;
+
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          newPreviews[fileId] = ev.target?.result as string;
+                          setProductImagePreviews(newPreviews);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+
+                      try {
+                        const fileTypes = files.map(
+                          (file) => file.type || "image/jpeg",
+                        );
+                        const res = await fetch("/api/invoice-signed-url", {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            fileTypes,
+                            uploadType: "product-images",
+                          }),
+                        });
+                        if (!res.ok)
+                          throw new Error("Failed to get signed URLs");
+                        const { results } = await res.json();
+
+                        const uploadPromises = files.map(
+                          async (file, idx) => {
+                            const { signedUrl, publicUrl } = results[idx];
+                            const putRes = await fetch(signedUrl, {
+                              method: "PUT",
+                              headers: {
+                                "Content-Type": file.type || "image/jpeg",
+                              },
+                              body: file,
+                            });
+                            if (!putRes.ok)
+                              throw new Error(
+                                `Failed to upload file: ${file.name}`,
+                              );
+                            return publicUrl;
+                          },
+                        );
+
+                        const uploadedUrls =
+                          await Promise.all(uploadPromises);
+
+                        const updatedUrls = [...currentUrls, ...uploadedUrls];
+                        setValue(
+                          `shipments.${index}.productImageUrls`,
+                          updatedUrls,
+                          {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          },
+                        );
+                      } catch (err) {
+                        console.error(err);
+                        setProductImagePreviews({});
+                      } finally {
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </label>
+
+                {getValues &&
+                  (getValues(`shipments.${index}.productImageUrls`) || [])
+                    .length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {getValues(`shipments.${index}.productImageUrls`)?.map(
+                        (url: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="rounded-lg border border-border bg-muted/30"
+                          >
+                            {Object.values(productImagePreviews).length >
+                            idx ? (
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={
+                                    Object.values(productImagePreviews)[idx]
+                                  }
+                                  alt="Product image preview"
+                                  className="size-20 object-cover rounded border"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={url}
+                                  alt="Product image"
+                                  className="size-20 object-cover rounded border"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    const currentUrls =
+                                      getValues(
+                                        `shipments.${index}.productImageUrls`,
+                                      ) || [];
+                                    const newUrls = currentUrls.filter(
+                                      (_: unknown, i: number) => i !== idx,
+                                    );
+                                    setValue(
+                                      `shipments.${index}.productImageUrls`,
+                                      newUrls,
+                                      {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                      },
+                                    );
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+              </div>
+              {getValues && (
+                <p className="text-xs text-muted-foreground">
+                  {`${
+                    (getValues(`shipments.${index}.productImageUrls`) || [])
+                      .length
+                  }/10 images uploaded`}
+                </p>
+              )}
+              <ErrorMessage
+                error={errors.shipments?.[index]?.productImageUrls}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Warehouse: Product Invoice - fourth (other details) */}
+        {isWarehouseService && (
+          <Card>
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <FileText className="w-5 h-5" />
@@ -983,245 +1289,6 @@ export function ProductsStep({
                 <ErrorMessage error={errors.shipments?.[index]?.invoiceUrls} />
               </CardContent>
             </Card>
-
-            {/* Product Images Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Product Images (Max 10)
-                </CardTitle>
-                <CardDescription>
-                  Upload images of your products (Maximum 10 images)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor={`shipments.${index}.productImageFile`}
-                    className="text-sm font-semibold"
-                  >
-                    Upload Product Images
-                  </Label>
-                  {getValues &&
-                    (getValues(`shipments.${index}.productImageUrls`) || [])
-                      .length > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          setValue(`shipments.${index}.productImageUrls`, [], {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          });
-                          setProductImagePreviews({});
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                </div>
-
-                <div className="relative group">
-                  <label
-                    htmlFor={`shipments.${index}.productImageFile`}
-                    className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
-                  >
-                    {Object.keys(productImagePreviews).length > 0 && (
-                      <div className="absolute inset-0">
-                        {Object.values(productImagePreviews).map(
-                          (preview, idx) => (
-                            <img
-                              key={idx}
-                              src={preview}
-                              alt="Preview"
-                              className="w-full h-full object-cover filter blur-sm opacity-30"
-                            />
-                          ),
-                        )}
-                      </div>
-                    )}
-
-                    <div className="relative z-10 flex flex-col items-center gap-2">
-                      <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-                      <span className="text-sm text-muted-foreground group-hover:text-primary">
-                        {Object.keys(productImagePreviews).length > 0
-                          ? `${
-                              Object.keys(productImagePreviews).length
-                            }/10 images - Click to add more`
-                          : "Click to upload or drag images here (Max 10)"}
-                      </span>
-                    </div>
-                    <Input
-                      id={`shipments.${index}.productImageFile`}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                      multiple
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
-                        if (files.length === 0) return;
-
-                        const currentUrls =
-                          getValues?.(`shipments.${index}.productImageUrls`) ||
-                          [];
-                        const totalImages = currentUrls.length + files.length;
-
-                        if (totalImages > 10) {
-                          alert(
-                            `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`,
-                          );
-                          return;
-                        }
-
-                        const newPreviews = { ...productImagePreviews };
-
-                        for (const file of files) {
-                          const fileId = `${file.name}-${
-                            file.size
-                          }-${Date.now()}`;
-
-                          const reader = new FileReader();
-                          reader.onload = (e) => {
-                            newPreviews[fileId] = e.target?.result as string;
-                            setProductImagePreviews(newPreviews);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-
-                        try {
-                          const fileTypes = files.map(
-                            (file) => file.type || "image/jpeg",
-                          );
-                          const res = await fetch("/api/invoice-signed-url", {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              fileTypes,
-                              uploadType: "product-images",
-                            }),
-                          });
-                          if (!res.ok)
-                            throw new Error("Failed to get signed URLs");
-                          const { results } = await res.json();
-
-                          const uploadPromises = files.map(
-                            async (file, idx) => {
-                              const { signedUrl, publicUrl } = results[idx];
-                              const putRes = await fetch(signedUrl, {
-                                method: "PUT",
-                                headers: {
-                                  "Content-Type": file.type || "image/jpeg",
-                                },
-                                body: file,
-                              });
-                              if (!putRes.ok)
-                                throw new Error(
-                                  `Failed to upload file: ${file.name}`,
-                                );
-                              return publicUrl;
-                            },
-                          );
-
-                          const uploadedUrls =
-                            await Promise.all(uploadPromises);
-
-                          const updatedUrls = [...currentUrls, ...uploadedUrls];
-                          setValue(
-                            `shipments.${index}.productImageUrls`,
-                            updatedUrls,
-                            {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                            },
-                          );
-                        } catch (err) {
-                          console.error(err);
-                          setProductImagePreviews({});
-                        } finally {
-                          e.currentTarget.value = "";
-                        }
-                      }}
-                    />
-                  </label>
-
-                  {getValues &&
-                    (getValues(`shipments.${index}.productImageUrls`) || [])
-                      .length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {getValues(`shipments.${index}.productImageUrls`)?.map(
-                          (url: string, idx: number) => (
-                            <div
-                              key={idx}
-                              className="rounded-lg border border-border bg-muted/30"
-                            >
-                              {Object.values(productImagePreviews).length >
-                              idx ? (
-                                <div className="flex items-center gap-3">
-                                  <img
-                                    src={
-                                      Object.values(productImagePreviews)[idx]
-                                    }
-                                    alt="Product image preview"
-                                    className="size-20 object-cover rounded border"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <img
-                                    src={url}
-                                    alt="Product image"
-                                    className="size-20 object-cover rounded border"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-destructive"
-                                    onClick={() => {
-                                      const currentUrls =
-                                        getValues(
-                                          `shipments.${index}.productImageUrls`,
-                                        ) || [];
-                                      const newUrls = currentUrls.filter(
-                                        (_: any, i: number) => i !== idx,
-                                      );
-                                      setValue(
-                                        `shipments.${index}.productImageUrls`,
-                                        newUrls,
-                                        {
-                                          shouldValidate: true,
-                                          shouldDirty: true,
-                                        },
-                                      );
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    )}
-                </div>
-                {getValues && (
-                  <p className="text-xs text-muted-foreground">
-                    {`${
-                      (getValues(`shipments.${index}.productImageUrls`) || [])
-                        .length
-                    }/10 images uploaded`}
-                  </p>
-                )}
-                <ErrorMessage
-                  error={errors.shipments?.[index]?.productImageUrls}
-                />
-              </CardContent>
-            </Card>
-          </>
         )}
 
         <div className="flex justify-between">

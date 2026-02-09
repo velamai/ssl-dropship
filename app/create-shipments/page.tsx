@@ -13,6 +13,7 @@ import { Loader2, Check } from "lucide-react";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
+import Script from "next/script";
 import { Suspense } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
@@ -30,6 +31,7 @@ import { ReviewStep } from "@/components/shipments/review-step";
 import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
 import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
+import { PaymentAtCheckout } from "@/components/shipments/payment-at-checkout";
 import { useOrderDraft } from "@/contexts/order-draft-context";
 import {
   getDraftById,
@@ -104,6 +106,12 @@ function CreateShipmentPageContent() {
   const [addOnTotal, setAddOnTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOrderSuccessDialog, setShowOrderSuccessDialog] = useState(false);
+  const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<
+    "Online Payment" | "Bank Transfer"
+  >("Online Payment");
+  const [pendingPaymentShipmentId, setPendingPaymentShipmentId] = useState<
+    string | null
+  >(null);
   // Use ref instead of state to ensure synchronous access during form submission
   const currencyDataRef = useRef<{
     sourceCurrencyCode: string;
@@ -235,7 +243,14 @@ function CreateShipmentPageContent() {
   }, [watch]);
 
   // Calculate price breakdown when items, source country, or destination country changes
+  // Skip for warehouse orders - no domestic/warehouse charges at checkout
   useEffect(() => {
+    if (isWarehouseService) {
+      setPriceBreakdown(null);
+      setIsCalculatingBreakdown(false);
+      return;
+    }
+
     const calculateBreakdown = async () => {
       const formData = getValues();
       const shipment = formData.shipments[0]; // Assuming single shipment for now
@@ -302,6 +317,7 @@ function CreateShipmentPageContent() {
 
     return () => clearTimeout(timeoutId);
   }, [
+    isWarehouseService,
     watch("shipments.0.items"),
     watch("shipments.0.sourceCountryCode"),
     watch("shipments.0.receiver.receivingCountry"),
@@ -750,17 +766,22 @@ function CreateShipmentPageContent() {
           exchangeRateDestinationToInr: currencyDataRef.current.exchangeRateDestinationToInr,
         });
       } else {
-        // Fallback: calculate from items only if currency data is not available (assuming prices are already in INR)
+        // Fallback: for warehouse use add-ons only; for link use items + add-ons
         console.warn("[onSubmitHandler] Currency data not available, using fallback calculation");
-        const shipment = data.shipments[0];
-        const itemsTotal =
-          shipment.items?.reduce((sum, item) => {
-            const itemPrice = item.price || 0;
-            const itemQuantity = item.quantity || 1;
-            return sum + itemPrice * itemQuantity;
-          }, 0) || 0;
-        // addOnTotal is already in INR
-        grandTotal = itemsTotal + addOnTotal;
+        if (isWarehouseService) {
+          grandTotal = addOnTotal;
+          warehouseHandlingCharge = 0;
+          courierCharge = 0;
+        } else {
+          const shipment = data.shipments[0];
+          const itemsTotal =
+            shipment.items?.reduce((sum, item) => {
+              const itemPrice = item.price || 0;
+              const itemQuantity = item.quantity || 1;
+              return sum + itemPrice * itemQuantity;
+            }, 0) || 0;
+          grandTotal = itemsTotal + addOnTotal;
+        }
       }
 
       const payload = {
@@ -768,6 +789,9 @@ function CreateShipmentPageContent() {
         drop_and_ship_add_ons: selectedAddOns,
         drop_and_ship_add_ons_total: addOnTotal,
         grand_total: grandTotal,
+        ...(isLinkService && {
+          drop_and_ship_product_payment_method: checkoutPaymentMethod,
+        }),
         ...(currencyDataRef.current && {
           source_currency_code: currencyDataRef.current.sourceCurrencyCode,
           destination_currency_code: currencyDataRef.current.destinationCurrencyCode,
@@ -795,9 +819,10 @@ function CreateShipmentPageContent() {
 
       console.log("Drop and Ship Order created:", responseData);
 
-      // Send order confirmation email (fire-and-forget)
       const shipmentId =
         responseData?.shipment_id ?? responseData?.data?.shipment_id;
+
+      // Send order confirmation email (fire-and-forget)
       if (shipmentId) {
         fetch("/api/send-order-confirmation", {
           method: "POST",
@@ -817,7 +842,12 @@ function CreateShipmentPageContent() {
         refreshDrafts();
       }
 
-      setShowOrderSuccessDialog(true);
+      // Link to Ship: show payment flow (Razorpay or Bank upload) before success
+      if (isLinkService && shipmentId) {
+        setPendingPaymentShipmentId(shipmentId);
+      } else {
+        setShowOrderSuccessDialog(true);
+      }
     } catch (error: any) {
       console.error("Error creating shipments:", error);
       toast({
@@ -851,6 +881,12 @@ function CreateShipmentPageContent() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {isLinkService && (
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="beforeInteractive"
+        />
+      )}
       <OrderSuccessDialog
         open={showOrderSuccessDialog}
         onOpenChange={(open) => {
@@ -862,6 +898,32 @@ function CreateShipmentPageContent() {
           router.push("/shipments");
         }}
       />
+      {pendingPaymentShipmentId && isLinkService && (
+        <PaymentAtCheckout
+          shipmentId={pendingPaymentShipmentId}
+          paymentMethod={checkoutPaymentMethod}
+          receiverInfo={{
+            firstName: getValues("shipments.0.receiver.firstName") || "",
+            lastName: getValues("shipments.0.receiver.lastName") || "",
+            email: getValues("shipments.0.receiver.email") || "",
+            phone: getValues("shipments.0.receiver.phone") || "",
+          }}
+          open={!!pendingPaymentShipmentId}
+          onSuccess={() => {
+            setShowOrderSuccessDialog(true);
+            setPendingPaymentShipmentId(null);
+          }}
+          onCancel={() => {
+            setShowOrderSuccessDialog(true);
+            setPendingPaymentShipmentId(null);
+            toast({
+              title: "Order Placed",
+              description:
+                "You can complete payment from the shipment page when ready.",
+            });
+          }}
+        />
+      )}
       <Navbar activePage="create-shipments" />
 
       <main className="flex-1 p-4 md:p-6 bg-gray-50">
@@ -1067,6 +1129,7 @@ function CreateShipmentPageContent() {
                   errors={errors}
                   watch={watch}
                   setValue={setValue}
+                  sourceCountryCode={watch("shipments.0.sourceCountryCode")}
                 />
                 <div className="flex justify-between">
                   <Button type="button" variant="outline" onClick={handleBack}>
@@ -1158,10 +1221,15 @@ function CreateShipmentPageContent() {
                   "shipments.0.receiver.receivingCountry"
                 )}
                 items={watch("shipments.0.items") || []}
+                purchasedSite={watch("shipments.0.purchasedSite")}
+                purchasedDate={watch("shipments.0.purchasedDate")}
                 onBack={handleBack}
                 user={user}
                 onLoginRequired={() => savePendingCheckoutDraft(getValues())}
                 loginRedirectUrl={`/create-shipments?from=checkout&type=${getValues("shipments.0.shipmentType") || "link"}`}
+                isLinkService={isLinkService}
+                paymentMethod={checkoutPaymentMethod}
+                onPaymentMethodChange={setCheckoutPaymentMethod}
                 onSubmit={async (currencyData) => {
                   // Login gate: guests must log in before placing order
                   if (!user) {

@@ -135,7 +135,21 @@ export function ReceiverInfoTab({
     setValue(`shipments.${index}.receiver.postalCode`, address.pincode || "", {
       shouldValidate: true,
     });
+    // Auto-fill receiving country from address (code is ISO country code)
+    const countryCode = address.code || address.country;
+    if (countryCode) {
+      setValue(
+        `shipments.${index}.receiver.receivingCountry`,
+        typeof countryCode === "string" ? countryCode.toUpperCase() : countryCode,
+        { shouldValidate: true }
+      );
+      setValue(`shipments.${index}.country`, countryCode, {
+        shouldValidate: true,
+      });
+    }
   };
+
+  const isReadOnly = !!selectedAddressId;
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -212,85 +226,103 @@ export function ReceiverInfoTab({
           </div>
         )}
 
-        {/* Form Fields */}
+        {/* Form Fields - read-only when saved address is selected */}
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Receiving Country - Moved to top */}
+          {/* Receiving Country - read-only when address selected */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor={`shipments.${index}.receiver.receivingCountry`}>
               Receiving Country *
             </Label>
-            <Controller
-              name={`shipments.${index}.receiver.receivingCountry`}
-              control={control}
-              render={({ field }) => {
-                const selectedCountry = countriesList.find(
-                  (country) => country.code === field.value
-                );
-                return (
-                  <Popover
-                    open={isCountrySelectOpen}
-                    onOpenChange={setIsCountrySelectOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isCountrySelectOpen}
-                        className={cn(
-                          "w-full justify-between h-[46px] bg-[#fcfcfc] text-left text-[14px]",
-                          errors.shipments?.[index]?.receiver?.receivingCountry
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          {selectedCountry ? (
-                            <span>{selectedCountry.name}</span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Select receiving country
-                            </span>
+            {isReadOnly ? (
+              <Controller
+                name={`shipments.${index}.receiver.receivingCountry`}
+                control={control}
+                render={({ field }) => {
+                  const selectedCountry = countriesList.find(
+                    (country) => country.code === field.value
+                  );
+                  return (
+                    <div className="flex h-[46px] items-center rounded-md border border-[#e2e2e2] bg-muted/50 px-3 text-sm">
+                      <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {selectedCountry?.name ?? field.value ?? "—"}
+                    </div>
+                  );
+                }}
+              />
+            ) : (
+              <Controller
+                name={`shipments.${index}.receiver.receivingCountry`}
+                control={control}
+                render={({ field }) => {
+                  const selectedCountry = countriesList.find(
+                    (country) => country.code === field.value
+                  );
+                  return (
+                    <Popover
+                      open={isCountrySelectOpen}
+                      onOpenChange={setIsCountrySelectOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isCountrySelectOpen}
+                          className={cn(
+                            "w-full justify-between h-[46px] bg-[#fcfcfc] text-left text-[14px]",
+                            errors.shipments?.[index]?.receiver?.receivingCountry
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
                           )}
-                        </div>
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search country..." />
-                        <CommandList>
-                          <CommandEmpty>No country found.</CommandEmpty>
-                          <CommandGroup>
-                            {countriesList.map((country) => (
-                              <CommandItem
-                                key={country.code}
-                                value={`${country.code} ${country.name}`}
-                                onSelect={() => {
-                                  field.onChange(country.code);
-                                  setIsCountrySelectOpen(false);
-                                }}
-                              >
-                                <span className="flex-1">{country.name}</span>
-                                <Check
-                                  className={cn(
-                                    "ml-2 h-4 w-4",
-                                    field.value === country.code
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }}
-            />
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            <Globe className="h-4 w-4 text-muted-foreground" />
+                            {selectedCountry ? (
+                              <span>{selectedCountry.name}</span>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Select receiving country
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search country..." />
+                          <CommandList>
+                            <CommandEmpty>No country found.</CommandEmpty>
+                            <CommandGroup>
+                              {countriesList.map((country) => (
+                                <CommandItem
+                                  key={country.code}
+                                  value={`${country.code} ${country.name}`}
+                                  onSelect={() => {
+                                    field.onChange(country.code);
+                                    setIsCountrySelectOpen(false);
+                                  }}
+                                >
+                                  <span className="flex-1">{country.name}</span>
+                                  <Check
+                                    className={cn(
+                                      "ml-2 h-4 w-4",
+                                      field.value === country.code
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                }}
+              />
+            )}
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.receivingCountry}
             />
@@ -303,6 +335,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.firstName`}
               {...register(`shipments.${index}.receiver.firstName`)}
               placeholder="First name"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.firstName}
@@ -316,6 +350,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.lastName`}
               {...register(`shipments.${index}.receiver.lastName`)}
               placeholder="Last name"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.lastName}
@@ -329,6 +365,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.company`}
               {...register(`shipments.${index}.receiver.company`)}
               placeholder="Company name"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div className="space-y-2">
@@ -339,6 +377,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.vatTax`}
               {...register(`shipments.${index}.receiver.vatTax`)}
               placeholder="VAT or TAX number"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div className="space-y-2">
@@ -357,11 +397,12 @@ export function ReceiverInfoTab({
                   defaultCountry={shipmentCountry as Country}
                   international
                   countryCallingCodeEditable={false}
+                  disabled={isReadOnly}
                   className={`${
                     errors.shipments?.[index]?.receiver?.phone
                       ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
                       : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
-                  } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc]`}
+                  } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] ${isReadOnly ? "[&_input]:bg-muted/50 [&_button]:bg-muted/50" : ""}`}
                 />
               )}
             />
@@ -379,6 +420,8 @@ export function ReceiverInfoTab({
               {...register(`shipments.${index}.receiver.email`)}
               type="email"
               placeholder="Email address"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage error={errors.shipments?.[index]?.receiver?.email} />
           </div>
@@ -390,6 +433,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.addressLine1`}
               {...register(`shipments.${index}.receiver.addressLine1`)}
               placeholder="Address line 1"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.addressLine1}
@@ -403,6 +448,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.addressLine2`}
               {...register(`shipments.${index}.receiver.addressLine2`)}
               placeholder="Address line 2"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.addressLine2}
@@ -416,6 +463,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.addressLine3`}
               {...register(`shipments.${index}.receiver.addressLine3`)}
               placeholder="Address line 3"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -426,6 +475,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.addressLine4`}
               {...register(`shipments.${index}.receiver.addressLine4`)}
               placeholder="Address line 4"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
           <div className="space-y-2">
@@ -436,6 +487,8 @@ export function ReceiverInfoTab({
               id={`shipments.${index}.receiver.postalCode`}
               {...register(`shipments.${index}.receiver.postalCode`)}
               placeholder="Postal/ZIP code"
+              readOnly={isReadOnly}
+              className={isReadOnly ? "bg-muted/50" : ""}
             />
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.postalCode}

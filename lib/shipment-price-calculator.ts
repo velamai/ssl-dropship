@@ -45,6 +45,8 @@ export interface ShipmentPriceBreakdown {
   exchangeRate: number;
   originCurrency: string;
   destinationCurrency: string;
+  /** Rate to convert source/origin currency to INR (1 source = X INR) */
+  exchangeRateSourceToInr: number;
 }
 
 /**
@@ -136,6 +138,14 @@ export async function calculateShipmentPriceBreakdown(
   const itemPriceDestination = itemPriceOrigin * exchangeRate;
   const totalPriceDestination = totalPriceOrigin * exchangeRate;
 
+  // 6. Get exchange rate source -> INR (for add-on conversion; add-ons are in INR)
+  const exchangeRateSourceToInr =
+    (await convertCurrencyByCountryCode({
+      sourceCountryCode,
+      destinationCountryCode: "IN",
+      amount: null,
+    })) || 1;
+
   return {
     itemPriceOrigin,
     itemPriceDestination,
@@ -146,5 +156,6 @@ export async function calculateShipmentPriceBreakdown(
     exchangeRate,
     originCurrency,
     destinationCurrency,
+    exchangeRateSourceToInr,
   };
 }

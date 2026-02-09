@@ -1,6 +1,7 @@
 "use client";
 
 import { ShipmentPriceBreakdown, type ShipmentItem } from "@/components/shipments/price-breakdown";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,11 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { convertCurrencyByCountryCode, countryCodeToCurrencies, currenciesToCountryCode, getDomesticCourierCharge, getHandlingCharge, getProductPrice } from "@/lib/api/product-price-calculator";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
-import { ArrowLeft, FileText, Loader2, LogIn, Send, UserPlus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, CreditCard, FileText, Info, Landmark, Loader2, LogIn, Send, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
@@ -28,6 +27,8 @@ interface ReviewStepProps {
   sourceCountryCode?: string;
   destinationCountryCode?: string;
   items?: ShipmentItem[]; // Product items array
+  purchasedSite?: string; // For warehouse order summary
+  purchasedDate?: Date | string; // For warehouse order summary
   onBack: () => void;
   user?: { id: string } | null; // For login gate at Place Order
   onLoginRequired?: () => void; // Called when guest tries to place order
@@ -42,6 +43,9 @@ interface ReviewStepProps {
     courierCharge: number;
   }) => void;
   isSubmitting: boolean;
+  isLinkService?: boolean;
+  paymentMethod?: "Online Payment" | "Bank Transfer";
+  onPaymentMethodChange?: (method: "Online Payment" | "Bank Transfer") => void;
 }
 
 export type ProductPriceBreakDown = {
@@ -67,12 +71,17 @@ export function ReviewStep({
   sourceCountryCode,
   destinationCountryCode,
   items = [],
+  purchasedSite,
+  purchasedDate,
   onBack,
   user,
   onLoginRequired,
   loginRedirectUrl = "/create-shipments?from=checkout",
   onSubmit,
   isSubmitting,
+  isLinkService = false,
+  paymentMethod = "Online Payment",
+  onPaymentMethodChange,
 }: ReviewStepProps) {
   const formatCurrency = (value: number) =>
     `${value.toLocaleString("en-IN", {
@@ -80,160 +89,19 @@ export function ReviewStep({
       maximumFractionDigits: 2,
     })}`;
 
-  const [productPriceBreakdown, setProductPriceBreakdown] = useState<ProductPriceBreakDown | null>(null);
-  const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
-  const [breakdownError, setBreakdownError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchPriceBreakdown = async () => {
-      if (
-        !destinationCountryCode ||
-        !sourceCountryCode
-      ) {
-        return;
-      }
-
-      setIsLoadingBreakdown(true);
-      setBreakdownError(null);
-
-      try {
-        const fromCountry = sourceCountryCode;
-        const toCountry = destinationCountryCode;
-
-        // Convert each item to source currency before summing (handles mixed currencies)
-        const uniqueCurrencies = [...new Set(items.map((i) => i.valueCurrency || "INR"))];
-        const ratesToSource: Record<string, number> = {};
-        await Promise.all(
-          uniqueCurrencies.map(async (currency) => {
-            const itemCountryCode = currenciesToCountryCode(currency);
-            const rate = await convertCurrencyByCountryCode({
-              sourceCountryCode: itemCountryCode,
-              destinationCountryCode: sourceCountryCode,
-              amount: null,
-            });
-            ratesToSource[currency] = rate || 1;
-          })
-        );
-
-        const totalProductPriceInSource = items.reduce((sum, item) => {
-          const itemTotal = (item.price || 0) * (item.quantity || 1);
-          const rate = ratesToSource[item.valueCurrency || "INR"] || 1;
-          return sum + itemTotal * rate;
-        }, 0);
-
-        // Source currency for API calls (from source country)
-        const sourceCurrency = countryCodeToCurrencies(sourceCountryCode) || "INR";
-
-        // Call all API functions in parallel - use totalProductPriceInSource with source currency
-        const [productPriceData, handlingChargeData, courierChargeData, exchangeRateInrToSource, exchangeRateSourceToInr, exchangeRateDestinationToInr] =
-          await Promise.all([
-            getProductPrice({
-              productPrice: totalProductPriceInSource,
-              fromCountry: sourceCountryCode,
-              toCountry: destinationCountryCode,
-              productPriceCurrency: sourceCurrency,
-            }),
-            getHandlingCharge({
-              itemPrice: totalProductPriceInSource,
-              itemCurrency: sourceCurrency,
-              fromCountry,
-              toCountry,
-            }),
-            getDomesticCourierCharge({
-              fromCountry,
-              toCountry,
-            }),
-            convertCurrencyByCountryCode({
-              sourceCountryCode: "IN",
-              destinationCountryCode: sourceCountryCode,
-              amount: null,
-            }),
-            // Exchange rate from source currency to INR
-            convertCurrencyByCountryCode({
-              sourceCountryCode: "IN",
-              destinationCountryCode: sourceCountryCode,
-              amount: null,
-            }),
-            // Exchange rate from destination currency to INR
-            convertCurrencyByCountryCode({
-              sourceCountryCode: "IN",
-              destinationCountryCode: destinationCountryCode,
-              amount: null,
-            }),
-          ]);
-
-        // Combine results into the state structure
-        // Currency codes will be updated in a separate useEffect when sourceCountries data is available
-        setProductPriceBreakdown({
-          productPriceInSourceCountry: productPriceData.sourceCountryPrice,
-          productPriceInDestinationCountry:
-            productPriceData.destinationCountryPrice,
-          warehouseHandlingChargeInSourceCountry:
-            handlingChargeData.sourceCountryPrice,
-          warehouseHandlingChargeInDestinationCountry:
-            handlingChargeData.destinationCountryPrice,
-          courierChargeInSourceCountry: courierChargeData.sourceCountryCharge,
-          courierChargeInDestinationCountry:
-            courierChargeData.destinationCountryCharge,
-          exchangeRate: exchangeRateInrToSource,
-          sourceCurrencyCode: "INR", // Default, will be updated below
-          destinationCurrencyCode: "USD", // Default, will be updated below
-          exchangeRateSourceToInr: exchangeRateSourceToInr || 1,
-          exchangeRateDestinationToInr: exchangeRateDestinationToInr || 1,
-        });
-      } catch (error) {
-        console.error("Error fetching price breakdown:", error);
-        setBreakdownError(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch price breakdown",
-        );
-      } finally {
-        setIsLoadingBreakdown(false);
-      }
-    };
-
-    fetchPriceBreakdown();
-  }, [destinationCountryCode, sourceCountryCode, items]);
-
-
   const { data: sourceCountries } = useSourceCountries();
-
-  const destinationCurrencyCodeValue =
-    sourceCountries?.find((country) => country.code === destinationCountryCode)
-      ?.currency || "USD";
 
   const sourceCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === sourceCountryCode)
       ?.currency || "INR";
-
-  // Update currency codes in productPriceBreakdown when sourceCountries data is available
-  useEffect(() => {
-    if (productPriceBreakdown && sourceCountries && sourceCountryCode && destinationCountryCode) {
-      const updatedSourceCurrencyCode =
-        sourceCountries?.find((country) => country.code === sourceCountryCode)
-          ?.currency || "INR";
-      const updatedDestinationCurrencyCode =
-        sourceCountries?.find((country) => country.code === destinationCountryCode)
-          ?.currency || "USD";
-
-      if (
-        updatedSourceCurrencyCode !== productPriceBreakdown.sourceCurrencyCode ||
-        updatedDestinationCurrencyCode !== productPriceBreakdown.destinationCurrencyCode
-      ) {
-        setProductPriceBreakdown({
-          ...productPriceBreakdown,
-          sourceCurrencyCode: updatedSourceCurrencyCode,
-          destinationCurrencyCode: updatedDestinationCurrencyCode,
-        });
-      }
-    }
-  }, [sourceCountries, sourceCountryCode, destinationCountryCode, productPriceBreakdown]);
+  const destinationCurrencyCodeValue =
+    sourceCountries?.find((country) => country.code === destinationCountryCode)
+      ?.currency || "USD";
 
   return (
     <div className="space-y-6">
-      {/* Price Breakdown */}
-      {isCalculatingBreakdown && (
+      {/* Price Breakdown - Link service only; warehouse orders have no breakdown */}
+      {isLinkService && isCalculatingBreakdown && (
         <Card>
           <CardContent className="py-6">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
@@ -244,7 +112,7 @@ export function ReviewStep({
         </Card>
       )}
 
-      {priceBreakdown && !isCalculatingBreakdown && (
+      {isLinkService && priceBreakdown && !isCalculatingBreakdown && (
         <ShipmentPriceBreakdown
           breakdown={priceBreakdown}
           sourceCountryCode={sourceCountryCode}
@@ -253,6 +121,16 @@ export function ReviewStep({
           sourceCurrencyCode={sourceCurrencyCodeValue}
           items={items}
         />
+      )}
+
+      {/* Warehouse order: info message about shipping payment */}
+      {!isLinkService && (
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-800 dark:text-blue-200">
+            After your product is received at our warehouse, we will calculate the weight and you will need to pay for shipping. No payment for product value is required at checkout.
+          </AlertDescription>
+        </Alert>
       )}
 
       <Card>
@@ -268,51 +146,133 @@ export function ReviewStep({
         <CardContent className="space-y-6">
           <div className="flex flex-col gap-2 rounded-md border border-dashed p-4 text-sm">
             <p className="font-medium text-foreground">Order summary</p>
-            {isLoadingBreakdown ? (
+            {!isLinkService ? (
+              /* Warehouse order summary: Purchased Site, Date, Product names, Add-ons */
+              <>
+                {purchasedSite && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Purchased Site</span>
+                    <span>{purchasedSite}</span>
+                  </div>
+                )}
+                {purchasedDate && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Purchased Date</span>
+                    <span>
+                      {typeof purchasedDate === "string"
+                        ? new Date(purchasedDate).toLocaleDateString()
+                        : purchasedDate instanceof Date
+                          ? purchasedDate.toLocaleDateString()
+                          : ""}
+                    </span>
+                  </div>
+                )}
+                {items.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground">Products</span>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                      {items.map((item, idx) => (
+                        <li key={item.uuid || idx}>
+                          {item.productName || `Product ${idx + 1}`}
+                          {item.quantity && item.quantity > 1 && ` (Qty: ${item.quantity})`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedAddOns.length > 0 && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Add-ons ({selectedAddOns.length})</span>
+                    <span>INR {formatCurrency(addOnTotal)}</span>
+                  </div>
+                )}
+              </>
+            ) : (isCalculatingBreakdown || !priceBreakdown) ? (
               <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Loading order summary...</span>
               </div>
             ) : (
+              /* Link service order summary */
               <>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Items Price</span>
-                  <span> {sourceCurrencyCodeValue}{" "} {formatCurrency(productPriceBreakdown?.productPriceInSourceCountry || 0)}</span>
+                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.itemPriceOrigin)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Domestic Courier Charge</span>
-                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency(productPriceBreakdown?.courierChargeInSourceCountry || 0)}</span>
+                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.domesticCourier)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Warehouse Handling Charge</span>
-                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency(productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0)}</span>
+                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.warehouseHandling)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Add-ons ({selectedAddOns.length})</span>
-                  <span>{sourceCurrencyCodeValue}{" "}{formatCurrency((addOnTotal * (productPriceBreakdown?.exchangeRate || 1) || 0))}</span>
+                  <span>{sourceCurrencyCodeValue} {formatCurrency(addOnTotal / (priceBreakdown!.exchangeRateSourceToInr || 1))}</span>
                 </div>
                 <div className="flex items-center justify-between border-t pt-2 text-foreground">
                   <span className="text-sm font-semibold">Grand Total</span>
                   <span className="text-base font-semibold">
-                    {sourceCurrencyCodeValue}{" "} {formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)}
+                    {sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.totalPriceOrigin + addOnTotal / (priceBreakdown!.exchangeRateSourceToInr || 1))}
                   </span>
                 </div>
-                {sourceCurrencyCodeValue !== destinationCurrencyCodeValue && (
-                  <div className="flex items-center justify-between text-muted-foreground text-sm">
-                    <span>Grand Total ({destinationCurrencyCodeValue})</span>
-                    <span>
-                      {formatCurrency(
-                        (productPriceBreakdown?.productPriceInDestinationCountry || 0) +
-                        (productPriceBreakdown?.courierChargeInDestinationCountry || 0) +
-                        (productPriceBreakdown?.warehouseHandlingChargeInDestinationCountry || 0) +
-                        (addOnTotal * (productPriceBreakdown?.exchangeRateDestinationToInr || 1) || 0)
-                      )}
-                    </span>
-                  </div>
-                )}
               </>
             )}
           </div>
+
+          {/* Payment Method - Link to Ship only */}
+          {isLinkService && onPaymentMethodChange && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Payment Method
+                </CardTitle>
+                <CardDescription>
+                  Choose how you would like to pay for your order
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => onPaymentMethodChange("Online Payment")}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
+                      paymentMethod === "Online Payment"
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:border-muted-foreground/50"
+                    }`}
+                  >
+                    <CreditCard className="w-6 h-6 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Online Payment</p>
+                      <p className="text-sm text-muted-foreground">
+                        Pay by card or UPI (3.5% processing fee applies)
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onPaymentMethodChange("Bank Transfer")}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
+                      paymentMethod === "Bank Transfer"
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:border-muted-foreground/50"
+                    }`}
+                  >
+                    <Landmark className="w-6 h-6 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Bank Transfer</p>
+                      <p className="text-sm text-muted-foreground">
+                        Upload payment proof after placing order
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Terms and Conditions */}
           <div className="space-y-4">
@@ -681,15 +641,28 @@ export function ReviewStep({
           <Button
             type="button"
             onClick={() => {
-              if (productPriceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
+              if (isLinkService && priceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
+                const addOnInSource = addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1);
+                const grandTotal = priceBreakdown.totalPriceOrigin + addOnInSource;
                 onSubmit({
                   sourceCurrencyCode: sourceCurrencyCodeValue,
                   destinationCurrencyCode: destinationCurrencyCodeValue,
-                  exchangeRateSourceToInr: productPriceBreakdown.exchangeRateSourceToInr,
-                  exchangeRateDestinationToInr: productPriceBreakdown.exchangeRateDestinationToInr,
-                  totalGrandTotal: productPriceBreakdown?.productPriceInSourceCountry + productPriceBreakdown?.courierChargeInSourceCountry + productPriceBreakdown?.warehouseHandlingChargeInSourceCountry + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)),
-                  warehouseHandlingCharge: productPriceBreakdown?.warehouseHandlingChargeInSourceCountry,
-                  courierCharge: productPriceBreakdown?.courierChargeInSourceCountry,
+                  exchangeRateSourceToInr: priceBreakdown.exchangeRateSourceToInr,
+                  exchangeRateDestinationToInr: 1, // Single currency - not used for display
+                  totalGrandTotal: grandTotal,
+                  warehouseHandlingCharge: priceBreakdown.warehouseHandling,
+                  courierCharge: priceBreakdown.domesticCourier,
+                });
+              } else if (!isLinkService) {
+                // Warehouse: no payment for item value; grand total = add-ons only; zeros for charges
+                onSubmit({
+                  sourceCurrencyCode: sourceCurrencyCodeValue,
+                  destinationCurrencyCode: destinationCurrencyCodeValue,
+                  exchangeRateSourceToInr: 1,
+                  exchangeRateDestinationToInr: 1,
+                  totalGrandTotal: addOnTotal,
+                  warehouseHandlingCharge: 0,
+                  courierCharge: 0,
                 });
               } else {
                 onSubmit();
@@ -706,7 +679,17 @@ export function ReviewStep({
             ) : (
               <>
                 <Send className="h-4 w-4" />
-                Place Order ({sourceCurrencyCodeValue}{" "}{formatCurrency((productPriceBreakdown?.productPriceInSourceCountry || 0) + (productPriceBreakdown?.courierChargeInSourceCountry || 0) + (productPriceBreakdown?.warehouseHandlingChargeInSourceCountry || 0) + (addOnTotal * (productPriceBreakdown?.exchangeRate || 1)) || 0)})
+                {isLinkService && paymentMethod === "Online Payment"
+                  ? "Place Order and Pay"
+                  : "Place Order"}
+                {isLinkService && priceBreakdown && (
+                  <> ({sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(
+                      priceBreakdown.totalPriceOrigin +
+                        addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1)
+                    )})
+                  </>
+                )}
               </>
             )}
           </Button>

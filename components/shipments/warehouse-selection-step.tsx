@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -36,6 +37,7 @@ interface WarehouseSelectionStepProps {
   errors: FieldErrors<OrderFormData>;
   watch: UseFormWatch<OrderFormData>;
   setValue: UseFormSetValue<OrderFormData>;
+  sourceCountryCode?: string;
 }
 
 export function WarehouseSelectionStep({
@@ -45,11 +47,40 @@ export function WarehouseSelectionStep({
   errors,
   watch,
   setValue,
+  sourceCountryCode,
 }: WarehouseSelectionStepProps) {
   // Fetch warehouses for selection
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
 
   const watchedWarehouseId = watch(`shipments.${index}.warehouseId`);
+
+  // Filter warehouses by source country - only show warehouses matching the selected source country
+  const filteredWarehouses =
+    warehouses?.data?.filter(
+      (wh: { country_code?: string }) =>
+        wh.country_code?.toUpperCase() === sourceCountryCode?.toUpperCase()
+    ) ?? [];
+
+  // Clear selected warehouse if it no longer matches the filtered list (e.g. source country changed)
+  useEffect(() => {
+    if (
+      sourceCountryCode &&
+      watchedWarehouseId &&
+      !filteredWarehouses.some(
+        (wh: { warehouse_id: string }) => wh.warehouse_id === watchedWarehouseId
+      )
+    ) {
+      setValue(`shipments.${index}.warehouseId`, undefined, {
+        shouldValidate: true,
+      });
+    }
+  }, [
+    sourceCountryCode,
+    watchedWarehouseId,
+    filteredWarehouses,
+    setValue,
+    index,
+  ]);
 
   return (
     <Card>
@@ -63,16 +94,22 @@ export function WarehouseSelectionStep({
         </CardDescription>
       </CardHeader>
       <CardContent className="max-h-[500px] overflow-y-auto">
-        {warehousesLoading ? (
+        {!sourceCountryCode ? (
+          <div className="text-center py-8">
+            <div className="text-sm text-muted-foreground">
+              Please complete Step 1 and select a source country first
+            </div>
+          </div>
+        ) : warehousesLoading ? (
           <div className="text-center py-8">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
             <div className="text-sm text-muted-foreground">
               Loading warehouses...
             </div>
           </div>
-        ) : warehouses && warehouses.data.length > 0 ? (
+        ) : filteredWarehouses.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {warehouses.data.map((warehouse: any) => (
+            {filteredWarehouses.map((warehouse: any) => (
               <div
                 key={warehouse.warehouse_id}
                 className={`relative border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md overflow-hidden ${
@@ -207,7 +244,7 @@ export function WarehouseSelectionStep({
         ) : (
           <div className="text-center py-8">
             <div className="text-sm text-muted-foreground">
-              No warehouses available
+              No warehouses available for the selected source country
             </div>
           </div>
         )}

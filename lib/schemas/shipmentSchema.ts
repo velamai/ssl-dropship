@@ -25,6 +25,7 @@ export const CURRENCY_OPTIONS = [
 export type CurrencyCode = (typeof CURRENCY_OPTIONS)[number]["value"];
 
 // Schema for individual items within a shipment
+// Base schema is permissive; shipment-level superRefine enforces link vs warehouse rules
 export const ItemSchema = z.object({
   uuid: z
     .string()
@@ -33,8 +34,7 @@ export const ItemSchema = z.object({
   productUrl: z
     .string()
     .trim()
-    .min(1, "Product URL is required")
-    .url({ message: "Product URL must be a valid URL" }),
+    .optional(), // Required for link service (enforced in superRefine), optional for warehouse
   productName: z.string().trim().min(1, "Product name is required"),
   productNote: z
     .string()
@@ -54,7 +54,10 @@ export const ItemSchema = z.object({
       .positive({ message: "Price must be positive" })
       .optional()
   ),
-  valueCurrency: z.enum(["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"]).default("INR"), // Default currency is INR
+  valueCurrency: z
+    .enum(["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"])
+    .optional()
+    .default("INR"), // Required for link, optional for warehouse
   quantity: z.preprocess(
     (val) =>
       val === "" || val === null || val === undefined ? undefined : Number(val),
@@ -191,15 +194,10 @@ export const ShipmentSchema = z
       return undefined;
     }, z.date().optional()),
     purchasedSite: z
-      .union([
-        z
-          .string()
-          .trim()
-          .url({ message: "Purchased site must be a valid URL" }),
-        z.literal(""),
-      ])
+      .string()
+      .trim()
       .optional()
-      .transform((val) => (val === "" || val === undefined ? undefined : val)),
+      .transform((val) => (val === "" || val === undefined ? undefined : val)), // Accept any text for warehouse (store/site name)
     packageType: z.enum(["box", "envelope"], {
       required_error: "Package type is required",
       invalid_type_error: "Package type must be either 'box' or 'envelope'",
@@ -238,22 +236,43 @@ export const ShipmentSchema = z
           path: ["purchasedDate"],
         });
       }
-      if (!data.purchasedSite) {
+      if (!data.purchasedSite || data.purchasedSite.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Purchased site is required for warehouse shipments.",
           path: ["purchasedSite"],
         });
       }
+      // For warehouse: productUrl, price, valueCurrency are optional (no extra validation)
     } else if (data.shipmentType === "link") {
-      // For link service, clear warehouse-specific fields to avoid validation issues
-      // These fields should be undefined/empty for link service
-      if (data.purchasedSite && data.purchasedSite.trim() !== "") {
-        // If purchasedSite has a value for link service, it should be a valid URL
-        // But we don't require it, so we just validate format if present
-      }
-      // invoiceUrls and productImageUrls are optional for link service
-      // They will only be validated if present (which they shouldn't be)
+      // For link service: require productUrl (valid URL) and valueCurrency per item
+      data.items?.forEach((item, index) => {
+        const url = item.productUrl?.trim() || "";
+        if (!url) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Product URL is required",
+            path: ["items", index, "productUrl"],
+          });
+        } else {
+          try {
+            new URL(url);
+          } catch {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Product URL must be a valid URL",
+              path: ["items", index, "productUrl"],
+            });
+          }
+        }
+        if (!item.valueCurrency) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Currency is required",
+            path: ["items", index, "valueCurrency"],
+          });
+        }
+      });
     }
   });
 

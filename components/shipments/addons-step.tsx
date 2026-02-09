@@ -133,16 +133,10 @@ export function AddOnsStep({
                 Each add-on adds{" "}
                 <span className="font-medium text-foreground">
                   {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
-                  {destinationCountryCode && (
-                    <> ({destinationCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
-                  )}
                 </span>{" "}
                 to your base amount of{" "}
                 <span className="font-medium text-foreground">
                   {sourceCountryCurrency} {formatCurrency(baseAmount * (exchangeRateData?.sourceCountryExchangeRate || 1))}
-                  {destinationCountryCode && (
-                    <> ({destinationCountryCurrency} {formatCurrency(baseAmount * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
-                  )}
                 </span>
                 .
               </>
@@ -192,9 +186,6 @@ export function AddOnsStep({
                         ) : (
                           <>
                             + {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
-                            {destinationCountryCode && (
-                              <> ({destinationCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
-                            )}
                           </>
                         )}
                       </p>
@@ -217,9 +208,6 @@ export function AddOnsStep({
             ) : (
               <span className="text-lg font-semibold text-foreground">
                 {sourceCountryCurrency} {formatCurrency(grandTotal * (exchangeRateData?.sourceCountryExchangeRate || 1))}
-                {destinationCountryCode && (
-                  <> ({destinationCountryCurrency} {formatCurrency(grandTotal * (exchangeRateData?.destinationCountryExchangeRate || 1))})</>
-                )}
               </span>
             )}
           </div>
