@@ -109,6 +109,7 @@ function CreateShipmentPageContent() {
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<
     "Online Payment" | "Bank Transfer"
   >("Online Payment");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [pendingPaymentShipmentId, setPendingPaymentShipmentId] = useState<
     string | null
   >(null);
@@ -122,6 +123,7 @@ function CreateShipmentPageContent() {
     warehouseHandlingCharge: number;
     courierCharge: number;
   } | null>(null);
+  const razorpayTriggeredRef = useRef(false);
 
   const {
     register,
@@ -733,7 +735,10 @@ function CreateShipmentPageContent() {
   );
 
   // Submit Handler - creates order in database
-  const createOrder = async (data: OrderFormData): Promise<void> => {
+  const createOrder = async (
+    data: OrderFormData,
+    options?: { skipSuccessDialog?: boolean },
+  ): Promise<{ shipmentId?: string }> => {
     console.log("Validated Form Data:", data);
 
     if (!user) {
@@ -743,10 +748,8 @@ function CreateShipmentPageContent() {
         variant: "destructive",
       });
       router.push("/");
-      return;
+      return {};
     }
-
-    console.log("hi sampl");
 
     try {
       setIsSubmitting(true);
@@ -868,9 +871,11 @@ function CreateShipmentPageContent() {
         refreshDrafts();
       }
 
-      // Show success dialog for all orders
-      // For Online Payment, this will be called after payment success
-      setShowOrderSuccessDialog(true);
+      // Show success dialog for all orders (skip when create-then-pay flow)
+      if (!options?.skipSuccessDialog) {
+        setShowOrderSuccessDialog(true);
+      }
+      return { shipmentId };
     } catch (error: any) {
       console.error("Error creating shipments:", error);
       toast({
@@ -882,7 +887,178 @@ function CreateShipmentPageContent() {
     } finally {
       setIsSubmitting(false);
     }
+    return {};
   };
+
+  // Initialize Razorpay payment - create order first, then payment (same frontend payment logic)
+  // All amounts/currency data come from review-step (same as before)
+  const initializeRazorpayAndCreateOrder = useCallback(
+    async (
+      amount: number,
+      sourceCurrencyCode: string,
+      exchangeRateSourceToInr: number,
+      receiverInfo: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+      },
+      currencyData: {
+        sourceCurrencyCode: string;
+        destinationCurrencyCode: string;
+        exchangeRateSourceToInr: number;
+        exchangeRateDestinationToInr: number;
+        totalGrandTotal: number;
+        warehouseHandlingCharge: number;
+        courierCharge: number;
+      },
+    ): Promise<void> => {
+      if (razorpayTriggeredRef.current) return;
+      razorpayTriggeredRef.current = true;
+      setIsProcessingPayment(true);
+
+      try {
+        // 1. Store currency data and validate
+        currencyDataRef.current = currencyData;
+        const reviewStep = isWarehouseService ? 5 : 4;
+        const isValid = await validateStep(reviewStep);
+        if (!isValid) {
+          toast({
+            title: "Validation Error",
+            description: "Please complete all required fields",
+            variant: "destructive",
+          });
+          razorpayTriggeredRef.current = false;
+          setIsProcessingPayment(false);
+          return;
+        }
+
+        // 2. Create order in database first
+        const formData = getValues() as OrderFormData;
+        await createOrder(formData, { skipSuccessDialog: true });
+
+        // 3. Create Razorpay order (same logic as review-step - get payment from frontend)
+        const response = await fetch("/api/razorpay-create-order-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            sourceCurrencyCode,
+            exchangeRateSourceToInr,
+            addOnTotal,
+            receipt: `checkout_${Date.now()}`,
+            notes: {
+              source: "drop_and_ship",
+              payment_type: "product_payment",
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData: { error?: string; message?: string };
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText };
+          }
+          throw new Error(
+            errorData.error ||
+              errorData.message ||
+              "Failed to create Razorpay order",
+          );
+        }
+
+        const { data, success, error } = await response.json();
+        if (!success || error) {
+          throw new Error(error || "Failed to create order");
+        }
+
+        if (
+          typeof window === "undefined" ||
+          typeof (window as any).Razorpay === "undefined"
+        ) {
+          throw new Error("Razorpay script not loaded");
+        }
+
+        // 4. Open Razorpay modal (same as review-step)
+        await new Promise<void>((resolve, reject) => {
+          const options = {
+            key: data.keyId,
+            amount: data.amount,
+            currency: data.currency,
+            name: "Buy2Send",
+            description: "Product payment for order",
+            order_id: data.orderId,
+            handler: (response: {
+              razorpay_payment_id: string;
+              razorpay_order_id: string;
+              razorpay_signature: string;
+            }) => {
+              razorpayTriggeredRef.current = false;
+              setIsProcessingPayment(false);
+              toast({
+                title: "Payment Successful",
+                description: "Your order has been placed successfully.",
+              });
+              setShowOrderSuccessDialog(true);
+              resolve();
+            },
+            modal: {
+              ondismiss: () => {
+                razorpayTriggeredRef.current = false;
+                setIsProcessingPayment(false);
+                reject(new Error("Payment cancelled"));
+              },
+              confirm_close: true,
+              escape: true,
+            },
+            prefill: {
+              name: `${receiverInfo.firstName} ${receiverInfo.lastName}`,
+              email: receiverInfo.email,
+              contact: receiverInfo.phone,
+            },
+            notes: {
+              payment_type: "product_payment",
+              source_currency_code: sourceCurrencyCode,
+            },
+            theme: { color: "#0284c7" },
+          };
+
+          const rzp = new (window as any).Razorpay(options);
+          rzp.on("payment.failed", (response: any) => {
+            razorpayTriggeredRef.current = false;
+            setIsProcessingPayment(false);
+            toast({
+              title: "Payment Failed",
+              description:
+                response.error?.description || "Payment failed. Please try again.",
+              variant: "destructive",
+            });
+            reject(new Error("Payment failed"));
+          });
+          rzp.open();
+        });
+      } catch (err: any) {
+        razorpayTriggeredRef.current = false;
+        setIsProcessingPayment(false);
+        toast({
+          title: "Error",
+          description: err.message || "Failed to initialize payment",
+          variant: "destructive",
+        });
+        throw err;
+      }
+    },
+    [
+      addOnTotal,
+      isWarehouseService,
+      validateStep,
+      getValues,
+      createOrder,
+      toast,
+    ],
+  );
 
   // Wrapper for react-hook-form SubmitHandler (returns void)
   const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
@@ -1272,13 +1448,19 @@ function CreateShipmentPageContent() {
                 isLinkService={isLinkService}
                 paymentMethod={checkoutPaymentMethod}
                 onPaymentMethodChange={setCheckoutPaymentMethod}
+                isProcessingPayment={isProcessingPayment}
+                onPlaceOrderWithPayment={initializeRazorpayAndCreateOrder}
+                onPaymentSuccess={() => setShowOrderSuccessDialog(true)}
                 receiverInfo={{
                   firstName: getValues("shipments.0.receiver.firstName") || "",
                   lastName: getValues("shipments.0.receiver.lastName") || "",
                   email: getValues("shipments.0.receiver.email") || "",
                   phone: getValues("shipments.0.receiver.phone") || "",
                 }}
-                onSubmit={async (currencyData): Promise<void> => {
+                onSubmit={async (
+                  currencyData,
+                  options?: { skipSuccessDialog?: boolean },
+                ): Promise<void> => {
                   // Login gate: guests must log in before placing order
                   if (!user) {
                     savePendingCheckoutDraft(getValues());
@@ -1399,7 +1581,7 @@ function CreateShipmentPageContent() {
                     );
                     // Call createOrder directly with form data
                     const formData = getValues() as OrderFormData;
-                    await createOrder(formData);
+                    await createOrder(formData, options);
                   } else {
                     const allErrors = extractAllErrors(errors);
                     toast({

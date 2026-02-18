@@ -49,19 +49,44 @@ interface ReviewStepProps {
   user?: { id: string } | null; // For login gate at Place Order
   onLoginRequired?: () => void; // Called when guest tries to place order
   loginRedirectUrl?: string; // Redirect URL after login (includes type for link/warehouse)
-  onSubmit: (currencyData?: {
-    sourceCurrencyCode: string;
-    destinationCurrencyCode: string;
-    exchangeRateSourceToInr: number;
-    exchangeRateDestinationToInr: number;
-    totalGrandTotal: number;
-    warehouseHandlingCharge: number;
-    courierCharge: number;
-  }) => Promise<void>; // Creates order in database
+  onSubmit: (
+    currencyData?: {
+      sourceCurrencyCode: string;
+      destinationCurrencyCode: string;
+      exchangeRateSourceToInr: number;
+      exchangeRateDestinationToInr: number;
+      totalGrandTotal: number;
+      warehouseHandlingCharge: number;
+      courierCharge: number;
+    },
+    options?: { skipSuccessDialog?: boolean },
+  ) => Promise<void>; // Creates order in database
+  onPaymentSuccess?: () => void; // Called when payment succeeds (for create-then-pay flow)
   isSubmitting: boolean;
   isLinkService?: boolean;
   paymentMethod?: "Online Payment" | "Bank Transfer";
   onPaymentMethodChange?: (method: "Online Payment" | "Bank Transfer") => void;
+  isProcessingPayment?: boolean;
+  onPlaceOrderWithPayment?: (
+    amount: number,
+    sourceCurrencyCode: string,
+    exchangeRateSourceToInr: number,
+    receiverInfo: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    },
+    currencyData: {
+      sourceCurrencyCode: string;
+      destinationCurrencyCode: string;
+      exchangeRateSourceToInr: number;
+      exchangeRateDestinationToInr: number;
+      totalGrandTotal: number;
+      warehouseHandlingCharge: number;
+      courierCharge: number;
+    },
+  ) => Promise<void>;
   receiverInfo?: {
     firstName: string;
     lastName: string;
@@ -113,10 +138,13 @@ export function ReviewStep({
   onLoginRequired,
   loginRedirectUrl = "/create-shipments?from=checkout",
   onSubmit,
+  onPaymentSuccess,
   isSubmitting,
   isLinkService = false,
   paymentMethod = "Online Payment",
   onPaymentMethodChange,
+  isProcessingPayment: isProcessingPaymentProp,
+  onPlaceOrderWithPayment,
   receiverInfo,
 }: ReviewStepProps) {
   const formatCurrency = (value: number) =>
@@ -127,10 +155,14 @@ export function ReviewStep({
 
   const { data: sourceCountries } = useSourceCountries();
 
-  // Razorpay state
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  // Razorpay state (used when onPlaceOrderWithPayment is not provided)
+  const [isProcessingPaymentLocal, setIsProcessingPaymentLocal] = useState(false);
   const [razorpayScriptLoaded, setRazorpayScriptLoaded] = useState(false);
   const razorpayTriggered = useRef(false);
+
+  // Use parent's isProcessingPayment when onPlaceOrderWithPayment is provided
+  const isProcessingPayment =
+    isProcessingPaymentProp ?? isProcessingPaymentLocal;
 
   const sourceCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === sourceCountryCode)
@@ -139,7 +171,7 @@ export function ReviewStep({
     sourceCountries?.find((country) => country.code === destinationCountryCode)
       ?.currency || "USD";
 
-  // Initialize Razorpay payment - creates order first, then creates database order after payment success
+  // Initialize Razorpay payment - create order first, then get payment from frontend (same logic)
   const initializeRazorpay = async (
     amount: number,
     sourceCurrencyCode: string,
@@ -173,11 +205,15 @@ export function ReviewStep({
       return;
     }
     razorpayTriggered.current = true;
-    setIsProcessingPayment(true);
+    setIsProcessingPaymentLocal(true);
 
     try {
+      // 1. Create order in database first
+      console.log("[initializeRazorpay] Creating order first...");
+      await onSubmit(currencyData, { skipSuccessDialog: true });
+
+      // 2. Create Razorpay order (same logic - get payment from frontend)
       console.log("[initializeRazorpay] Creating Razorpay order...");
-      // Create Razorpay order with amount and currency from frontend
       const response = await fetch("/api/razorpay-create-order-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -245,37 +281,24 @@ export function ReviewStep({
         name: "Buy2Send",
         description: `Product payment for order`,
         order_id: data.orderId,
-        handler: async (response: {
+        handler: (response: {
           razorpay_payment_id: string;
           razorpay_order_id: string;
           razorpay_signature: string;
         }) => {
-          // Payment successful - now create the database order
-          try {
-            setIsProcessingPayment(false);
-            razorpayTriggered.current = false;
-
-            // Create order in database after payment success
-            await onSubmit(currencyData);
-
-            showToast({
-              title: "Payment Successful",
-              description: "Your order has been placed successfully.",
-            });
-          } catch (error: any) {
-            showToast({
-              title: "Error",
-              description:
-                error.message ||
-                "Payment successful but failed to create order. Please contact support.",
-              variant: "destructive",
-            });
-          }
+          // Payment successful - order already created, just show success
+          setIsProcessingPaymentLocal(false);
+          razorpayTriggered.current = false;
+          showToast({
+            title: "Payment Successful",
+            description: "Your order has been placed successfully.",
+          });
+          onPaymentSuccess?.();
         },
         modal: {
           ondismiss: () => {
             razorpayTriggered.current = false;
-            setIsProcessingPayment(false);
+            setIsProcessingPaymentLocal(false);
           },
           confirm_close: true,
           escape: true,
@@ -292,7 +315,7 @@ export function ReviewStep({
         theme: { color: "#0284c7" },
       };
 
-      const rzp = new window.Razorpay(options);
+      const rzp = new (window as any).Razorpay(options);
       rzp.on("payment.failed", (response: any) => {
         showToast({
           title: "Payment Failed",
@@ -301,13 +324,13 @@ export function ReviewStep({
           variant: "destructive",
         });
         razorpayTriggered.current = false;
-        setIsProcessingPayment(false);
+        setIsProcessingPaymentLocal(false);
       });
       rzp.open();
     } catch (err: any) {
       console.error("Razorpay init failed:", err);
       razorpayTriggered.current = false;
-      setIsProcessingPayment(false);
+      setIsProcessingPaymentLocal(false);
       showToast({
         title: "Error",
         description: err.message || "Failed to initialize payment",
@@ -975,7 +998,7 @@ export function ReviewStep({
 
                     // Calculate total amount in source currency (same as displayed in UI)
                     const totalAmount = grandTotal;
-                    console.log("[ReviewStep] Initializing Razorpay with:", {
+                    console.log("[ReviewStep] Initializing payment with:", {
                       totalAmount,
                       sourceCurrencyCodeValue,
                       exchangeRateSourceToInr:
@@ -983,14 +1006,23 @@ export function ReviewStep({
                       receiverInfo,
                     });
 
-                    // Check if Razorpay script is loaded
+                    // Use parent's payment flow when provided (page.tsx creates Razorpay session, then createOrder after payment success)
+                    if (onPlaceOrderWithPayment) {
+                      await onPlaceOrderWithPayment(
+                        totalAmount,
+                        sourceCurrencyCodeValue,
+                        priceBreakdown.exchangeRateSourceToInr,
+                        receiverInfo,
+                        currencyData,
+                      );
+                      return;
+                    }
+
+                    // Fallback: internal Razorpay flow (when onPlaceOrderWithPayment not provided)
                     if (
                       typeof window !== "undefined" &&
                       (window as any).Razorpay
                     ) {
-                      console.log(
-                        "[ReviewStep] Razorpay script already loaded",
-                      );
                       setRazorpayScriptLoaded(true);
                       setTimeout(() => {
                         initializeRazorpay(
@@ -1002,9 +1034,6 @@ export function ReviewStep({
                         );
                       }, 100);
                     } else if (razorpayScriptLoaded) {
-                      console.log(
-                        "[ReviewStep] Razorpay script loaded flag is true",
-                      );
                       setTimeout(() => {
                         initializeRazorpay(
                           totalAmount,
@@ -1015,18 +1044,11 @@ export function ReviewStep({
                         );
                       }, 100);
                     } else {
-                      console.log(
-                        "[ReviewStep] Waiting for Razorpay script to load...",
-                      );
-                      // Wait for script to load
                       const checkScript = setInterval(() => {
                         if (
                           typeof window !== "undefined" &&
                           (window as any).Razorpay
                         ) {
-                          console.log(
-                            "[ReviewStep] Razorpay script loaded, initializing...",
-                          );
                           setRazorpayScriptLoaded(true);
                           clearInterval(checkScript);
                           initializeRazorpay(
@@ -1041,9 +1063,6 @@ export function ReviewStep({
                       setTimeout(() => {
                         clearInterval(checkScript);
                         if (!razorpayScriptLoaded) {
-                          console.error(
-                            "[ReviewStep] Razorpay script failed to load",
-                          );
                           showToast({
                             title: "Error",
                             description:
