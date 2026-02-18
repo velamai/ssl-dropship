@@ -274,7 +274,7 @@ function CreateShipmentPageContent() {
       // Check if items have prices
       const hasValidItems = shipment.items.some(
         (item) =>
-          item.price && item.price > 0 && item.quantity && item.quantity > 0
+          item.price && item.price > 0 && item.quantity && item.quantity > 0,
       );
 
       if (!hasValidItems) {
@@ -285,9 +285,8 @@ function CreateShipmentPageContent() {
       setIsCalculatingBreakdown(true);
 
       try {
-        const { calculateShipmentPriceBreakdown } = await import(
-          "@/lib/shipment-price-calculator"
-        );
+        const { calculateShipmentPriceBreakdown } =
+          await import("@/lib/shipment-price-calculator");
 
         const items = shipment.items.map((item) => ({
           price: item.price || 0,
@@ -333,7 +332,8 @@ function CreateShipmentPageContent() {
   useEffect(() => {
     const draftId = searchParams.get("draft");
     const fromCheckout = searchParams.get("from") === "checkout";
-    const hasTypeInUrl = searchParams.get("type") || searchParams.get("service");
+    const hasTypeInUrl =
+      searchParams.get("type") || searchParams.get("service");
 
     if (fromCheckout) {
       const pending = getPendingCheckoutDraft();
@@ -344,11 +344,14 @@ function CreateShipmentPageContent() {
         clearPendingCheckoutDraft();
         setCurrentStep((pending.serviceType === "warehouse" ? 5 : 4) as Step); // Go to Review step
         if (!hasTypeInUrl) {
-          router.replace(`/create-shipments?from=checkout&type=${pending.serviceType}`);
+          router.replace(
+            `/create-shipments?from=checkout&type=${pending.serviceType}`,
+          );
         }
       }
     } else if (draftId) {
-      const draft = getDraftById(draftId) ?? drafts.find((d) => d.id === draftId) ?? null;
+      const draft =
+        getDraftById(draftId) ?? drafts.find((d) => d.id === draftId) ?? null;
       if (draft) {
         if (!getDraftById(draftId)) {
           setDraftsInStorage(drafts);
@@ -357,7 +360,9 @@ function CreateShipmentPageContent() {
         reset(formValues);
         setLoadedDraftId(draftId);
         if (!hasTypeInUrl) {
-          router.replace(`/create-shipments?draft=${draftId}&type=${draft.serviceType}`);
+          router.replace(
+            `/create-shipments?draft=${draftId}&type=${draft.serviceType}`,
+          );
         }
       }
     }
@@ -465,10 +470,10 @@ function CreateShipmentPageContent() {
         if (isWarehouseService) {
           // Also validate warehouse-specific fields in products step
           const purchasedDateResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedDate`
+            `shipments.${shipmentIndex}.purchasedDate`,
           );
           const purchasedSiteResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedSite`
+            `shipments.${shipmentIndex}.purchasedSite`,
           );
           return itemsResult && purchasedDateResult && purchasedSiteResult;
         }
@@ -477,13 +482,13 @@ function CreateShipmentPageContent() {
         if (isWarehouseService) {
           // Validate warehouse selection
           const warehouseResult = await trigger(
-            `shipments.${shipmentIndex}.warehouseId`
+            `shipments.${shipmentIndex}.warehouseId`,
           );
           return warehouseResult;
         } else {
           // Validate receiver details for link service
           const receiverResult = await trigger(
-            `shipments.${shipmentIndex}.receiver`
+            `shipments.${shipmentIndex}.receiver`,
           );
           return receiverResult;
         }
@@ -491,7 +496,7 @@ function CreateShipmentPageContent() {
         if (isWarehouseService) {
           // Validate receiver details for warehouse service
           const receiverResult = await trigger(
-            `shipments.${shipmentIndex}.receiver`
+            `shipments.${shipmentIndex}.receiver`,
           );
           return receiverResult;
         } else {
@@ -505,38 +510,38 @@ function CreateShipmentPageContent() {
         } else {
           // Review step - validate entire form for link service
           console.log(
-            "[validateStep] Step 4 (Link Review) - Validating entire form..."
+            "[validateStep] Step 4 (Link Review) - Validating entire form...",
           );
           const result = await trigger();
           console.log("[validateStep] Step 4 validation result:", result);
           if (!result) {
             // Validate each section individually to find what's failing
             const itemsResult = await trigger(
-              `shipments.${shipmentIndex}.items`
+              `shipments.${shipmentIndex}.items`,
             );
             const receiverResult = await trigger(
-              `shipments.${shipmentIndex}.receiver`
+              `shipments.${shipmentIndex}.receiver`,
             );
             const countryResult = await trigger(
-              `shipments.${shipmentIndex}.country`
+              `shipments.${shipmentIndex}.country`,
             );
             const packageTypeResult = await trigger(
-              `shipments.${shipmentIndex}.packageType`
+              `shipments.${shipmentIndex}.packageType`,
             );
             const dimensionsResult = await trigger(
-              `shipments.${shipmentIndex}.dimensions`
+              `shipments.${shipmentIndex}.dimensions`,
             );
             const isPickupNeeded = getValues(
-              `shipments.${shipmentIndex}.isPickupNeeded`
+              `shipments.${shipmentIndex}.isPickupNeeded`,
             );
             const pickupResult = isPickupNeeded
               ? await trigger(`shipments.${shipmentIndex}.pickup`)
               : true;
             const invoiceUrlsResult = await trigger(
-              `shipments.${shipmentIndex}.invoiceUrls`
+              `shipments.${shipmentIndex}.invoiceUrls`,
             );
             const productImageUrlsResult = await trigger(
-              `shipments.${shipmentIndex}.productImageUrls`
+              `shipments.${shipmentIndex}.productImageUrls`,
             );
 
             console.log("[validateStep] Individual field validation results:", {
@@ -554,14 +559,13 @@ function CreateShipmentPageContent() {
             // Try to manually validate using the schema to see what's failing
             try {
               const formData = getValues();
-              const { OrderSchema } = await import(
-                "@/lib/schemas/shipmentSchema"
-              );
+              const { OrderSchema } =
+                await import("@/lib/schemas/shipmentSchema");
               const validationResult = OrderSchema.safeParse(formData);
               if (!validationResult.success) {
                 console.log(
                   "[validateStep] Schema validation errors:",
-                  validationResult.error.errors
+                  validationResult.error.errors,
                 );
                 console.log(
                   "[validateStep] Schema validation error details:",
@@ -569,7 +573,7 @@ function CreateShipmentPageContent() {
                     path: e.path.join("."),
                     message: e.message,
                     code: e.code,
-                  }))
+                  })),
                 );
               } else {
                 console.log("[validateStep] Schema validation passed!");
@@ -577,7 +581,7 @@ function CreateShipmentPageContent() {
             } catch (error) {
               console.error(
                 "[validateStep] Error during schema validation:",
-                error
+                error,
               );
             }
           }
@@ -586,7 +590,7 @@ function CreateShipmentPageContent() {
       } else if (step === 5) {
         // Review step - validate entire form for warehouse service
         console.log(
-          "[validateStep] Step 5 (Warehouse Review) - Validating entire form..."
+          "[validateStep] Step 5 (Warehouse Review) - Validating entire form...",
         );
         const result = await trigger();
         console.log("[validateStep] Step 5 validation result:", result);
@@ -594,28 +598,28 @@ function CreateShipmentPageContent() {
           // Validate each section individually to find what's failing
           const itemsResult = await trigger(`shipments.${shipmentIndex}.items`);
           const receiverResult = await trigger(
-            `shipments.${shipmentIndex}.receiver`
+            `shipments.${shipmentIndex}.receiver`,
           );
           const warehouseResult = await trigger(
-            `shipments.${shipmentIndex}.warehouseId`
+            `shipments.${shipmentIndex}.warehouseId`,
           );
           const purchasedDateResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedDate`
+            `shipments.${shipmentIndex}.purchasedDate`,
           );
           const purchasedSiteResult = await trigger(
-            `shipments.${shipmentIndex}.purchasedSite`
+            `shipments.${shipmentIndex}.purchasedSite`,
           );
           const countryResult = await trigger(
-            `shipments.${shipmentIndex}.country`
+            `shipments.${shipmentIndex}.country`,
           );
           const sourceCountryResult = await trigger(
-            `shipments.${shipmentIndex}.sourceCountryCode`
+            `shipments.${shipmentIndex}.sourceCountryCode`,
           );
           const packageTypeResult = await trigger(
-            `shipments.${shipmentIndex}.packageType`
+            `shipments.${shipmentIndex}.packageType`,
           );
           const dimensionsResult = await trigger(
-            `shipments.${shipmentIndex}.dimensions`
+            `shipments.${shipmentIndex}.dimensions`,
           );
 
           console.log("[validateStep] Individual field validation results:", {
@@ -635,7 +639,7 @@ function CreateShipmentPageContent() {
 
       return false;
     },
-    [trigger, isWarehouseService]
+    [trigger, isWarehouseService],
   );
 
   const handleNext = useCallback(async () => {
@@ -666,7 +670,7 @@ function CreateShipmentPageContent() {
       setSelectedAddOns(addOns);
       setAddOnTotal(addOnAmount);
     },
-    []
+    [],
   );
 
   // Helper function to transform shipment data for Supabase
@@ -689,7 +693,8 @@ function CreateShipmentPageContent() {
 
       return {
         shipment_type: shipmentData.shipmentType,
-        shipment_country_code: shipmentData.receiver.receivingCountry || shipmentData.country || "",
+        shipment_country_code:
+          shipmentData.receiver.receivingCountry || shipmentData.country || "",
         warehouse_id: shipmentData.warehouseId,
         purchased_date: shipmentData.purchasedDate?.toISOString(),
         purchased_site: shipmentData.purchasedSite,
@@ -724,11 +729,11 @@ function CreateShipmentPageContent() {
         source: "drop_and_ship",
       };
     },
-    []
+    [],
   );
 
-  // Submit Handler
-  const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
+  // Submit Handler - creates order in database
+  const createOrder = async (data: OrderFormData): Promise<void> => {
     console.log("Validated Form Data:", data);
 
     if (!user) {
@@ -741,6 +746,8 @@ function CreateShipmentPageContent() {
       return;
     }
 
+    console.log("hi sampl");
+
     try {
       setIsSubmitting(true);
       const transformedShipment = transformShipmentData(data.shipments[0]);
@@ -751,23 +758,36 @@ function CreateShipmentPageContent() {
       let warehouseHandlingCharge = 0;
       let courierCharge = 0;
 
-
       if (currencyDataRef.current) {
         // Use the grand total calculated in review-step (already in Source Currency)
-        grandTotal = currencyDataRef.current.totalGrandTotal / currencyDataRef.current.exchangeRateSourceToInr;
-        warehouseHandlingCharge = currencyDataRef.current.warehouseHandlingCharge / currencyDataRef.current.exchangeRateSourceToInr;
-        courierCharge = currencyDataRef.current.courierCharge / currencyDataRef.current.exchangeRateSourceToInr;
-        console.log("[onSubmitHandler] Using calculated data from review-step:", {
-          grandTotal: grandTotal,
-          totalGrandTotal: currencyDataRef.current.totalGrandTotal,
-          sourceCurrencyCode: currencyDataRef.current.sourceCurrencyCode,
-          destinationCurrencyCode: currencyDataRef.current.destinationCurrencyCode,
-          exchangeRateSourceToInr: currencyDataRef.current.exchangeRateSourceToInr,
-          exchangeRateDestinationToInr: currencyDataRef.current.exchangeRateDestinationToInr,
-        });
+        grandTotal =
+          currencyDataRef.current.totalGrandTotal /
+          currencyDataRef.current.exchangeRateSourceToInr;
+        warehouseHandlingCharge =
+          currencyDataRef.current.warehouseHandlingCharge /
+          currencyDataRef.current.exchangeRateSourceToInr;
+        courierCharge =
+          currencyDataRef.current.courierCharge /
+          currencyDataRef.current.exchangeRateSourceToInr;
+        console.log(
+          "[onSubmitHandler] Using calculated data from review-step:",
+          {
+            grandTotal: grandTotal,
+            totalGrandTotal: currencyDataRef.current.totalGrandTotal,
+            sourceCurrencyCode: currencyDataRef.current.sourceCurrencyCode,
+            destinationCurrencyCode:
+              currencyDataRef.current.destinationCurrencyCode,
+            exchangeRateSourceToInr:
+              currencyDataRef.current.exchangeRateSourceToInr,
+            exchangeRateDestinationToInr:
+              currencyDataRef.current.exchangeRateDestinationToInr,
+          },
+        );
       } else {
         // Fallback: for warehouse use add-ons only; for link use items + add-ons
-        console.warn("[onSubmitHandler] Currency data not available, using fallback calculation");
+        console.warn(
+          "[onSubmitHandler] Currency data not available, using fallback calculation",
+        );
         if (isWarehouseService) {
           grandTotal = addOnTotal;
           warehouseHandlingCharge = 0;
@@ -794,15 +814,21 @@ function CreateShipmentPageContent() {
         }),
         ...(currencyDataRef.current && {
           source_currency_code: currencyDataRef.current.sourceCurrencyCode,
-          destination_currency_code: currencyDataRef.current.destinationCurrencyCode,
-          exchange_rate_source_to_inr: currencyDataRef.current.exchangeRateSourceToInr,
-          exchange_rate_destination_to_inr: currencyDataRef.current.exchangeRateDestinationToInr,
+          destination_currency_code:
+            currencyDataRef.current.destinationCurrencyCode,
+          exchange_rate_source_to_inr:
+            currencyDataRef.current.exchangeRateSourceToInr,
+          exchange_rate_destination_to_inr:
+            currencyDataRef.current.exchangeRateDestinationToInr,
           drop_and_ship_courier_charge: courierCharge,
           drop_and_ship_handling_charges: warehouseHandlingCharge,
         }),
       };
 
-      console.log("[onSubmitHandler] Currency data in payload:", currencyDataRef.current);
+      console.log(
+        "[onSubmitHandler] Currency data in payload:",
+        currencyDataRef.current,
+      );
       console.log("[onSubmitHandler] Full payload:", payload);
 
       const { data: responseData, error } = await supabase.functions.invoke(
@@ -810,7 +836,7 @@ function CreateShipmentPageContent() {
         {
           method: "POST",
           body: payload,
-        }
+        },
       );
 
       if (error) {
@@ -829,7 +855,7 @@ function CreateShipmentPageContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ shipment_id: shipmentId }),
         }).catch((err) =>
-          console.error("Order confirmation email failed:", err)
+          console.error("Order confirmation email failed:", err),
         );
       }
 
@@ -842,12 +868,9 @@ function CreateShipmentPageContent() {
         refreshDrafts();
       }
 
-      // Link to Ship: show payment flow (Razorpay or Bank upload) before success
-      if (isLinkService && shipmentId) {
-        setPendingPaymentShipmentId(shipmentId);
-      } else {
-        setShowOrderSuccessDialog(true);
-      }
+      // Show success dialog for all orders
+      // For Online Payment, this will be called after payment success
+      setShowOrderSuccessDialog(true);
     } catch (error: any) {
       console.error("Error creating shipments:", error);
       toast({
@@ -855,9 +878,15 @@ function CreateShipmentPageContent() {
         description: error.message,
         variant: "destructive",
       });
+      throw error; // Re-throw so review-step can handle it
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Wrapper for react-hook-form SubmitHandler (returns void)
+  const onSubmitHandler: SubmitHandler<OrderFormData> = async (data) => {
+    await createOrder(data);
   };
 
   // Dynamic step labels based on service type
@@ -931,28 +960,31 @@ function CreateShipmentPageContent() {
           {/* Identity Verification Banner - only when logged in */}
           {user && !isVerified && (
             <Alert
-              className={`mb-6 rounded-lg border p-4 ${isPending
-                ? "border-yellow-200 bg-yellow-50"
-                : isRejected
-                  ? "border-red-200 bg-red-50"
-                  : "border-yellow-200 bg-yellow-50"
-                }`}
+              className={`mb-6 rounded-lg border p-4 ${
+                isPending
+                  ? "border-yellow-200 bg-yellow-50"
+                  : isRejected
+                    ? "border-red-200 bg-red-50"
+                    : "border-yellow-200 bg-yellow-50"
+              }`}
             >
               <AlertTriangle
-                className={`h-4 w-4 ${isPending
-                  ? "text-yellow-600"
-                  : isRejected
-                    ? "text-red-600"
-                    : "text-yellow-600"
-                  }`}
+                className={`h-4 w-4 ${
+                  isPending
+                    ? "text-yellow-600"
+                    : isRejected
+                      ? "text-red-600"
+                      : "text-yellow-600"
+                }`}
               />
               <AlertTitle
-                className={`font-medium ${isPending
-                  ? "text-yellow-900"
-                  : isRejected
-                    ? "text-red-900"
-                    : "text-yellow-900"
-                  }`}
+                className={`font-medium ${
+                  isPending
+                    ? "text-yellow-900"
+                    : isRejected
+                      ? "text-red-900"
+                      : "text-yellow-900"
+                }`}
               >
                 {isPending
                   ? "Identity Verification Pending"
@@ -961,12 +993,13 @@ function CreateShipmentPageContent() {
                     : "Identity Verification Required"}
               </AlertTitle>
               <AlertDescription
-                className={`flex flex-col gap-1 mt-1 ${isPending
-                  ? "text-yellow-700"
-                  : isRejected
-                    ? "text-red-700"
-                    : "text-[#D48806]"
-                  }`}
+                className={`flex flex-col gap-1 mt-1 ${
+                  isPending
+                    ? "text-yellow-700"
+                    : isRejected
+                      ? "text-red-700"
+                      : "text-[#D48806]"
+                }`}
               >
                 <span className="mt-1 text-sm">
                   {isPending ? (
@@ -995,10 +1028,11 @@ function CreateShipmentPageContent() {
                     }
                   >
                     <button
-                      className={`underline text-sm font-medium w-fit p-0 h-auto ${isRejected
-                        ? "text-red-800 hover:text-red-900"
-                        : "text-yellow-800 hover:text-yellow-900"
-                        }`}
+                      className={`underline text-sm font-medium w-fit p-0 h-auto ${
+                        isRejected
+                          ? "text-red-800 hover:text-red-900"
+                          : "text-yellow-800 hover:text-yellow-900"
+                      }`}
                     >
                       {isRejected
                         ? "Re-upload Documents"
@@ -1044,7 +1078,6 @@ function CreateShipmentPageContent() {
             </div>
           </div>
 
-
           {/* Progress Bar */}
           <div className="mb-6 ">
             <div className=" hidden md:flex items-center justify-between mb-2 ">
@@ -1052,22 +1085,25 @@ function CreateShipmentPageContent() {
                 (step) => (
                   <div key={step} className="flex items-center ">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step <= currentStep
-                        ? "bg-primary text-white"
-                        : "bg-gray-200 text-gray-500"
-                        }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                        step <= currentStep
+                          ? "bg-primary text-white"
+                          : "bg-gray-200 text-gray-500"
+                      }`}
                     >
                       {step < currentStep ? <Check size={16} /> : step}
                     </div>
                     {step < (isWarehouseService ? 5 : 4) && (
                       <div
-                        className={` ${isWarehouseService ? "w-[12rem]" : "w-[19rem]"
-                          } h-1 mx-2 rounded ${step < currentStep ? "bg-primary" : "bg-gray-200"
-                          }`}
+                        className={` ${
+                          isWarehouseService ? "w-[12rem]" : "w-[19rem]"
+                        } h-1 mx-2 rounded ${
+                          step < currentStep ? "bg-primary" : "bg-gray-200"
+                        }`}
                       />
                     )}
                   </div>
-                )
+                ),
               )}
             </div>
           </div>
@@ -1104,10 +1140,12 @@ function CreateShipmentPageContent() {
                     setLoadedDraftId(draft.id);
                   }
                   if (user?.id) {
-                    const draftToSave =
-                      draftId
-                        ? { ...draft, name: getDraftById(draftId)?.name ?? draft.name }
-                        : draft;
+                    const draftToSave = draftId
+                      ? {
+                          ...draft,
+                          name: getDraftById(draftId)?.name ?? draft.name,
+                        }
+                      : draft;
                     saveDraftToDb(draftToSave, user.id).catch(() => {});
                   }
                   refreshDrafts();
@@ -1192,7 +1230,9 @@ function CreateShipmentPageContent() {
                 onNext={handleNext}
                 onBack={handleBack}
                 sourceCountryCode={watch("shipments.0.sourceCountryCode")}
-                destinationCountryCode={watch("shipments.0.receiver.receivingCountry")}
+                destinationCountryCode={watch(
+                  "shipments.0.receiver.receivingCountry",
+                )}
               />
             )}
 
@@ -1204,12 +1244,14 @@ function CreateShipmentPageContent() {
                 onNext={handleNext}
                 onBack={handleBack}
                 sourceCountryCode={watch("shipments.0.sourceCountryCode")}
-                destinationCountryCode={watch("shipments.0.receiver.receivingCountry")}
+                destinationCountryCode={watch(
+                  "shipments.0.receiver.receivingCountry",
+                )}
               />
             )}
 
             {(currentStep === 4 && !isWarehouseService) ||
-              (currentStep === 5 && isWarehouseService) ? (
+            (currentStep === 5 && isWarehouseService) ? (
               <ReviewStep
                 baseAmount={baseAmount}
                 selectedAddOns={selectedAddOns}
@@ -1218,7 +1260,7 @@ function CreateShipmentPageContent() {
                 isCalculatingBreakdown={isCalculatingBreakdown}
                 sourceCountryCode={watch("shipments.0.sourceCountryCode")}
                 destinationCountryCode={watch(
-                  "shipments.0.receiver.receivingCountry"
+                  "shipments.0.receiver.receivingCountry",
                 )}
                 items={watch("shipments.0.items") || []}
                 purchasedSite={watch("shipments.0.purchasedSite")}
@@ -1230,13 +1272,20 @@ function CreateShipmentPageContent() {
                 isLinkService={isLinkService}
                 paymentMethod={checkoutPaymentMethod}
                 onPaymentMethodChange={setCheckoutPaymentMethod}
-                onSubmit={async (currencyData) => {
+                receiverInfo={{
+                  firstName: getValues("shipments.0.receiver.firstName") || "",
+                  lastName: getValues("shipments.0.receiver.lastName") || "",
+                  email: getValues("shipments.0.receiver.email") || "",
+                  phone: getValues("shipments.0.receiver.phone") || "",
+                }}
+                onSubmit={async (currencyData): Promise<void> => {
                   // Login gate: guests must log in before placing order
                   if (!user) {
                     savePendingCheckoutDraft(getValues());
-                    const formServiceType = getValues("shipments.0.shipmentType") || "link";
+                    const formServiceType =
+                      getValues("shipments.0.shipmentType") || "link";
                     router.push(
-                      `/login?redirect=${encodeURIComponent(`/create-shipments?from=checkout&type=${formServiceType}`)}`
+                      `/login?redirect=${encodeURIComponent(`/create-shipments?from=checkout&type=${formServiceType}`)}`,
                     );
                     return;
                   }
@@ -1252,7 +1301,10 @@ function CreateShipmentPageContent() {
                   // Store currency data in ref for synchronous access during form submission
                   if (currencyData) {
                     currencyDataRef.current = currencyData;
-                    console.log("[ReviewStep] Stored currency data:", currencyData);
+                    console.log(
+                      "[ReviewStep] Stored currency data:",
+                      currencyData,
+                    );
                   } else {
                     console.warn("[ReviewStep] No currency data provided");
                   }
@@ -1270,19 +1322,19 @@ function CreateShipmentPageContent() {
                     const latestErrors = formState.errors;
                     console.log(
                       "[ReviewStep] Latest errors from formState:",
-                      latestErrors
+                      latestErrors,
                     );
 
                     // Extract all validation errors in a readable format
                     const allErrors = extractAllErrors(latestErrors);
 
                     console.group(
-                      "🔴 [ReviewStep] Validation Failed - Detailed Errors"
+                      "🔴 [ReviewStep] Validation Failed - Detailed Errors",
                     );
                     console.log("Step:", reviewStep);
                     console.log(
                       "Service Type:",
-                      isWarehouseService ? "Warehouse" : "Link"
+                      isWarehouseService ? "Warehouse" : "Link",
                     );
                     console.log("\n📋 All Validation Errors:");
                     if (allErrors.length > 0) {
@@ -1296,37 +1348,38 @@ function CreateShipmentPageContent() {
                     console.log("\n📊 Form Data Summary:");
                     console.log(
                       "  Shipment Type:",
-                      formData.shipments?.[0]?.shipmentType
+                      formData.shipments?.[0]?.shipmentType,
                     );
 
                     if (isWarehouseService) {
                       console.log(
                         "  Warehouse ID:",
-                        formData.shipments[0]?.warehouseId || "❌ MISSING"
+                        formData.shipments[0]?.warehouseId || "❌ MISSING",
                       );
                       console.log(
                         "  Purchased Date:",
-                        formData.shipments[0]?.purchasedDate || "❌ MISSING"
+                        formData.shipments[0]?.purchasedDate || "❌ MISSING",
                       );
                       console.log(
                         "  Purchased Site:",
-                        formData.shipments[0]?.purchasedSite || "❌ MISSING"
+                        formData.shipments[0]?.purchasedSite || "❌ MISSING",
                       );
                     }
 
                     console.log(
                       "  Receiver Country:",
                       formData.shipments[0]?.receiver?.receivingCountry ||
-                      "❌ MISSING"
+                        "❌ MISSING",
                     );
                     console.log(
                       "  Receiver Name:",
-                      `${formData.shipments[0]?.receiver?.firstName || ""} ${formData.shipments[0]?.receiver?.lastName || ""
-                        }`.trim() || "❌ MISSING"
+                      `${formData.shipments[0]?.receiver?.firstName || ""} ${
+                        formData.shipments[0]?.receiver?.lastName || ""
+                      }`.trim() || "❌ MISSING",
                     );
                     console.log(
                       "  Items Count:",
-                      formData.shipments[0]?.items?.length || 0
+                      formData.shipments[0]?.items?.length || 0,
                     );
 
                     console.log("\n🔍 Full Errors Object (from formState):");
@@ -1337,21 +1390,25 @@ function CreateShipmentPageContent() {
                     console.log("\n📦 Full Form Data:");
                     console.log(formData);
                     console.groupEnd();
+                    return;
                   }
 
                   if (isValid) {
                     console.log(
-                      "✅ [ReviewStep] Validation passed, submitting form..."
+                      "✅ [ReviewStep] Validation passed, submitting form...",
                     );
-                    handleSubmit(onSubmitHandler)();
+                    // Call createOrder directly with form data
+                    const formData = getValues() as OrderFormData;
+                    await createOrder(formData);
                   } else {
                     const allErrors = extractAllErrors(errors);
                     toast({
                       title: "Validation Error",
                       description:
                         allErrors.length > 0
-                          ? `Please fix: ${allErrors.slice(0, 3).join(", ")}${allErrors.length > 3 ? "..." : ""
-                          }`
+                          ? `Please fix: ${allErrors.slice(0, 3).join(", ")}${
+                              allErrors.length > 3 ? "..." : ""
+                            }`
                           : "Please fill in all required fields",
                       variant: "destructive",
                     });

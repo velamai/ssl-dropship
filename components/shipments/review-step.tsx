@@ -1,6 +1,9 @@
 "use client";
 
-import { ShipmentPriceBreakdown, type ShipmentItem } from "@/components/shipments/price-breakdown";
+import {
+  ShipmentPriceBreakdown,
+  type ShipmentItem,
+} from "@/components/shipments/price-breakdown";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +16,21 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
-import { ArrowLeft, CreditCard, FileText, Info, Landmark, Loader2, LogIn, Send, UserPlus } from "lucide-react";
+import {
+  ArrowLeft,
+  CreditCard,
+  FileText,
+  Info,
+  Landmark,
+  Loader2,
+  LogIn,
+  Send,
+  UserPlus,
+} from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
+import { useEffect, useRef, useState } from "react";
+import { toast as sonnerToast } from "sonner";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
@@ -41,11 +57,17 @@ interface ReviewStepProps {
     totalGrandTotal: number;
     warehouseHandlingCharge: number;
     courierCharge: number;
-  }) => void;
+  }) => Promise<void>; // Creates order in database
   isSubmitting: boolean;
   isLinkService?: boolean;
   paymentMethod?: "Online Payment" | "Bank Transfer";
   onPaymentMethodChange?: (method: "Online Payment" | "Bank Transfer") => void;
+  receiverInfo?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export type ProductPriceBreakDown = {
@@ -61,6 +83,19 @@ export type ProductPriceBreakDown = {
   exchangeRateSourceToInr: number;
   exchangeRateDestinationToInr: number;
 };
+
+function showToast(props: {
+  title?: string;
+  description: string;
+  variant?: "default" | "destructive";
+}) {
+  const { title, description, variant } = props;
+  if (variant === "destructive") {
+    sonnerToast.error(title || "Error", { description });
+  } else {
+    sonnerToast(title || "Success", { description });
+  }
+}
 
 export function ReviewStep({
   baseAmount,
@@ -82,6 +117,7 @@ export function ReviewStep({
   isLinkService = false,
   paymentMethod = "Online Payment",
   onPaymentMethodChange,
+  receiverInfo,
 }: ReviewStepProps) {
   const formatCurrency = (value: number) =>
     `${value.toLocaleString("en-IN", {
@@ -91,12 +127,213 @@ export function ReviewStep({
 
   const { data: sourceCountries } = useSourceCountries();
 
+  // Razorpay state
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [razorpayScriptLoaded, setRazorpayScriptLoaded] = useState(false);
+  const razorpayTriggered = useRef(false);
+
   const sourceCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === sourceCountryCode)
       ?.currency || "INR";
   const destinationCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === destinationCountryCode)
       ?.currency || "USD";
+
+  // Initialize Razorpay payment - creates order first, then creates database order after payment success
+  const initializeRazorpay = async (
+    amount: number,
+    sourceCurrencyCode: string,
+    exchangeRateSourceToInr: number,
+    receiverInfo: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    },
+    currencyData: {
+      sourceCurrencyCode: string;
+      destinationCurrencyCode: string;
+      exchangeRateSourceToInr: number;
+      exchangeRateDestinationToInr: number;
+      totalGrandTotal: number;
+      warehouseHandlingCharge: number;
+      courierCharge: number;
+    },
+  ) => {
+    console.log("[initializeRazorpay] Called with:", {
+      amount,
+      sourceCurrencyCode,
+      exchangeRateSourceToInr,
+      receiverInfo,
+      alreadyTriggered: razorpayTriggered.current,
+    });
+
+    if (razorpayTriggered.current) {
+      console.log("[initializeRazorpay] Already triggered, returning");
+      return;
+    }
+    razorpayTriggered.current = true;
+    setIsProcessingPayment(true);
+
+    try {
+      console.log("[initializeRazorpay] Creating Razorpay order...");
+      // Create Razorpay order with amount and currency from frontend
+      const response = await fetch("/api/razorpay-create-order-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amount,
+          sourceCurrencyCode: sourceCurrencyCode,
+          exchangeRateSourceToInr: exchangeRateSourceToInr,
+          addOnTotal: addOnTotal,
+          receipt: `checkout_${Date.now()}`,
+          notes: {
+            source: "drop_and_ship",
+            payment_type: "product_payment",
+          },
+        }),
+      });
+
+      console.log("[initializeRazorpay] API response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        console.error("[initializeRazorpay] API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          errorText,
+        });
+        throw new Error(
+          errorData.error ||
+            errorData.message ||
+            "Failed to create Razorpay order",
+        );
+      }
+
+      const { data, success, error } = await response.json();
+      console.log("[initializeRazorpay] API response:", {
+        success,
+        data,
+        error,
+      });
+
+      if (!success || error) {
+        throw new Error(error || "Failed to create order");
+      }
+
+      if (
+        typeof window === "undefined" ||
+        typeof (window as any).Razorpay === "undefined"
+      ) {
+        console.error("[initializeRazorpay] Razorpay script not loaded");
+        throw new Error("Razorpay script not loaded");
+      }
+
+      console.log("[initializeRazorpay] Opening Razorpay modal...");
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Buy2Send",
+        description: `Product payment for order`,
+        order_id: data.orderId,
+        handler: async (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) => {
+          // Payment successful - now create the database order
+          try {
+            setIsProcessingPayment(false);
+            razorpayTriggered.current = false;
+
+            // Create order in database after payment success
+            await onSubmit(currencyData);
+
+            showToast({
+              title: "Payment Successful",
+              description: "Your order has been placed successfully.",
+            });
+          } catch (error: any) {
+            showToast({
+              title: "Error",
+              description:
+                error.message ||
+                "Payment successful but failed to create order. Please contact support.",
+              variant: "destructive",
+            });
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            razorpayTriggered.current = false;
+            setIsProcessingPayment(false);
+          },
+          confirm_close: true,
+          escape: true,
+        },
+        prefill: {
+          name: `${receiverInfo.firstName} ${receiverInfo.lastName}`,
+          email: receiverInfo.email,
+          contact: receiverInfo.phone,
+        },
+        notes: {
+          payment_type: "product_payment",
+          source_currency_code: sourceCurrencyCode,
+        },
+        theme: { color: "#0284c7" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        showToast({
+          title: "Payment Failed",
+          description:
+            response.error?.description || "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+        razorpayTriggered.current = false;
+        setIsProcessingPayment(false);
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error("Razorpay init failed:", err);
+      razorpayTriggered.current = false;
+      setIsProcessingPayment(false);
+      showToast({
+        title: "Error",
+        description: err.message || "Failed to initialize payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Wait for Razorpay script to load
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).Razorpay) {
+      setRazorpayScriptLoaded(true);
+      return;
+    }
+    const pollInterval = setInterval(() => {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        setRazorpayScriptLoaded(true);
+        clearInterval(pollInterval);
+      }
+    }, 200);
+    const timeout = setTimeout(() => clearInterval(pollInterval), 10000);
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -128,7 +365,9 @@ export function ReviewStep({
         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <AlertDescription className="text-blue-800 dark:text-blue-200">
-            After your product is received at our warehouse, we will calculate the weight and you will need to pay for shipping. No payment for product value is required at checkout.
+            After your product is received at our warehouse, we will calculate
+            the weight and you will need to pay for shipping. No payment for
+            product value is required at checkout.
           </AlertDescription>
         </Alert>
       )}
@@ -174,7 +413,9 @@ export function ReviewStep({
                       {items.map((item, idx) => (
                         <li key={item.uuid || idx}>
                           {item.productName || `Product ${idx + 1}`}
-                          {item.quantity && item.quantity > 1 && ` (Qty: ${item.quantity})`}
+                          {item.quantity &&
+                            item.quantity > 1 &&
+                            ` (Qty: ${item.quantity})`}
                         </li>
                       ))}
                     </ul>
@@ -187,7 +428,7 @@ export function ReviewStep({
                   </div>
                 )}
               </>
-            ) : (isCalculatingBreakdown || !priceBreakdown) ? (
+            ) : isCalculatingBreakdown || !priceBreakdown ? (
               <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Loading order summary...</span>
@@ -197,24 +438,44 @@ export function ReviewStep({
               <>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Items Price</span>
-                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.itemPriceOrigin)}</span>
+                  <span>
+                    {sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(priceBreakdown!.itemPriceOrigin)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Domestic Courier Charge</span>
-                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.domesticCourier)}</span>
+                  <span>
+                    {sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(priceBreakdown!.domesticCourier)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Warehouse Handling Charge</span>
-                  <span>{sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.warehouseHandling)}</span>
+                  <span>
+                    {sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(priceBreakdown!.warehouseHandling)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Add-ons ({selectedAddOns.length})</span>
-                  <span>{sourceCurrencyCodeValue} {formatCurrency(addOnTotal / (priceBreakdown!.exchangeRateSourceToInr || 1))}</span>
+                  <span>
+                    {sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(
+                      addOnTotal /
+                        (priceBreakdown!.exchangeRateSourceToInr || 1),
+                    )}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-t pt-2 text-foreground">
                   <span className="text-sm font-semibold">Grand Total</span>
                   <span className="text-base font-semibold">
-                    {sourceCurrencyCodeValue} {formatCurrency(priceBreakdown!.totalPriceOrigin + addOnTotal / (priceBreakdown!.exchangeRateSourceToInr || 1))}
+                    {sourceCurrencyCodeValue}{" "}
+                    {formatCurrency(
+                      priceBreakdown!.totalPriceOrigin +
+                        addOnTotal /
+                          (priceBreakdown!.exchangeRateSourceToInr || 1),
+                    )}
                   </span>
                 </div>
               </>
@@ -638,61 +899,223 @@ export function ReviewStep({
             </div>
           </div>
         ) : (
-          <Button
-            type="button"
-            onClick={() => {
-              if (isLinkService && priceBreakdown && sourceCurrencyCodeValue && destinationCurrencyCodeValue) {
-                const addOnInSource = addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1);
-                const grandTotal = priceBreakdown.totalPriceOrigin + addOnInSource;
-                onSubmit({
-                  sourceCurrencyCode: sourceCurrencyCodeValue,
-                  destinationCurrencyCode: destinationCurrencyCodeValue,
-                  exchangeRateSourceToInr: priceBreakdown.exchangeRateSourceToInr,
-                  exchangeRateDestinationToInr: 1, // Single currency - not used for display
-                  totalGrandTotal: grandTotal,
-                  warehouseHandlingCharge: priceBreakdown.warehouseHandling,
-                  courierCharge: priceBreakdown.domesticCourier,
-                });
-              } else if (!isLinkService) {
-                // Warehouse: no payment for item value; grand total = add-ons only; zeros for charges
-                onSubmit({
-                  sourceCurrencyCode: sourceCurrencyCodeValue,
-                  destinationCurrencyCode: destinationCurrencyCodeValue,
-                  exchangeRateSourceToInr: 1,
-                  exchangeRateDestinationToInr: 1,
-                  totalGrandTotal: addOnTotal,
-                  warehouseHandlingCharge: 0,
-                  courierCharge: 0,
-                });
-              } else {
-                onSubmit();
-              }
-            }}
-            disabled={isSubmitting}
-            className="gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                {isLinkService && paymentMethod === "Online Payment"
-                  ? "Place Order and Pay"
-                  : "Place Order"}
-                {isLinkService && priceBreakdown && (
-                  <> ({sourceCurrencyCodeValue}{" "}
-                    {formatCurrency(
-                      priceBreakdown.totalPriceOrigin +
-                        addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1)
-                    )})
-                  </>
-                )}
-              </>
+          <>
+            {/* Razorpay Script */}
+            {isLinkService && (
+              <Script
+                src="https://checkout.razorpay.com/v1/checkout.js"
+                strategy="lazyOnload"
+                onLoad={() => {
+                  console.log("[ReviewStep] Razorpay script loaded");
+                  setRazorpayScriptLoaded(true);
+                }}
+                onError={(e) => {
+                  console.error(
+                    "[ReviewStep] Razorpay script failed to load:",
+                    e,
+                  );
+                  showToast({
+                    title: "Error",
+                    description:
+                      "Failed to load payment script. Please refresh the page.",
+                    variant: "destructive",
+                  });
+                }}
+              />
             )}
-          </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                console.log("[ReviewStep] Place Order clicked", {
+                  isLinkService,
+                  priceBreakdown: !!priceBreakdown,
+                  sourceCurrencyCodeValue,
+                  destinationCurrencyCodeValue,
+                  paymentMethod,
+                  receiverInfo,
+                  razorpayScriptLoaded,
+                });
+
+                if (
+                  isLinkService &&
+                  priceBreakdown &&
+                  sourceCurrencyCodeValue &&
+                  destinationCurrencyCodeValue
+                ) {
+                  const addOnInSource =
+                    addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1);
+                  const grandTotal =
+                    priceBreakdown.totalPriceOrigin + addOnInSource;
+
+                  const currencyData = {
+                    sourceCurrencyCode: sourceCurrencyCodeValue,
+                    destinationCurrencyCode: destinationCurrencyCodeValue,
+                    exchangeRateSourceToInr:
+                      priceBreakdown.exchangeRateSourceToInr,
+                    exchangeRateDestinationToInr: 1,
+                    totalGrandTotal: grandTotal,
+                    warehouseHandlingCharge: priceBreakdown.warehouseHandling,
+                    courierCharge: priceBreakdown.domesticCourier,
+                  };
+
+                  // For Link service with Online Payment: create Razorpay order first, then create database order after payment success
+                  if (paymentMethod === "Online Payment") {
+                    if (!receiverInfo) {
+                      console.error(
+                        "[ReviewStep] Receiver info missing:",
+                        receiverInfo,
+                      );
+                      showToast({
+                        title: "Error",
+                        description: "Receiver information is required",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    // Calculate total amount in source currency (same as displayed in UI)
+                    const totalAmount = grandTotal;
+                    console.log("[ReviewStep] Initializing Razorpay with:", {
+                      totalAmount,
+                      sourceCurrencyCodeValue,
+                      exchangeRateSourceToInr:
+                        priceBreakdown.exchangeRateSourceToInr,
+                      receiverInfo,
+                    });
+
+                    // Check if Razorpay script is loaded
+                    if (
+                      typeof window !== "undefined" &&
+                      (window as any).Razorpay
+                    ) {
+                      console.log(
+                        "[ReviewStep] Razorpay script already loaded",
+                      );
+                      setRazorpayScriptLoaded(true);
+                      setTimeout(() => {
+                        initializeRazorpay(
+                          totalAmount,
+                          sourceCurrencyCodeValue,
+                          priceBreakdown.exchangeRateSourceToInr,
+                          receiverInfo,
+                          currencyData,
+                        );
+                      }, 100);
+                    } else if (razorpayScriptLoaded) {
+                      console.log(
+                        "[ReviewStep] Razorpay script loaded flag is true",
+                      );
+                      setTimeout(() => {
+                        initializeRazorpay(
+                          totalAmount,
+                          sourceCurrencyCodeValue,
+                          priceBreakdown.exchangeRateSourceToInr,
+                          receiverInfo,
+                          currencyData,
+                        );
+                      }, 100);
+                    } else {
+                      console.log(
+                        "[ReviewStep] Waiting for Razorpay script to load...",
+                      );
+                      // Wait for script to load
+                      const checkScript = setInterval(() => {
+                        if (
+                          typeof window !== "undefined" &&
+                          (window as any).Razorpay
+                        ) {
+                          console.log(
+                            "[ReviewStep] Razorpay script loaded, initializing...",
+                          );
+                          setRazorpayScriptLoaded(true);
+                          clearInterval(checkScript);
+                          initializeRazorpay(
+                            totalAmount,
+                            sourceCurrencyCodeValue,
+                            priceBreakdown.exchangeRateSourceToInr,
+                            receiverInfo,
+                            currencyData,
+                          );
+                        }
+                      }, 200);
+                      setTimeout(() => {
+                        clearInterval(checkScript);
+                        if (!razorpayScriptLoaded) {
+                          console.error(
+                            "[ReviewStep] Razorpay script failed to load",
+                          );
+                          showToast({
+                            title: "Error",
+                            description:
+                              "Payment script failed to load. Please refresh the page.",
+                            variant: "destructive",
+                          });
+                        }
+                      }, 10000);
+                    }
+                  } else {
+                    // Bank Transfer: just submit the order
+                    onSubmit(currencyData);
+                  }
+                } else if (!isLinkService) {
+                  // Warehouse: no payment for item value; grand total = add-ons only; zeros for charges
+                  onSubmit({
+                    sourceCurrencyCode: sourceCurrencyCodeValue,
+                    destinationCurrencyCode: destinationCurrencyCodeValue,
+                    exchangeRateSourceToInr: 1,
+                    exchangeRateDestinationToInr: 1,
+                    totalGrandTotal: addOnTotal,
+                    warehouseHandlingCharge: 0,
+                    courierCharge: 0,
+                  });
+                } else {
+                  console.warn(
+                    "[ReviewStep] Missing required data for Link service:",
+                    {
+                      priceBreakdown: !!priceBreakdown,
+                      sourceCurrencyCodeValue,
+                      destinationCurrencyCodeValue,
+                    },
+                  );
+                  showToast({
+                    title: "Error",
+                    description: "Please complete all required fields",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={isSubmitting || isProcessingPayment}
+              className="gap-2"
+            >
+              {isSubmitting || isProcessingPayment ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {isProcessingPayment
+                    ? "Processing Payment..."
+                    : "Processing..."}
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  {isLinkService && paymentMethod === "Online Payment"
+                    ? "Place Order and Pay"
+                    : "Place Order"}
+                  {isLinkService && priceBreakdown && (
+                    <>
+                      {" "}
+                      ({sourceCurrencyCodeValue}{" "}
+                      {formatCurrency(
+                        priceBreakdown.totalPriceOrigin +
+                          addOnTotal /
+                            (priceBreakdown.exchangeRateSourceToInr || 1),
+                      )}
+                      )
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+          </>
         )}
       </div>
     </div>

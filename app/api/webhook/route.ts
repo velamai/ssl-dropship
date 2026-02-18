@@ -1,11 +1,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import {
-  sendEmailViaZeptoMail,
-  formatShipmentType,
-  formatStatus,
-} from "@/lib/zepto-mail";
+import { sendEmailViaZeptoMail } from "@/lib/zepto-mail";
 
 const RAZORPAY_WEBHOOK_SECRET = "5cPIqu03bY6U6bGpJkyjRw0C";
 
