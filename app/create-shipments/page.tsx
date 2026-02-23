@@ -935,7 +935,9 @@ function CreateShipmentPageContent() {
 
         // 2. Create order in database first
         const formData = getValues() as OrderFormData;
-        await createOrder(formData, { skipSuccessDialog: true });
+        const { shipmentId } = await createOrder(formData, {
+          skipSuccessDialog: true,
+        });
 
         // 3. Create Razorpay order (same logic as review-step - get payment from frontend)
         const response = await fetch("/api/razorpay-create-order-checkout", {
@@ -950,6 +952,7 @@ function CreateShipmentPageContent() {
             notes: {
               source: "drop_and_ship",
               payment_type: "product_payment",
+              shipment_id: shipmentId,
             },
           }),
         });
@@ -1032,7 +1035,8 @@ function CreateShipmentPageContent() {
             toast({
               title: "Payment Failed",
               description:
-                response.error?.description || "Payment failed. Please try again.",
+                response.error?.description ||
+                "Payment failed. Please try again.",
               variant: "destructive",
             });
             reject(new Error("Payment failed"));
