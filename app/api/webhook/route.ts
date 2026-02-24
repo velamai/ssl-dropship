@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { sendEmailViaZeptoMail } from "@/lib/zepto-mail";
 
-const RAZORPAY_WEBHOOK_SECRET = "5cPIqu03bY6U6bGpJkyjRw0C";
+const RAZORPAY_WEBHOOK_SECRET = "4Rho5wQbGxaYw8ENA16nAS2w";
 // const RAZORPAY_WEBHOOK_SECRET = "FXPQggj1dMSsIYm7rYSvmE3e";
 
 export async function POST(req: NextRequest) {
