@@ -87,7 +87,7 @@ async function uploadFileToR2(file: File): Promise<string> {
       body: JSON.stringify({
         fileType: file.type,
       }),
-    }
+    },
   );
 
   if (!signedUrlResponse.ok) {
@@ -309,7 +309,7 @@ const registerUser = async (userData: FormData) => {
       proofType: userData.identityVerification.proofType,
       frontImageUrl: userData.identityVerification.frontImageUrl,
       backImageUrl: userData.identityVerification.backImageUrl || null,
-    })
+    }),
   );
 
   // First, register with Supabase Auth
@@ -360,12 +360,12 @@ const registerUser = async (userData: FormData) => {
       if (logisticsError) {
         console.error(
           "Failed to register with logistics service:",
-          logisticsError
+          logisticsError,
         );
       } else {
         console.log(
           "Successfully registered with logistics service",
-          logisticsData
+          logisticsData,
         );
       }
     } catch (logisticsError) {
@@ -426,7 +426,7 @@ function RegisterPageContent() {
   });
 
   const selectedCountry = countries?.find(
-    (country: { code: string }) => country.code === formData.country
+    (country: { code: string }) => country.code === formData.country,
   );
 
   // Load data and current step from session storage on component mount
@@ -868,6 +868,34 @@ function RegisterPageContent() {
       case 2:
         return (
           <div className="space-y-5">
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-amber-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-[13px] font-semibold text-amber-800 mb-1">
+                    Your Receiving Address
+                  </h4>
+                  <p className="text-[12px] text-amber-700 leading-relaxed">
+                    This will be your default receiving address. All orders and
+                    shipments will be delivered to this address, so please
+                    ensure the details are accurate.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label
                 htmlFor="addressLine1"
@@ -980,7 +1008,7 @@ function RegisterPageContent() {
                         "h-[46px] w-full justify-between bg-[#fcfcfc] text-left text-[14px]",
                         validationErrors.country
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                          : "border-[#e2e2e2] focus:border-primary focus:ring-primary"
+                          : "border-[#e2e2e2] focus:border-primary focus:ring-primary",
                       )}
                       disabled={isCountriesLoading}
                     >
@@ -1021,7 +1049,7 @@ function RegisterPageContent() {
                                     onSelect={() => {
                                       handleSelectChange(
                                         "country",
-                                        country.code
+                                        country.code,
                                       );
                                       setIsCountrySelectOpen(false);
                                     }}
@@ -1034,11 +1062,11 @@ function RegisterPageContent() {
                                         "ml-2 h-4 w-4",
                                         formData.country === country.code
                                           ? "opacity-100"
-                                          : "opacity-0"
+                                          : "opacity-0",
                                       )}
                                     />
                                   </CommandItem>
-                                )
+                                ),
                               )}
                             </CommandGroup>
                           </>
@@ -1286,8 +1314,8 @@ function RegisterPageContent() {
                 {currentStep === 1
                   ? "Personal Information"
                   : currentStep === 2
-                  ? "Address Information"
-                  : "Identity Verification (Optional)"}
+                    ? "Address Information"
+                    : "Identity Verification (Optional)"}
               </p>
             )}
           </div>
@@ -1332,11 +1360,11 @@ function RegisterPageContent() {
                 {isUploadingFiles
                   ? "Creating Account..."
                   : registerMutation.isPending
-                  ? "Creating Account..."
-                  : formData.identityVerification.proofType &&
-                    formData.identityVerification.frontImage
-                  ? "Create Account"
-                  : "Skip KYC & Create Account"}
+                    ? "Creating Account..."
+                    : formData.identityVerification.proofType &&
+                        formData.identityVerification.frontImage
+                      ? "Create Account"
+                      : "Skip KYC & Create Account"}
               </Button>
             </div>
           )}
@@ -1381,7 +1409,7 @@ function RegisterPageContent() {
               <div
                 className={cn(
                   "flex justify-between pt-6",
-                  currentStep === 1 && "justify-end"
+                  currentStep === 1 && "justify-end",
                 )}
               >
                 {currentStep > 1 && (
@@ -1415,11 +1443,11 @@ function RegisterPageContent() {
                     {isUploadingFiles
                       ? "Creating Account..."
                       : registerMutation.isPending
-                      ? "Creating Account..."
-                      : formData.identityVerification.proofType &&
-                        formData.identityVerification.frontImage
-                      ? "Create Account"
-                      : "Skip KYC & Create Account"}
+                        ? "Creating Account..."
+                        : formData.identityVerification.proofType &&
+                            formData.identityVerification.frontImage
+                          ? "Create Account"
+                          : "Skip KYC & Create Account"}
                   </Button>
                 ) : null}
               </div>

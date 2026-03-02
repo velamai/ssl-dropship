@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Package, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/contexts/auth-context";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,7 +21,15 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    }
+  }, []);
   return (
     <nav
       className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 shadow-md ${
@@ -31,38 +41,41 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-2 hover-scale cursor-pointer">
+          <Link
+            href="/"
+            className="flex items-center gap-2 hover-scale cursor-pointer"
+          >
             {/* <div className="w-10 h-10 bg-pink-gradient rounded-lg flex items-center justify-center shadow-lg">
               <Package className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-pink-600 animate-gradient">Buy2send</span> */}
             <Image src="/logo.png" alt="logo" width={75} height={75} />
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link
-              href="#how-it-works"
+              href="/#how-it-works"
               className="text-sm font-medium hover:text-primary transition-all relative group"
             >
               How It Works
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
             <Link
-              href="#services"
+              href="/#services"
               className="text-sm font-medium hover:text-primary transition-all relative group"
             >
               Services
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
             <Link
-              href="#countries"
+              href="/#countries"
               className="text-sm font-medium hover:text-primary transition-all relative group"
             >
               Countries
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
-             <Link
+            <Link
               href="/tracking"
               className="text-sm font-medium hover:text-primary transition-all relative group"
             >
@@ -80,7 +93,7 @@ export function Navbar() {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
             <Link
-              href="#faqs"
+              href="/#faqs"
               className="text-sm font-medium hover:text-primary transition-all relative group"
             >
               FAQs
@@ -90,23 +103,34 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/register">
-              <Button
-                size="sm"
-                className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
-              >
-                Signup
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="hover:bg-primary/10 transition-all border-primary text-primary hover:border-primary bg-transparent"
-              >
-                Login
-              </Button>
-            </Link>
+            {!isLoading &&
+              (user ? (
+                <Link href="/shipments">
+                  <div className="w-9 h-9 rounded-full bg-pink-gradient flex items-center justify-center text-white font-semibold text-sm uppercase cursor-pointer hover:opacity-90 hover:shadow-lg transition-all hover:scale-105 select-none">
+                    {user.email?.[0] ?? "U"}
+                  </div>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/register">
+                    <Button
+                      size="sm"
+                      className="bg-pink-gradient text-white hover:opacity-90 hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      Signup
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-primary/10 transition-all border-primary text-primary hover:border-primary bg-transparent"
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                </>
+              ))}
           </div>
 
           {/* Mobile Menu Button */}
@@ -126,29 +150,29 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-4">
             <Link
-              href="#how-it-works"
+              href="/#how-it-works"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               How It Works
             </Link>
             <Link
-              href="#services"
+              href="/#services"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               Services
             </Link>
             <Link
-              href="#countries"
+              href="/#countries"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               Countries
             </Link>
-             <Link
+            <Link
               href="/tracking"
-               onClick={() => setMobileMenuOpen(false)}
+              onClick={() => setMobileMenuOpen(false)}
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
             >
               Track Your Shipment
@@ -165,30 +189,52 @@ export function Navbar() {
               Pricing Calculator
             </Link>
             <Link
-              href="#faqs"
+              href="/#faqs"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               FAQs
             </Link>
             <div className="flex flex-col gap-2 pt-4">
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  size="sm"
-                  className="bg-pink-gradient text-white hover:opacity-90 w-full"
-                >
-                  Signup
-                </Button>
-              </Link>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-primary text-primary bg-transparent w-full"
-                >
-                  Login
-                </Button>
-              </Link>
+              {!isLoading &&
+                (user ? (
+                  <Link
+                    href="/shipments"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-pink-gradient flex items-center justify-center text-white font-semibold text-sm uppercase select-none">
+                      {user.email?.[0] ?? "U"}
+                    </div>
+                    <span className="text-sm font-medium">{user.email}</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Button
+                        size="sm"
+                        className="bg-pink-gradient text-white hover:opacity-90 w-full"
+                      >
+                        Signup
+                      </Button>
+                    </Link>
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-primary text-primary bg-transparent w-full"
+                      >
+                        Login
+                      </Button>
+                    </Link>
+                  </>
+                ))}
             </div>
           </div>
         )}

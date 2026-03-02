@@ -162,7 +162,7 @@ export function ServiceSelectionDialog({
             </Card>
 
             {/* Warehouse Service Card */}
-            <Card className="group relative overflow-hidden border-2 border-purple-200 hover:border-purple-400 shadow-premium hover:shadow-premium-lg transition-all duration-300 hover:-translate-y-1 bg-white">
+            <Card className="group hidden relative overflow-hidden border-2 border-purple-200 hover:border-purple-400 shadow-premium hover:shadow-premium-lg transition-all duration-300 hover:-translate-y-1 bg-white">
               {/* Gradient Background */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 

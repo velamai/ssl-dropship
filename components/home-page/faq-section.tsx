@@ -1,13 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useState } from "react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface FAQItem {
-  id: number
-  question: string
-  answer: string
-  image: string
+  id: number;
+  question: string;
+  answer: string;
+  image: string;
 }
 
 const faqData: FAQItem[] = [
@@ -67,17 +72,19 @@ const faqData: FAQItem[] = [
       "We accept multiple secure payment methods including credit cards, debit cards, and digital payment platforms. All payments are processed securely through our encrypted payment gateway. You can pay for the product cost and shipping fees together, or separately if you prefer. We also support partial payments for larger orders. All transactions are protected and secure.",
     image: "/home-page/FAQMsg.png",
   },
-]
+];
 
 export function FAQSection() {
-  const [activeTabId, setActiveTabId] = useState<number | null>(1)
-  const [activeImage, setActiveImage] = useState(faqData[0].image)
+  const [activeTabId, setActiveTabId] = useState<number | null>(1);
+  const [activeImage, setActiveImage] = useState(faqData[0].image);
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white" id="faqs">
       <div className="container mx-auto px-4">
         <div className="mb-12 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Frequently Asked Questions
+          </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Everything you need to know about shopping globally with Buy2send
           </p>
@@ -90,21 +97,25 @@ export function FAQSection() {
                 <AccordionItem key={faq.id} value={`item-${faq.id}`}>
                   <AccordionTrigger
                     onClick={() => {
-                      setActiveImage(faq.image)
-                      setActiveTabId(faq.id)
+                      setActiveImage(faq.image);
+                      setActiveTabId(faq.id);
                     }}
                     className="cursor-pointer py-5 !no-underline transition text-left"
                   >
                     <h6
                       className={`text-lg md:text-xl font-semibold ${
-                        faq.id === activeTabId ? "text-red-600" : "text-gray-700"
+                        faq.id === activeTabId
+                          ? "text-red-600"
+                          : "text-gray-700"
                       }`}
                     >
                       {faq.question}
                     </h6>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <p className="mt-3 text-gray-600 leading-relaxed">{faq.answer}</p>
+                    <p className="mt-3 text-gray-600 leading-relaxed">
+                      {faq.answer}
+                    </p>
                     <div className="mt-4 md:hidden">
                       <img
                         src={faq.image || "/placeholder.svg"}
@@ -127,5 +138,5 @@ export function FAQSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

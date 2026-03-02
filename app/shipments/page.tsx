@@ -5,10 +5,8 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Navbar } from "@/components/navbar";
-import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/utils/currency";
 import {
   Card,
   CardContent,
@@ -26,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { formatPrice } from "@/lib/utils/currency";
+import Link from "next/link";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -219,15 +219,15 @@ export default function ShipmentsPage() {
               total_price:
                 itemData?.reduce(
                   (acc, item) => acc + (item.total_price || 0),
-                  0
+                  0,
                 ) || 0,
               total_quantity:
                 itemData?.reduce(
                   (acc, item) => acc + (item.quantity || 0),
-                  0
+                  0,
                 ) || 0,
             };
-          })
+          }),
         );
         console.log({ shipmentsWithExtras });
 
@@ -272,7 +272,7 @@ export default function ShipmentsPage() {
         (shipment.receiver_address_line1 &&
           shipment.receiver_address_line1
             .toLowerCase()
-            .includes(lowerCaseSearch))
+            .includes(lowerCaseSearch)),
     );
 
     setFilteredShipments(filtered);
@@ -338,11 +338,11 @@ export default function ShipmentsPage() {
   const getRecipientName = (shipment: ShipmentWithRelations): string => {
     // Add parameter type and return type
     return (
-      `${shipment.receiver_first_name || ""} ${shipment.receiver_last_name || ""
-        }`.trim() || "Unknown recipient"
+      `${shipment.receiver_first_name || ""} ${
+        shipment.receiver_last_name || ""
+      }`.trim() || "Unknown recipient"
     );
   };
-
 
   if (loading) {
     return (
@@ -410,9 +410,10 @@ export default function ShipmentsPage() {
               </p>
             </div>
 
-            <ServiceSelectionDialog>
+            <Link href="/create-shipments?service=link">
               <Button className="gap-2">Create Orders</Button>
-            </ServiceSelectionDialog>
+            </Link>
+            {/* <ServiceSelectionDialog></ServiceSelectionDialog> */}
           </div>
 
           <Card className="mb-6 border-text-subtle/20 shadow-sm bg-white">
@@ -521,7 +522,7 @@ export default function ShipmentsPage() {
                               <p className="font-medium text-dark text-sm">
                                 {/* {formatDestination(shipment)} */}
                                 {formatDate(
-                                  shipment.drop_and_ship_expected_receiving_date
+                                  shipment.drop_and_ship_expected_receiving_date,
                                 )}
                               </p>
                             </div>

@@ -2,51 +2,47 @@
 
 import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import { Navbar } from "@/components/navbar";
+import { AddOnsStep } from "@/components/shipments/addons-step";
+import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
+import { PaymentAtCheckout } from "@/components/shipments/payment-at-checkout";
+import { ProductsStep } from "@/components/shipments/products-step";
+import { ReceiverInfoTab } from "@/components/shipments/receiver-info-tab";
+import { ReviewStep } from "@/components/shipments/review-step";
+import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { useOrderDraft } from "@/contexts/order-draft-context";
+import { fetchCountries } from "@/lib/api-client";
+import { fetchIdentityVerificationData } from "@/lib/api/identity";
+import { deleteDraftFromDb, saveDraftToDb } from "@/lib/api/order-drafts";
+import {
+  addDraft,
+  clearPendingCheckoutDraft,
+  deleteDraft,
+  draftToFormValues,
+  formValuesToDraft,
+  getDraftById,
+  getPendingCheckoutDraft,
+  saveDraft,
+  savePendingCheckoutDraft,
+  setDraftsInStorage,
+} from "@/lib/order-draft";
 import {
   OrderFormData,
   OrderSchema,
   ShipmentFormData,
   getPhoneDetails,
 } from "@/lib/schemas/shipmentSchema";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Check } from "lucide-react";
-import { useCallback, useEffect, useState, useRef } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, Check, Loader2, ShoppingCart } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { Suspense } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/auth-context";
-import { fetchCountries } from "@/lib/api-client";
-import { fetchIdentityVerificationData } from "@/lib/api/identity";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ProductsStep } from "@/components/shipments/products-step";
-import { ReceiverInfoTab } from "@/components/shipments/receiver-info-tab";
-import { AddOnsStep } from "@/components/shipments/addons-step";
-import { ReviewStep } from "@/components/shipments/review-step";
-import { WarehouseSelectionStep } from "@/components/shipments/warehouse-selection-step";
-import { ServiceSelectionDialog } from "@/components/shipments/service-selection-dialog";
-import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
-import { PaymentAtCheckout } from "@/components/shipments/payment-at-checkout";
-import { useOrderDraft } from "@/contexts/order-draft-context";
-import {
-  getDraftById,
-  getPendingCheckoutDraft,
-  clearPendingCheckoutDraft,
-  draftToFormValues,
-  formValuesToDraft,
-  saveDraft,
-  addDraft,
-  savePendingCheckoutDraft,
-  deleteDraft,
-  setDraftsInStorage,
-} from "@/lib/order-draft";
-import { deleteDraftFromDb, saveDraftToDb } from "@/lib/api/order-drafts";
-import { ShoppingCart } from "lucide-react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -1250,11 +1246,11 @@ function CreateShipmentPageContent() {
                   </span>
                 </Button>
               )}
-              <ServiceSelectionDialog>
+              {/* <ServiceSelectionDialog>
                 <Button className="gap-2" variant="outline">
                   Change Service
                 </Button>
-              </ServiceSelectionDialog>
+              </ServiceSelectionDialog> */}
             </div>
           </div>
 
