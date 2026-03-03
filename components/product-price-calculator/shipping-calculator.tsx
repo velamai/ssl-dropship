@@ -1473,11 +1473,11 @@ export default function ShippingCalculator() {
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4">
                           <a
-                            href="tel:+919840635406"
+                            href="tel:+919840601406"
                             className="flex items-center gap-2 text-amber-700 hover:text-amber-800 transition-colors"
                           >
                             <Phone className="h-4 w-4" />
-                            <span>+91 9840635406</span>
+                            <span>+91 9840601406</span>
                           </a>
                           <a
                             href="mailto:info@universalmail.in"
@@ -1487,7 +1487,7 @@ export default function ShippingCalculator() {
                             <span>info@universalmail.in</span>
                           </a>
                           <a
-                            href={`https://wa.me/919840635406?text=${encodeURIComponent(
+                            href={`https://wa.me/919840601406?text=${encodeURIComponent(
                               `Hi, I need help with shipping to ${selectedCountry || "my destination country"
                               } for ${weight
                                 ? `${(Number.parseFloat(weight) / 1000).toFixed(

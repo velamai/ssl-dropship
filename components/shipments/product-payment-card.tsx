@@ -587,7 +587,7 @@ export function ProductPaymentCard({
                 <div className="text-muted-foreground">
                   <p>GF - 4, Manthra Apartments</p>
                   <p>No.112, North Boag Road, T Nagar</p>
-                  <p>Chennai, Tamil Nadu 600017</p>
+                  <p>Chennai, Tamil Nadu 600017, INDIA.</p>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Visit our office to make the payment. Please obtain the

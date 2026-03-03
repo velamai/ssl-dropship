@@ -402,7 +402,7 @@ export default function ProductPriceCalculatorPage() {
                             <button
                               onClick={() =>
                                 window.open(
-                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
+                                  "https://wa.me/919840601406?text=Hi, I need help with the product price calculator",
                                   "_blank",
                                 )
                               }
@@ -513,7 +513,7 @@ export default function ProductPriceCalculatorPage() {
                             <button
                               onClick={() =>
                                 window.open(
-                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
+                                  "https://wa.me/919840601406?text=Hi, I need help with the product price calculator",
                                   "_blank",
                                 )
                               }
@@ -746,7 +746,7 @@ export default function ProductPriceCalculatorPage() {
                             <button
                               onClick={() =>
                                 window.open(
-                                  "https://wa.me/919840635406?text=Hi, I need help with the product price calculator",
+                                  "https://wa.me/919840601406?text=Hi, I need help with the product price calculator",
                                   "_blank",
                                 )
                               }

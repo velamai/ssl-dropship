@@ -8,7 +8,7 @@ const warehouses = [
     country: "India",
     city: "Chennai",
     flag: "/flags/in.png",
-    address: "GF 4, MANTHRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017",
+    address: "GF 4, MANTHRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017, INDIA.",
     hours: "9:00 AM - 7:00 PM IST",
     image: "/warehouse images/Warehouse-India.png",
   },

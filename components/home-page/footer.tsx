@@ -170,16 +170,16 @@ export function Footer() {
               <li className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <a
-                  href="tel:+91 9840635406"
+                  href="tel:+91 9840601406"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  +91 98406 35406
+                  +91 98406 01406
                 </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span className="text-muted-foreground">
-                GF 4, MANDIRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017
+                GF 4, MANDIRA APARTMENTS, No.112, NORTH BOAG ROAD, T NAGAR, CHENNAI, TAMILNADU - 600017, INDIA.
                 </span>
               </li>
             </ul>
