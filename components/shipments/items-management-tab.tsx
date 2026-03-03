@@ -111,7 +111,7 @@ export function ItemsManagementTab({
           {itemFields.length > 0 ? (
             itemFields.map((itemField, itemIndex) => {
               const itemUuid = watch(
-                `shipments.${index}.items.${itemIndex}.uuid`
+                `shipments.${index}.items.${itemIndex}.uuid`,
               );
 
               const isExpanded = itemUuid

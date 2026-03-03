@@ -1,9 +1,19 @@
 "use client";
-import { MapPin, Package, ShoppingBag, User, Warehouse } from "lucide-react";
-import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  MapPin,
+  Package,
+  ShoppingBag,
+  User,
+  Warehouse,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { CountryFlag } from "@/components/country-flag";
 import { Navbar } from "@/components/navbar";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +33,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
+import { useWarehouses } from "@/lib/hooks/useWarehouses";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { getCountryCode } from "@/lib/utils";
 import { formatPrice } from "@/lib/utils/currency";
 import Link from "next/link";
 
@@ -140,6 +152,20 @@ type ShipmentWithRelations = Shipment & {
   }[];
 };
 
+interface WarehouseWithPackageCount {
+  warehouse_id: string;
+  name: string | null;
+  country_code: string;
+  country: string;
+  address_line1: string;
+  address_line2: string | null;
+  address_line3: string | null;
+  address_line4: string | null;
+  postal_code: string;
+  phone: string[];
+  packageCount: number;
+}
+
 export default function ShipmentsPage() {
   const [shipments, setShipments] = useState<ShipmentWithRelations[]>([]);
   const [filteredShipments, setFilteredShipments] = useState<
@@ -151,10 +177,114 @@ export default function ShipmentsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [warehousesWithCounts, setWarehousesWithCounts] = useState<
+    WarehouseWithPackageCount[]
+  >([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(true);
+  const [selectedWarehouseCountryCode, setSelectedWarehouseCountryCode] =
+    useState<string | null>(null);
+  const [selectedWarehouseName, setSelectedWarehouseName] = useState<
+    string | null
+  >(null);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { data: warehousesData, isLoading: warehousesDataLoading } =
+    useWarehouses();
 
   console.log("[Shipments Page] Initial user state:", user);
+
+  // Fetch warehouse info when warehouse query parameter is present
+  useEffect(() => {
+    const warehouseId = searchParams.get("warehouse");
+    if (!warehouseId || !user?.id) {
+      setSelectedWarehouseCountryCode(null);
+      setSelectedWarehouseName(null);
+      return;
+    }
+
+    async function fetchWarehouseInfo() {
+      try {
+        const { data, error } = await supabase
+          .from("warehouses")
+          .select("country_code, name")
+          .eq("warehouse_id", warehouseId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setSelectedWarehouseCountryCode(data.country_code);
+          setSelectedWarehouseName(data.name);
+          // Reset to first page when warehouse filter changes
+          setCurrentPage(1);
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch warehouse info:", error);
+        toast.error("Failed to load warehouse information", {
+          description: error.message || "Please try again.",
+        });
+        setSelectedWarehouseCountryCode(null);
+        setSelectedWarehouseName(null);
+      }
+    }
+
+    fetchWarehouseInfo();
+  }, [searchParams, user?.id]);
+
+  // Load warehouses with package counts
+  useEffect(() => {
+    if (!user?.id || warehousesDataLoading || !warehousesData?.data) {
+      if (!warehousesDataLoading) {
+        setWarehousesLoading(false);
+      }
+      return;
+    }
+
+    const userId = user.id;
+    const warehouses = warehousesData.data;
+
+    async function loadWarehousesWithCounts() {
+      setWarehousesLoading(true);
+      try {
+        const warehousesWithPackageCounts = await Promise.all(
+          warehouses.map(async (warehouse) => {
+            // Count packages at this warehouse
+            const { count, error } = await supabase
+              .from("shipments")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", userId)
+              .eq("drop_and_ship_warehouse_id", warehouse.warehouse_id)
+              .not("drop_and_ship_order_id", "is", null);
+
+            if (error) {
+              console.error(
+                `Error counting packages for warehouse ${warehouse.warehouse_id}:`,
+                error,
+              );
+            }
+
+            return {
+              ...warehouse,
+              packageCount: count || 0,
+            };
+          }),
+        );
+
+        setWarehousesWithCounts(warehousesWithPackageCounts);
+      } catch (error: any) {
+        console.error("Failed to load warehouses:", error);
+        toast.error("Failed to load warehouses", {
+          description: error.message || "Please try again.",
+        });
+      } finally {
+        setWarehousesLoading(false);
+      }
+    }
+
+    loadWarehousesWithCounts();
+  }, [user?.id, warehousesData, warehousesDataLoading]);
 
   // Helper function to get courier name
 
@@ -175,19 +305,28 @@ export default function ShipmentsPage() {
     async function loadShipments() {
       setLoading(true);
       try {
-        // let query = supabase
-        //   .from("shipments")
-        //   .select<string, Shipment>("*", { count: "estimated" })
-        //   .eq("user_id", userId)
-        //   .not("drop_and_ship_order_id", "is", null)
-        //   .order("created_at", { ascending: false });
-
         let query = supabase
           .from("shipments")
           .select("*", { count: "estimated" })
           .eq("user_id", userId)
           .not("drop_and_ship_order_id", "is", null)
           .order("created_at", { ascending: false });
+
+        // Filter by warehouse country code if warehouse is selected
+        if (selectedWarehouseCountryCode) {
+          query = query
+            .eq("shipment_country_code", selectedWarehouseCountryCode)
+            .eq("source", "drop_and_ship");
+        }
+
+        // Apply search filter at database level when warehouse is selected
+        if (searchTerm.trim() && selectedWarehouseCountryCode) {
+          // When warehouse is selected, search within that warehouse's shipments
+          const searchPattern = `%${searchTerm.toLowerCase()}%`;
+          query = query.or(
+            `shipment_id.ilike.${searchPattern},drop_and_ship_order_id.ilike.${searchPattern},receiver_first_name.ilike.${searchPattern},receiver_last_name.ilike.${searchPattern},receiver_postal_code.ilike.${searchPattern},receiver_address_line1.ilike.${searchPattern}`,
+          );
+        }
 
         if (statusFilter !== "all") {
           query = query.eq("current_status", statusFilter);
@@ -246,10 +385,24 @@ export default function ShipmentsPage() {
 
     loadShipments();
     // Use user.id instead of user object to prevent reloads on token refresh
-  }, [user?.id, statusFilter, currentPage, itemsPerPage]); // Changed from 'user' to 'user?.id'
+  }, [
+    user?.id,
+    statusFilter,
+    currentPage,
+    itemsPerPage,
+    selectedWarehouseCountryCode,
+    searchTerm, // Added searchTerm to reload when searching with warehouse filter
+  ]);
 
-  // Filter shipments based on search term
+  // Filter shipments based on search term (only when no warehouse filter is active)
   useEffect(() => {
+    // If warehouse filter is active, search is handled at database level
+    if (selectedWarehouseCountryCode) {
+      setFilteredShipments(shipments);
+      return;
+    }
+
+    // Client-side filtering for all warehouses view
     if (!searchTerm.trim()) {
       setFilteredShipments(shipments);
       return;
@@ -276,7 +429,7 @@ export default function ShipmentsPage() {
     );
 
     setFilteredShipments(filtered);
-  }, [searchTerm, shipments]);
+  }, [searchTerm, shipments, selectedWarehouseCountryCode]);
 
   const handleCardClick = (shipmentId: string) => {
     router.push(`/shipments/${shipmentId}`);
@@ -285,6 +438,20 @@ export default function ShipmentsPage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Add event type
     setSearchTerm(e.target.value);
+    // Reset to first page when searching
+    setCurrentPage(1);
+  };
+
+  // Copy to clipboard function
+  const copyToClipboard = (text: string, identifier: string) => {
+    if (text === "") return;
+    navigator.clipboard.writeText(text);
+    setCopiedAddress(identifier);
+
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopiedAddress(null);
+    }, 2000);
   };
 
   const handleStatusChange = (value: string) => {
@@ -400,225 +567,620 @@ export default function ShipmentsPage() {
 
       <main className="flex-1 p-4 md:p-6">
         <div className="md:container">
-          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-dark">
-                Orders
-              </h2>
-              <p className="text-text-subtle">
-                Manage and track all your orders in one place.
-              </p>
-            </div>
-
-            <Link href="/create-shipments?service=link">
-              <Button className="gap-2">Create Orders</Button>
-            </Link>
-            {/* <ServiceSelectionDialog></ServiceSelectionDialog> */}
-          </div>
-
-          <Card className="mb-6 border-text-subtle/20 shadow-sm bg-white">
-            <CardHeader className="pb-3 bg-white">
-              <CardTitle className="text-dark">Filters</CardTitle>
-              <CardDescription className="text-text-subtle">
-                Narrow down shipments by specific criteria
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-4 justify-between">
-                <div className="relative w-full md:w-1/2 lg:w-2/5">
-                  {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4" /> */}
-                  <Input
-                    type="search"
-                    placeholder="Search by tracking #, destination, recipient..."
-                    className=" border-text-subtle/30 bg-white text-text"
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                  />
+          {/* Locations Section - Only show when no warehouse filter is active */}
+          {!selectedWarehouseCountryCode && (
+            <div className="mb-8">
+              <div className="mb-6 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-bold tracking-tight text-dark">
+                    Warehouse Locations
+                  </h2>
                 </div>
-                <div className="w-full md:w-1/3 md:max-w-[200px]">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger className="border-text-subtle/30 bg-white text-text">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Received">Received</SelectItem>
-                      <SelectItem value="Picked Up">Picked Up</SelectItem>
-                      <SelectItem value="Accepted">Accepted</SelectItem>
-                      <SelectItem value="Invoice Ready">
-                        Invoice Ready
-                      </SelectItem>
-                      <SelectItem value="Payment Requested">
-                        Payment Requested
-                      </SelectItem>
-                      <SelectItem value="Paid">Paid</SelectItem>
-                      <SelectItem value="Ready">Ready</SelectItem>
-                      <SelectItem value="Departure">Departure</SelectItem>
-                      <SelectItem value="Canceled">Canceled</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {filteredShipments.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <div className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 mb-4">
-                <Package className="h-8 w-8 text-gray-400" />
+                {!selectedWarehouseCountryCode && (
+                  <div className="mb-8 flex justify-end">
+                    <Link href="/create-shipments?service=link">
+                      <Button className="gap-2">Create Orders</Button>
+                    </Link>
+                  </div>
+                )}
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">
-                No shipments found
-              </h3>
-              <p className="text-gray-500 mb-6">
-                {searchTerm || statusFilter !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Create your first shipment to get started"}
-              </p>
-              {!searchTerm && statusFilter === "all" && (
-                <Button onClick={() => router.push("/create-shipments")}>
-                  Create Orders
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredShipments.map((shipment) => (
-                  <div
-                    key={shipment.shipment_id}
-                    onClick={() => handleCardClick(shipment.shipment_id)}
-                    className="cursor-pointer"
-                  >
-                    <Card className="overflow-hidden h-full transition-all hover:shadow-md hover:border-primary/50 bg-white">
-                      <CardHeader className="pb-2 flex justify-between items-start bg-white border-b">
-                        <div>
-                          <CardTitle className="text-base text-dark">
-                            {shipment.drop_and_ship_order_id}
-                          </CardTitle>
-                          <CardDescription className="text-sm">
-                            <span className="text-text-subtle">Shipment: </span>
-                            <span className="text-primary font-medium">
-                              {shipment.shipment_id}
-                            </span>
-                          </CardDescription>
+
+              {warehousesLoading ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[1, 2].map((i) => (
+                    <Card
+                      key={i}
+                      className="border-text-subtle/20 shadow-sm bg-white animate-pulse"
+                    >
+                      <CardHeader className="pb-3 bg-white">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                          <div className="h-5 bg-gray-200 rounded w-16"></div>
                         </div>
-                        <StatusBadge status={shipment.current_status} />
+                        <div className="h-4 bg-gray-200 rounded w-48 mt-2"></div>
                       </CardHeader>
-                      <CardContent className="pt-4 pb-4">
-                        <div className="space-y-3">
-                          {/* Primary Information */}
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-text-subtle text-xs mb-1">
-                                {/* Destination */}
-                                Expected Receiving Date
-                              </p>
-                              <p className="font-medium text-dark text-sm">
-                                {/* {formatDestination(shipment)} */}
-                                {formatDate(
-                                  shipment.drop_and_ship_expected_receiving_date,
-                                )}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-text-subtle text-xs mb-1">
-                                Order Date
-                              </p>
-                              <p className="font-medium text-dark text-sm">
-                                {formatDate(shipment.created_at)}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Package Details */}
-                          <div className="flex items-center justify-between text-sm pt-3 border-t">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-4 w-4 text-primary/70" />
-                              <span className="text-text-subtle">Type:</span>
-                              <span className="capitalize font-medium">
-                                {shipment.drop_and_ship_order_type || "Unknown"}
-                              </span>
-                            </div>
-                            <div className="flex items-center ">
-                              <MapPin className="h-4 w-4 text-primary/70" />
-                              <span className="font-medium ml-1">
-                                {formatDestination(shipment)}
-                                {/* {shipment.receiver_country_code || "Unknown"} */}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Recipient and Items */}
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-primary/70" />
-                              <span className="text-text-subtle">To:</span>
-                              <span className="font-medium">
-                                {getRecipientName(shipment)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <ShoppingBag className="h-4 w-4 text-primary/70" />
-                              <span>{shipment.total_quantity || 0} items</span>
-                            </div>
-                          </div>
-
-                          {/* Price and Courier */}
-                          <div className="flex items-center justify-between text-sm pt-3 border-t">
-                            <div className="flex items-center gap-2">
-                              <Warehouse className="h-4 w-4 text-primary/70" />
-                              <span className="font-medium">
-                                {shipment.drop_and_ship_warehouse_address
-                                  ?.name || "N/A"}
-                              </span>
-                            </div>
-                            <div className="font-medium text-primary">
-                              {formatPrice(shipment.grand_total, shipment)}
-                            </div>
-                          </div>
-                        </div>
+                      <CardContent className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        <div className="h-3 bg-gray-200 rounded w-40"></div>
+                        <div className="h-3 bg-gray-200 rounded w-36"></div>
+                        <div className="h-3 bg-gray-200 rounded w-28"></div>
+                        <div className="h-3 bg-gray-200 rounded w-32"></div>
+                        <div className="h-3 bg-gray-200 rounded w-24"></div>
+                        <div className="h-3 bg-gray-200 rounded w-36"></div>
+                        <div className="h-10 bg-gray-200 rounded w-full mt-4"></div>
                       </CardContent>
                     </Card>
+                  ))}
+                </div>
+              ) : warehousesWithCounts.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {warehousesWithCounts.map((warehouse) => {
+                    const countryCode =
+                      warehouse.country_code?.length === 2
+                        ? warehouse.country_code.toUpperCase()
+                        : getCountryCode(warehouse.country);
+                    const countryName =
+                      warehouse.country === "United States" ||
+                      warehouse.country === "USA"
+                        ? "USA"
+                        : warehouse.country === "United Kingdom" ||
+                            warehouse.country === "United Kingdom - UK"
+                          ? "UK"
+                          : warehouse.country;
+
+                    return (
+                      <Card
+                        key={warehouse.warehouse_id}
+                        className="flex flex-col h-full border-text-subtle/20 shadow-sm bg-white hover:shadow-md transition-all"
+                      >
+                        <CardHeader className="pb-0 bg-white">
+                          <div className="flex flex-col items-center">
+                            <div className=" overflow-hidden flex items-center justify-center">
+                              <CountryFlag
+                                countryCode={countryCode}
+                                size="lg"
+                                className="size-24"
+                                imageClassName="size-24"
+                                imageWidth={24}
+                                imageHeight={24}
+                              />
+                            </div>
+                            <CardTitle className="text-lg text-dark text-center">
+                              {countryName}
+                            </CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex flex-col flex-1 space-y-2">
+                          <div className="flex-grow">
+                            {/* <p className="font-semibold text-dark text-sm mb-2">
+                              {warehouse.name || `${countryName} Address`}
+                            </p> */}
+                            <div className="space-y-1 text-sm text-text-subtle">
+                              {/* User Name with Warehouse ID */}
+                              <div className="flex items-center justify-between group/item">
+                                <p className="flex-1">
+                                  <span className="capitalize text-text/75">
+                                    Name:
+                                  </span>{" "}
+                                  <span className="text-text">
+                                    {warehousesData?.userFirstName}{" "}
+                                    {warehousesData?.userLastName}{" "}
+                                  </span>
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      `${warehousesData?.userFirstName} ${warehousesData?.userLastName} ${warehouse.country_code}${warehousesData?.userWarehouseId}`,
+                                      `${warehouse.warehouse_id}-name`,
+                                    )
+                                  }
+                                  className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                  title="Copy"
+                                >
+                                  {copiedAddress ===
+                                  `${warehouse.warehouse_id}-name` ? (
+                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Address Line 1 */}
+                              <div className="flex items-center justify-between group/item">
+                                <p className="flex-1">
+                                  <span className="capitalize text-text/75">
+                                    Address 1:
+                                  </span>{" "}
+                                  <span className="text-text">
+                                    {warehouse.address_line1},{" "}
+                                    {`${warehouse.country_code}${warehousesData?.userWarehouseId}`}
+                                  </span>
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      `${warehouse.address_line1}, ${warehouse.country_code}${warehousesData?.userWarehouseId}`,
+                                      `${warehouse.warehouse_id}-line1`,
+                                    )
+                                  }
+                                  className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                  title="Copy"
+                                >
+                                  {copiedAddress ===
+                                  `${warehouse.warehouse_id}-line1` ? (
+                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Address Line 2 */}
+                              {warehouse.address_line2 && (
+                                <div className="flex items-center justify-between group/item">
+                                  <p className="flex-1">
+                                    <span className="capitalize text-text/75">
+                                      Address 2:
+                                    </span>{" "}
+                                    <span className="text-text">
+                                      {warehouse.address_line2}
+                                    </span>
+                                  </p>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(
+                                        warehouse.address_line2!,
+                                        `${warehouse.warehouse_id}-line2`,
+                                      )
+                                    }
+                                    className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                    title="Copy"
+                                  >
+                                    {copiedAddress ===
+                                    `${warehouse.warehouse_id}-line2` ? (
+                                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* City */}
+                              {warehouse.address_line3 && (
+                                <div className="flex items-center justify-between group/item">
+                                  <p className="flex-1">
+                                    <span className="capitalize text-text/75">
+                                      City:
+                                    </span>{" "}
+                                    <span className="text-text">
+                                      {warehouse.address_line3}
+                                    </span>
+                                  </p>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(
+                                        warehouse.address_line3!,
+                                        `${warehouse.warehouse_id}-city`,
+                                      )
+                                    }
+                                    className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                    title="Copy"
+                                  >
+                                    {copiedAddress ===
+                                    `${warehouse.warehouse_id}-city` ? (
+                                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* State/Prov */}
+                              {warehouse.address_line4 && (
+                                <div className="flex items-center justify-between group/item">
+                                  <p className="flex-1">
+                                    <span className="capitalize text-text/75">
+                                      State/Prov:
+                                    </span>{" "}
+                                    <span className="text-text">
+                                      {warehouse.address_line4}
+                                    </span>
+                                  </p>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(
+                                        warehouse.address_line4!,
+                                        `${warehouse.warehouse_id}-state`,
+                                      )
+                                    }
+                                    className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                    title="Copy"
+                                  >
+                                    {copiedAddress ===
+                                    `${warehouse.warehouse_id}-state` ? (
+                                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Zip/Post */}
+                              <div className="flex items-center justify-between group/item">
+                                <p className="flex-1">
+                                  <span className="capitalize text-text/75">
+                                    Zip/Post:
+                                  </span>{" "}
+                                  <span className="text-text">
+                                    {warehouse.postal_code}
+                                  </span>
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      warehouse.postal_code || "",
+                                      `${warehouse.warehouse_id}-postal`,
+                                    )
+                                  }
+                                  className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                  title="Copy"
+                                >
+                                  {copiedAddress ===
+                                  `${warehouse.warehouse_id}-postal` ? (
+                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Telephone */}
+                              {warehouse.phone &&
+                                warehouse.phone.length > 0 && (
+                                  <div className="flex items-center justify-between group/item">
+                                    <p className="flex-1">
+                                      <span className="capitalize text-text/75">
+                                        Telephone:
+                                      </span>{" "}
+                                      <span className="text-text">
+                                        {warehouse.phone[0]}
+                                      </span>
+                                    </p>
+                                    <button
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          warehouse.phone[0],
+                                          `${warehouse.warehouse_id}-phone`,
+                                        )
+                                      }
+                                      className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-text-subtle hover:text-primary flex-shrink-0 ml-2"
+                                      title="Copy"
+                                    >
+                                      {copiedAddress ===
+                                      `${warehouse.warehouse_id}-phone` ? (
+                                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                                      ) : (
+                                        <Copy className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                          <div className="pt-4 border-t border-text-subtle/20 space-y-2">
+                            <Link
+                              href={`/shipments?warehouse=${warehouse.warehouse_id}`}
+                              className="block"
+                            >
+                              <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                                Manage {countryName} Location
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              className="w-full border-text-subtle/30 text-text hover:bg-primary/10 hover:border-primary hover:text-primary transition-all duration-200 font-medium"
+                              onClick={() => {
+                                const fullAddress = [
+                                  `${warehousesData?.userFirstName} ${warehousesData?.userLastName}`.trim(),
+                                  `${warehouse.address_line1}, ${warehouse.country_code}${warehousesData?.userWarehouseId}`,
+                                  warehouse.address_line2,
+                                  warehouse.address_line3,
+                                  warehouse.address_line4,
+                                  warehouse.postal_code,
+                                  warehouse.country,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ");
+
+                                copyToClipboard(
+                                  fullAddress,
+                                  `${warehouse.warehouse_id}-full`,
+                                );
+                              }}
+                            >
+                              {copiedAddress ===
+                              `${warehouse.warehouse_id}-full` ? (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Address Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy Full Address
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="border-text-subtle/20 shadow-sm bg-white">
+                  <CardContent className="py-8 text-center">
+                    <MapPin className="h-12 w-12 text-text-subtle mx-auto mb-4" />
+                    <p className="text-text-subtle">No warehouses available</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Orders Section - Only show when warehouse filter is active */}
+          {selectedWarehouseCountryCode && (
+            <>
+              <div className="mb-8">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        router.push("/shipments");
+                        setSelectedWarehouseCountryCode(null);
+                        setSelectedWarehouseName(null);
+                        setCurrentPage(1);
+                      }}
+                      className="border-text-subtle/30 h-8 w-10 text-text-subtle hover:bg-gray-50"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                    </Button>
+                    <div>
+                      <h2 className="text-2xl font-bold tracking-tight text-dark">
+                        Orders at {selectedWarehouseName}
+                      </h2>
+                      {/* <p className="text-text-subtle mt-1 text-sm">
+                        Showing orders for{" "}
+                        {selectedWarehouseName || "selected warehouse"}
+                      </p> */}
+                    </div>
                   </div>
-                ))}
+                  <Link href="/create-shipments?service=link">
+                    <Button className="gap-2">Create Orders</Button>
+                  </Link>
+                </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-text-subtle">
-                  Showing{" "}
-                  <strong>
-                    {(currentPage - 1) * itemsPerPage + 1}-
-                    {Math.min(currentPage * itemsPerPage, totalCount)}
-                  </strong>{" "}
-                  of <strong>{totalCount}</strong> shipments
+              <Card className="mb-6 border-text-subtle/20 shadow-sm bg-white">
+                <CardHeader className="pb-3 bg-white">
+                  <CardTitle className="text-dark">Filters</CardTitle>
+                  <CardDescription className="text-text-subtle">
+                    Narrow down shipments by specific criteria
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4 justify-between">
+                    <div className="relative w-full md:w-1/2 lg:w-2/5">
+                      {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4" /> */}
+                      <Input
+                        type="search"
+                        placeholder="Search by tracking #, destination, recipient..."
+                        className=" border-text-subtle/30 bg-white text-text"
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                      />
+                    </div>
+                    <div className="w-full md:w-1/3 md:max-w-[200px]">
+                      <Select
+                        value={statusFilter}
+                        onValueChange={handleStatusChange}
+                      >
+                        <SelectTrigger className="border-text-subtle/30 bg-white text-text">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="Received">Received</SelectItem>
+                          <SelectItem value="Picked Up">Picked Up</SelectItem>
+                          <SelectItem value="Accepted">Accepted</SelectItem>
+                          <SelectItem value="Invoice Ready">
+                            Invoice Ready
+                          </SelectItem>
+                          <SelectItem value="Payment Requested">
+                            Payment Requested
+                          </SelectItem>
+                          <SelectItem value="Paid">Paid</SelectItem>
+                          <SelectItem value="Ready">Ready</SelectItem>
+                          <SelectItem value="Departure">Departure</SelectItem>
+                          <SelectItem value="Canceled">Canceled</SelectItem>
+                          <SelectItem value="Rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {filteredShipments.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                  <div className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 mb-4">
+                    <Package className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">
+                    No shipments found
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    {searchTerm || statusFilter !== "all"
+                      ? "Try adjusting your search or filters"
+                      : "Create your first shipment to get started"}
+                  </p>
+                  {!searchTerm && statusFilter === "all" && (
+                    <Button onClick={() => router.push("/create-shipments")}>
+                      Create Orders
+                    </Button>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={handlePreviousPage}
-                    className="border-text-subtle/30 text-text-subtle"
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage * itemsPerPage >= totalCount}
-                    onClick={handleNextPage}
-                    className="border-text-subtle/30 text-text hover:bg-primary/10 hover:text-primary hover:border-primary"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredShipments.map((shipment) => (
+                      <div
+                        key={shipment.shipment_id}
+                        onClick={() => handleCardClick(shipment.shipment_id)}
+                        className="cursor-pointer"
+                      >
+                        <Card className="overflow-hidden h-full transition-all hover:shadow-md hover:border-primary/50 bg-white">
+                          <CardHeader className="pb-2 flex justify-between items-start bg-white border-b">
+                            <div>
+                              <CardTitle className="text-base text-dark">
+                                {shipment.drop_and_ship_order_id}
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                <span className="text-text-subtle">
+                                  Shipment:{" "}
+                                </span>
+                                <span className="text-primary font-medium">
+                                  {shipment.shipment_id}
+                                </span>
+                              </CardDescription>
+                            </div>
+                            <StatusBadge status={shipment.current_status} />
+                          </CardHeader>
+                          <CardContent className="pt-4 pb-4">
+                            <div className="space-y-3">
+                              {/* Primary Information */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-text-subtle text-xs mb-1">
+                                    {/* Destination */}
+                                    Expected Receiving Date
+                                  </p>
+                                  <p className="font-medium text-dark text-sm">
+                                    {/* {formatDestination(shipment)} */}
+                                    {formatDate(
+                                      shipment.drop_and_ship_expected_receiving_date,
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-text-subtle text-xs mb-1">
+                                    Order Date
+                                  </p>
+                                  <p className="font-medium text-dark text-sm">
+                                    {formatDate(shipment.created_at)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Package Details */}
+                              <div className="flex items-center justify-between text-sm pt-3 border-t">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-primary/70" />
+                                  <span className="text-text-subtle">
+                                    Type:
+                                  </span>
+                                  <span className="capitalize font-medium">
+                                    {shipment.drop_and_ship_order_type ||
+                                      "Unknown"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center ">
+                                  <MapPin className="h-4 w-4 text-primary/70" />
+                                  <span className="font-medium ml-1">
+                                    {formatDestination(shipment)}
+                                    {/* {shipment.receiver_country_code || "Unknown"} */}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Recipient and Items */}
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-primary/70" />
+                                  <span className="text-text-subtle">To:</span>
+                                  <span className="font-medium">
+                                    {getRecipientName(shipment)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <ShoppingBag className="h-4 w-4 text-primary/70" />
+                                  <span>
+                                    {shipment.total_quantity || 0} items
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Price and Courier */}
+                              <div className="flex items-center justify-between text-sm pt-3 border-t">
+                                <div className="flex items-center gap-2">
+                                  <Warehouse className="h-4 w-4 text-primary/70" />
+                                  <span className="font-medium">
+                                    {shipment.drop_and_ship_warehouse_address
+                                      ?.name || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="font-medium text-primary">
+                                  {formatPrice(shipment.grand_total, shipment)}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-text-subtle">
+                      Showing{" "}
+                      <strong>
+                        {(currentPage - 1) * itemsPerPage + 1}-
+                        {Math.min(currentPage * itemsPerPage, totalCount)}
+                      </strong>{" "}
+                      of <strong>{totalCount}</strong> shipments
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={handlePreviousPage}
+                        className="border-text-subtle/30 text-text-subtle"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage * itemsPerPage >= totalCount}
+                        onClick={handleNextPage}
+                        className="border-text-subtle/30 text-text hover:bg-primary/10 hover:text-primary hover:border-primary"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

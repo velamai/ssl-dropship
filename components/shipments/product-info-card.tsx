@@ -89,15 +89,15 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                     <th className="text-left text-xs font-medium text-muted-foreground py-2">
                       Name
                     </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground py-2">
+                    {/* <th className="text-right text-xs font-medium text-muted-foreground py-2">
                       Price
-                    </th>
+                    </th> */}
                     <th className="text-right text-xs font-medium text-muted-foreground py-2">
                       Quantity
                     </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground py-2">
+                    {/* <th className="text-right text-xs font-medium text-muted-foreground py-2">
                       Total Price
-                    </th>
+                    </th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -111,13 +111,17 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                           <TooltipProvider>
                             <Tooltip delayDuration={0}>
                               <TooltipTrigger asChild>
-                                <Link
-                                  href={item.drop_and_ship_product_url || ""}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {item.name.substring(0, 25)}...
-                                </Link>
+                                {item.drop_and_ship_product_url ? (
+                                  <Link
+                                    href={item.drop_and_ship_product_url || ""}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {item.name.substring(0, 25)}...
+                                  </Link>
+                                ) : (
+                                  <span>{item.name.substring(0, 25)}...</span>
+                                )}
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>{item.name}</p>
@@ -125,28 +129,34 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <Link
-                            href={item.drop_and_ship_product_url || ""}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {item.name}
-                          </Link>
+                          <>
+                            {item.drop_and_ship_product_url ? (
+                              <Link
+                                href={item.drop_and_ship_product_url || ""}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {item.name}
+                              </Link>
+                            ) : (
+                              <span>{item.name}</span>
+                            )}
+                          </>
                         )}
                       </td>
-                      <td className="text-sm text-right py-2">
+                      {/* <td className="text-sm text-right py-2">
                         {formatPrice(item.declared_value, shipment) || 0}
-                      </td>
+                      </td> */}
                       <td className="text-sm text-right py-2">
                         {item.quantity || 1}
                       </td>
-                      <td className="text-sm font-medium text-right py-2">
+                      {/* <td className="text-sm font-medium text-right py-2">
                         {formatPrice(
                           (Number(item.declared_value) || 0) *
-                          (item.quantity || 1),
-                          shipment
+                            (item.quantity || 1),
+                          shipment,
                         )}
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
