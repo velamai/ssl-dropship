@@ -89,7 +89,18 @@ export function Navbar() {
                   : "hover:text-primary"
               }`}
             >
-              Pricing Calculator
+              Product Pricing Calculator
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link
+              href="/calculator"
+              className={`text-sm font-medium transition-all relative group ${
+                pathname === "/calculator"
+                  ? "text-primary"
+                  : "hover:text-primary"
+              }`}
+            >
+              Shipping Pricing Calculator
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-pink-gradient group-hover:w-full transition-all duration-300" />
             </Link>
             <Link

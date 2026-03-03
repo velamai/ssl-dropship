@@ -37,10 +37,11 @@ type NavItemProps = {
 const NavItem = ({ href, icon, label, isActive }: NavItemProps) => (
   <Link
     href={href}
-    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${isActive
-      ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
-      : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-      }`}
+    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
+      isActive
+        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+    }`}
   >
     {icon}
     {label}
@@ -143,11 +144,16 @@ export function Navbar({ activePage }: { activePage?: string }) {
               <NavItem
                 href="/product-price-calculator"
                 icon={<Calculator size={18} className="mr-1.5" />}
-                label="Pricing Calculator"
-                isActive={
-                  pathname === "/product-price-calculator"
-                }
+                label="Product Pricing Calculator"
+                isActive={pathname === "/product-price-calculator"}
               />
+              <NavItem
+                href="/calculator"
+                icon={<Calculator size={18} className="mr-1.5" />}
+                label="Shipping Pricing Calculator"
+                isActive={pathname === "/calculator"}
+              />
+
               {/* <NavItem
                 href="/orders"
                 icon={<FileText size={18} className="mr-1.5" />}
@@ -248,32 +254,35 @@ export function Navbar({ activePage }: { activePage?: string }) {
                 <div className="flex flex-col p-2">
                   <Link
                     href="/shipments"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/shipments" ||
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/shipments" ||
                       pathname.startsWith("/shipments/")
-                      ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     <Truck size={18} className="mr-2" />
                     Orders
                   </Link>
                   <Link
                     href="/warehouses"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/warehouses" ||
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/warehouses" ||
                       pathname.startsWith("/warehouses/")
-                      ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     <Package size={18} className="mr-2" />
                     Warehouses
                   </Link>
                   <Link
                     href="/account"
-                    className={`flex items-center px-3 py-3 text-base rounded-md ${pathname === "/account"
-                      ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                    className={`flex items-center px-3 py-3 text-base rounded-md ${
+                      pathname === "/account"
+                        ? "bg-[#f5e5ff] text-[#9c4cd2] font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     <User size={18} className="mr-2" />
                     Account

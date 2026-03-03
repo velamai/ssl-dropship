@@ -14,9 +14,13 @@ import { ReceiverInfoCard } from "@/components/shipments/receiver-info-card";
 import { StatusBadge } from "@/components/shipments/status-badge";
 import { StatusOverviewCard } from "@/components/shipments/status-overview-card";
 import { TrackingHistoryCard } from "@/components/shipments/tracking-history-card";
-import type { Shipment, ShipmentItem, TrackingEvent } from "@/components/shipments/types";
-import { WarehouseInfoCard } from "@/components/shipments/warehouse-info-card";
+import type {
+  Shipment,
+  ShipmentItem,
+  TrackingEvent,
+} from "@/components/shipments/types";
 import { getStatusColor } from "@/components/shipments/utils";
+import { WarehouseInfoCard } from "@/components/shipments/warehouse-info-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +47,6 @@ import {
   Loader2,
   Truck,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -105,7 +108,7 @@ export default function ShipmentDetailsPage() {
       // Only generate QR code on initial load
       if (isInitialLoad) {
         const qr = await generateBarcode(
-          `https://universalmail.in/shipments/${id}`
+          `https://universalmail.in/shipments/${id}`,
         );
         setQrCodeData(qr);
       }
@@ -114,7 +117,7 @@ export default function ShipmentDetailsPage() {
         if (shipmentError.code === "PGRST116") {
           // Not found code
           setError(
-            "Shipment not found or you do not have permission to view it."
+            "Shipment not found or you do not have permission to view it.",
           );
         } else {
           throw shipmentError;
@@ -257,9 +260,9 @@ export default function ShipmentDetailsPage() {
                     }
                   </PDFDownloadLink>
                 </Button> */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="gap-1"
                   onClick={() => setShowTrackingDialog(true)}
                 >
@@ -359,7 +362,7 @@ export default function ShipmentDetailsPage() {
                     "string"
                   ) {
                     images = JSON.parse(
-                      shipment.drop_and_ship_product_images_admin
+                      shipment.drop_and_ship_product_images_admin,
                     );
                   } else if (
                     Array.isArray(shipment.drop_and_ship_product_images_admin)
@@ -395,7 +398,8 @@ export default function ShipmentDetailsPage() {
                             onError={(e) => {
                               // Replace with placeholder on error
                               const target = e.target as HTMLImageElement;
-                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='16'%3EImage not available%3C/text%3E%3C/svg%3E";
+                              target.src =
+                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-family='sans-serif' font-size='16'%3EImage not available%3C/text%3E%3C/svg%3E";
                               target.onerror = null; // Prevent infinite loop
                             }}
                             loading="lazy"
@@ -417,10 +421,7 @@ export default function ShipmentDetailsPage() {
       </Dialog>
 
       {/* Tracking Timeline Dialog */}
-      <Dialog
-        open={showTrackingDialog}
-        onOpenChange={setShowTrackingDialog}
-      >
+      <Dialog open={showTrackingDialog} onOpenChange={setShowTrackingDialog}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -435,13 +436,14 @@ export default function ShipmentDetailsPage() {
               // Parse tracking history from shipment
               const trackingHistory: TrackingEvent[] = shipment?.status_timeline
                 ? (typeof shipment.status_timeline === "string"
-                  ? JSON.parse(shipment.status_timeline)
-                  : shipment.status_timeline
-                ).sort((a: TrackingEvent, b: TrackingEvent) => {
-                  return (
-                    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-                  );
-                })
+                    ? JSON.parse(shipment.status_timeline)
+                    : shipment.status_timeline
+                  ).sort((a: TrackingEvent, b: TrackingEvent) => {
+                    return (
+                      new Date(b.updated_at).getTime() -
+                      new Date(a.updated_at).getTime()
+                    );
+                  })
                 : [];
 
               if (trackingHistory.length === 0) {
@@ -469,9 +471,7 @@ export default function ShipmentDetailsPage() {
               return (
                 <div className="relative">
                   {/* Timeline vertical line */}
-                  <div
-                    className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80"
-                  />
+                  <div className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80" />
 
                   <div className="space-y-0">
                     {trackingHistory.map(
@@ -485,7 +485,7 @@ export default function ShipmentDetailsPage() {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
-                          }
+                          },
                         );
                         const formattedTime = dateTime.toLocaleTimeString(
                           "en-US",
@@ -493,7 +493,7 @@ export default function ShipmentDetailsPage() {
                             hour: "2-digit",
                             minute: "2-digit",
                             hour12: false,
-                          }
+                          },
                         );
 
                         return (
@@ -553,7 +553,7 @@ export default function ShipmentDetailsPage() {
                             </div>
                           </div>
                         );
-                      }
+                      },
                     )}
                   </div>
                 </div>

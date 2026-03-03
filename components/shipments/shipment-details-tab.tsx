@@ -143,11 +143,11 @@ export function ShipmentDetailsTab({
   // Effect to set default courier service when filter changes
   useEffect(() => {
     const currentCourierService = getValues(
-      `shipments.${index}.courierService`
+      `shipments.${index}.courierService`,
     );
     const isCurrentServiceValid = filteredCourierServices.some(
       (service) =>
-        (service.courier_service_id || service.id) === currentCourierService
+        (service.courier_service_id || service.id) === currentCourierService,
     );
 
     if (filteredCourierServices.length > 0 && !isCurrentServiceValid) {
@@ -426,7 +426,7 @@ export function ShipmentDetailsTab({
                               alt="Preview"
                               className="w-full h-full object-cover filter blur-sm opacity-30"
                             />
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -476,7 +476,7 @@ export function ShipmentDetailsTab({
                         try {
                           // Get signed URLs for all files
                           const fileTypes = files.map(
-                            (file) => file.type || "application/pdf"
+                            (file) => file.type || "application/pdf",
                           );
                           const res = await fetch("/api/invoice-signed-url", {
                             method: "PUT",
@@ -503,15 +503,14 @@ export function ShipmentDetailsTab({
                               });
                               if (!putRes.ok)
                                 throw new Error(
-                                  `Failed to upload file: ${file.name}`
+                                  `Failed to upload file: ${file.name}`,
                                 );
                               return publicUrl;
-                            }
+                            },
                           );
 
-                          const uploadedUrls = await Promise.all(
-                            uploadPromises
-                          );
+                          const uploadedUrls =
+                            await Promise.all(uploadPromises);
 
                           // Update form with all URLs
                           const currentUrls =
@@ -522,7 +521,7 @@ export function ShipmentDetailsTab({
                             {
                               shouldValidate: true,
                               shouldDirty: true,
-                            }
+                            },
                           );
                         } catch (err) {
                           console.error(err);
@@ -602,10 +601,10 @@ export function ShipmentDetailsTab({
                                   onClick={() => {
                                     const currentUrls =
                                       getValues(
-                                        `shipments.${index}.invoiceUrls`
+                                        `shipments.${index}.invoiceUrls`,
                                       ) || [];
                                     const newUrls = currentUrls.filter(
-                                      (_, i) => i !== idx
+                                      (_, i) => i !== idx,
                                     );
                                     setValue(
                                       `shipments.${index}.invoiceUrls`,
@@ -613,7 +612,7 @@ export function ShipmentDetailsTab({
                                       {
                                         shouldValidate: true,
                                         shouldDirty: true,
-                                      }
+                                      },
                                     );
                                   }}
                                 >
@@ -622,7 +621,7 @@ export function ShipmentDetailsTab({
                               </div>
                             )}
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   )}
@@ -697,7 +696,7 @@ export function ShipmentDetailsTab({
                             alt="Preview"
                             className="w-full h-full object-cover filter blur-sm opacity-30"
                           />
-                        )
+                        ),
                       )}
                     </div>
                   )}
@@ -729,7 +728,7 @@ export function ShipmentDetailsTab({
 
                       if (totalImages > 10) {
                         alert(
-                          `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`
+                          `Cannot upload more than 10 images. You have ${currentUrls.length} images and trying to add ${files.length}.`,
                         );
                         return;
                       }
@@ -753,7 +752,7 @@ export function ShipmentDetailsTab({
                       try {
                         // Get signed URLs for all files
                         const fileTypes = files.map(
-                          (file) => file.type || "image/jpeg"
+                          (file) => file.type || "image/jpeg",
                         );
                         const res = await fetch("/api/invoice-signed-url", {
                           method: "PUT",
@@ -779,7 +778,7 @@ export function ShipmentDetailsTab({
                           });
                           if (!putRes.ok)
                             throw new Error(
-                              `Failed to upload file: ${file.name}`
+                              `Failed to upload file: ${file.name}`,
                             );
                           return publicUrl;
                         });
@@ -794,7 +793,7 @@ export function ShipmentDetailsTab({
                           {
                             shouldValidate: true,
                             shouldDirty: true,
-                          }
+                          },
                         );
                       } catch (err) {
                         console.error(err);
@@ -841,10 +840,10 @@ export function ShipmentDetailsTab({
                                 onClick={() => {
                                   const currentUrls =
                                     getValues(
-                                      `shipments.${index}.productImageUrls`
+                                      `shipments.${index}.productImageUrls`,
                                     ) || [];
                                   const newUrls = currentUrls.filter(
-                                    (_, i) => i !== idx
+                                    (_, i) => i !== idx,
                                   );
                                   setValue(
                                     `shipments.${index}.productImageUrls`,
@@ -852,7 +851,7 @@ export function ShipmentDetailsTab({
                                     {
                                       shouldValidate: true,
                                       shouldDirty: true,
-                                    }
+                                    },
                                   );
                                 }}
                               >
@@ -861,7 +860,7 @@ export function ShipmentDetailsTab({
                             </div>
                           )}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 )}
@@ -912,7 +911,7 @@ export function ShipmentDetailsTab({
                         warehouse.warehouse_id,
                         {
                           shouldValidate: true,
-                        }
+                        },
                       );
                     }}
                   >

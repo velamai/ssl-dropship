@@ -60,18 +60,17 @@ export function ReceiverInfoTab({
   const { data: userAddresses, isLoading: addressesLoading } =
     useUserAddresses();
   const { data: userProfile, isLoading: profileLoading } = useUserProfile();
-  
+
   // Fetch countries from Supabase (use hook if not provided as prop)
-  const {
-    data: fetchedCountries,
-    isLoading: isLoadingCountries,
-  } = useCountries();
-  
+  const { data: fetchedCountries, isLoading: isLoadingCountries } =
+    useCountries();
+
   // Use provided countries or fall back to fetched countries
-  const countriesList = countries && countries.length > 0 ? countries : (fetchedCountries || []);
+  const countriesList =
+    countries && countries.length > 0 ? countries : fetchedCountries || [];
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    null
+    null,
   );
   const [isCountrySelectOpen, setIsCountrySelectOpen] = useState(false);
 
@@ -90,12 +89,12 @@ export function ReceiverInfoTab({
         userProfile.first_name,
         {
           shouldValidate: true,
-        }
+        },
       );
       setValue(
         `shipments.${index}.receiver.lastName`,
         userProfile.last_name || "",
-        { shouldValidate: true }
+        { shouldValidate: true },
       );
       setValue(`shipments.${index}.receiver.email`, userProfile.email, {
         shouldValidate: true,
@@ -115,22 +114,22 @@ export function ReceiverInfoTab({
       address.address_line1,
       {
         shouldValidate: true,
-      }
+      },
     );
     setValue(
       `shipments.${index}.receiver.addressLine2`,
       address.address_line2 || "",
-      { shouldValidate: true }
+      { shouldValidate: true },
     );
     setValue(
       `shipments.${index}.receiver.addressLine3`,
       address.address_line3 || "",
-      { shouldValidate: true }
+      { shouldValidate: true },
     );
     setValue(
       `shipments.${index}.receiver.addressLine4`,
       address.address_line4 || "",
-      { shouldValidate: true }
+      { shouldValidate: true },
     );
     setValue(`shipments.${index}.receiver.postalCode`, address.pincode || "", {
       shouldValidate: true,
@@ -140,8 +139,10 @@ export function ReceiverInfoTab({
     if (countryCode) {
       setValue(
         `shipments.${index}.receiver.receivingCountry`,
-        typeof countryCode === "string" ? countryCode.toUpperCase() : countryCode,
-        { shouldValidate: true }
+        typeof countryCode === "string"
+          ? countryCode.toUpperCase()
+          : countryCode,
+        { shouldValidate: true },
       );
       setValue(`shipments.${index}.country`, countryCode, {
         shouldValidate: true,
@@ -239,7 +240,7 @@ export function ReceiverInfoTab({
                 control={control}
                 render={({ field }) => {
                   const selectedCountry = countriesList.find(
-                    (country) => country.code === field.value
+                    (country) => country.code === field.value,
                   );
                   return (
                     <div className="flex h-[46px] items-center rounded-md border border-[#e2e2e2] bg-muted/50 px-3 text-sm">
@@ -255,7 +256,7 @@ export function ReceiverInfoTab({
                 control={control}
                 render={({ field }) => {
                   const selectedCountry = countriesList.find(
-                    (country) => country.code === field.value
+                    (country) => country.code === field.value,
                   );
                   return (
                     <Popover
@@ -270,9 +271,10 @@ export function ReceiverInfoTab({
                           aria-expanded={isCountrySelectOpen}
                           className={cn(
                             "w-full justify-between h-[46px] bg-[#fcfcfc] text-left text-[14px]",
-                            errors.shipments?.[index]?.receiver?.receivingCountry
+                            errors.shipments?.[index]?.receiver
+                              ?.receivingCountry
                               ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                              : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]"
+                              : "border-[#e2e2e2] focus:border-[#9c4cd2] focus:ring-[#9c4cd2]",
                           )}
                         >
                           <div className="flex items-center gap-2 flex-1">
@@ -309,7 +311,7 @@ export function ReceiverInfoTab({
                                       "ml-2 h-4 w-4",
                                       field.value === country.code
                                         ? "opacity-100"
-                                        : "opacity-0"
+                                        : "opacity-0",
                                     )}
                                   />
                                 </CommandItem>
