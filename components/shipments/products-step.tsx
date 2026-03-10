@@ -298,7 +298,11 @@ function ProductItemWithQuery({
                 disabled={isCurrencyLocked}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isWarehouseService ? "Select (optional)" : "Select"} />
+                  <SelectValue
+                    placeholder={
+                      isWarehouseService ? "Select (optional)" : "Select"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD</SelectItem>
@@ -376,18 +380,38 @@ export function ProductsStep({
     useSourceCountries();
 
   // When source country is selected, default item currency to that country's currency (link service only; warehouse currency is optional)
-  const validCurrencies = ["INR", "USD", "GBP", "EUR", "LKR", "AED", "MYR", "SGD"] as const;
+  const validCurrencies = [
+    "INR",
+    "USD",
+    "GBP",
+    "EUR",
+    "LKR",
+    "AED",
+    "MYR",
+    "SGD",
+  ] as const;
   useEffect(() => {
-    if (!sourceCountryCode || !sourceCountries || itemFields.length === 0 || isWarehouseService) return;
+    if (
+      !sourceCountryCode ||
+      !sourceCountries ||
+      itemFields.length === 0 ||
+      isWarehouseService
+    )
+      return;
     const sourceCurrency = sourceCountries.find(
-      (c) => c.code === sourceCountryCode
+      (c) => c.code === sourceCountryCode,
     )?.currency;
     if (!sourceCurrency) return;
-    const currency = validCurrencies.includes(sourceCurrency as (typeof validCurrencies)[number])
+    const currency = validCurrencies.includes(
+      sourceCurrency as (typeof validCurrencies)[number],
+    )
       ? sourceCurrency
       : "USD";
     itemFields.forEach((_, itemIndex) => {
-      setValue(`shipments.${index}.items.${itemIndex}.valueCurrency`, currency as (typeof validCurrencies)[number]);
+      setValue(
+        `shipments.${index}.items.${itemIndex}.valueCurrency`,
+        currency as (typeof validCurrencies)[number],
+      );
     });
   }, [sourceCountryCode, sourceCountries, index, itemFields.length, setValue]);
 
@@ -603,10 +627,10 @@ export function ProductsStep({
 
   // Show Product Preview only when at least one image is successfully fetched
   const hasSuccessfulPreview = Object.values(productImages).some(
-    (img) => !img.loading && !!img.imageUrl?.trim()
+    (img) => !img.loading && !!img.imageUrl?.trim(),
   );
   const successfulPreviewEntries = Object.entries(productImages).filter(
-    ([_, img]) => !img.loading && !!img.imageUrl?.trim()
+    ([_, img]) => !img.loading && !!img.imageUrl?.trim(),
   );
 
   return (
@@ -665,14 +689,20 @@ export function ProductsStep({
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="local" id="purchase-local" />
-                    <Label htmlFor="purchase-local" className="flex items-center gap-2 font-normal cursor-pointer">
+                    <Label
+                      htmlFor="purchase-local"
+                      className="flex items-center gap-2 font-normal cursor-pointer"
+                    >
                       <Store className="h-4 w-4" />
                       Local Shop
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="ecommerce" id="purchase-ecommerce" />
-                    <Label htmlFor="purchase-ecommerce" className="flex items-center gap-2 font-normal cursor-pointer">
+                    <Label
+                      htmlFor="purchase-ecommerce"
+                      className="flex items-center gap-2 font-normal cursor-pointer"
+                    >
                       <ShoppingBag className="h-4 w-4" />
                       Online Ecommerce
                     </Label>
@@ -794,12 +824,12 @@ export function ProductsStep({
                 variant="outline"
                 onClick={() => {
                   const sourceCurrency = sourceCountries?.find(
-                    (c) => c.code === sourceCountryCode
+                    (c) => c.code === sourceCountryCode,
                   )?.currency;
                   const currency =
                     sourceCurrency &&
                     validCurrencies.includes(
-                      sourceCurrency as (typeof validCurrencies)[number]
+                      sourceCurrency as (typeof validCurrencies)[number],
                     )
                       ? sourceCurrency
                       : "INR";
@@ -953,26 +983,23 @@ export function ProductsStep({
                           throw new Error("Failed to get signed URLs");
                         const { results } = await res.json();
 
-                        const uploadPromises = files.map(
-                          async (file, idx) => {
-                            const { signedUrl, publicUrl } = results[idx];
-                            const putRes = await fetch(signedUrl, {
-                              method: "PUT",
-                              headers: {
-                                "Content-Type": file.type || "image/jpeg",
-                              },
-                              body: file,
-                            });
-                            if (!putRes.ok)
-                              throw new Error(
-                                `Failed to upload file: ${file.name}`,
-                              );
-                            return publicUrl;
-                          },
-                        );
+                        const uploadPromises = files.map(async (file, idx) => {
+                          const { signedUrl, publicUrl } = results[idx];
+                          const putRes = await fetch(signedUrl, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": file.type || "image/jpeg",
+                            },
+                            body: file,
+                          });
+                          if (!putRes.ok)
+                            throw new Error(
+                              `Failed to upload file: ${file.name}`,
+                            );
+                          return publicUrl;
+                        });
 
-                        const uploadedUrls =
-                          await Promise.all(uploadPromises);
+                        const uploadedUrls = await Promise.all(uploadPromises);
 
                         const updatedUrls = [...currentUrls, ...uploadedUrls];
                         setValue(
@@ -1007,9 +1034,7 @@ export function ProductsStep({
                             idx ? (
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={
-                                    Object.values(productImagePreviews)[idx]
-                                  }
+                                  src={Object.values(productImagePreviews)[idx]}
                                   alt="Product image preview"
                                   className="size-20 object-cover rounded border"
                                 />
@@ -1072,223 +1097,217 @@ export function ProductsStep({
         {/* Warehouse: Product Invoice - fourth (other details) */}
         {isWarehouseService && (
           <Card>
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Product Invoice
-                </CardTitle>
-                <CardDescription>
-                  Upload invoice documents for your products (PDF or Images)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor={`shipments.${index}.invoiceFile`}
-                    className="text-sm font-semibold"
-                  >
-                    Upload Invoice Files
-                  </Label>
-                  {getValues &&
-                    (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                      0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          setValue(`shipments.${index}.invoiceUrls`, [], {
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Product Invoice
+              </CardTitle>
+              <CardDescription>
+                Upload invoice documents for your products (PDF or Images)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor={`shipments.${index}.invoiceFile`}
+                  className="text-sm font-semibold"
+                >
+                  Upload Invoice Files
+                </Label>
+                {getValues &&
+                  (getValues(`shipments.${index}.invoiceUrls`) || []).length >
+                    0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        setValue(`shipments.${index}.invoiceUrls`, [], {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        setLocalFilePreviews({});
+                        setImageFiles({});
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+              </div>
+
+              <div className="relative group">
+                <label
+                  htmlFor={`shipments.${index}.invoiceFile`}
+                  className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
+                >
+                  {Object.keys(localFilePreviews).length > 0 && (
+                    <div className="absolute inset-0">
+                      {Object.values(localFilePreviews).map((preview, idx) => (
+                        <img
+                          key={idx}
+                          src={preview}
+                          alt="Preview"
+                          className="w-full h-full object-cover filter blur-sm opacity-30"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                    <span className="text-sm text-muted-foreground group-hover:text-primary">
+                      {Object.keys(localFilePreviews).length > 0
+                        ? "Click to add more files"
+                        : "Click to upload or drag PDF/Images here"}
+                    </span>
+                  </div>
+                  <Input
+                    id={`shipments.${index}.invoiceFile`}
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
+
+                      const newPreviews = { ...localFilePreviews };
+                      const newImageFiles = { ...imageFiles };
+
+                      for (const file of files) {
+                        const fileIsImage = isImageType(file.type);
+                        const fileId = `${file.name}-${
+                          file.size
+                        }-${Date.now()}`;
+                        newImageFiles[fileId] = fileIsImage;
+
+                        if (fileIsImage) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            newPreviews[fileId] = e.target?.result as string;
+                            setLocalFilePreviews(newPreviews);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }
+
+                      setImageFiles(newImageFiles);
+
+                      try {
+                        const fileTypes = files.map(
+                          (file) => file.type || "application/pdf",
+                        );
+                        const res = await fetch("/api/invoice-signed-url", {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            fileTypes,
+                          }),
+                        });
+                        if (!res.ok)
+                          throw new Error("Failed to get signed URLs");
+                        const { results } = await res.json();
+
+                        const uploadPromises = files.map(async (file, idx) => {
+                          const { signedUrl, publicUrl } = results[idx];
+                          const putRes = await fetch(signedUrl, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": file.type || "application/pdf",
+                            },
+                            body: file,
+                          });
+                          if (!putRes.ok)
+                            throw new Error(
+                              `Failed to upload file: ${file.name}`,
+                            );
+                          return publicUrl;
+                        });
+
+                        const uploadedUrls = await Promise.all(uploadPromises);
+
+                        const currentUrls =
+                          getValues?.(`shipments.${index}.invoiceUrls`) || [];
+                        setValue(
+                          `shipments.${index}.invoiceUrls`,
+                          [...currentUrls, ...uploadedUrls],
+                          {
                             shouldValidate: true,
                             shouldDirty: true,
-                          });
-                          setLocalFilePreviews({});
-                          setImageFiles({});
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                </div>
+                          },
+                        );
+                      } catch (err) {
+                        console.error(err);
+                        setLocalFilePreviews({});
+                        setImageFiles({});
+                      } finally {
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </label>
 
-                <div className="relative group">
-                  <label
-                    htmlFor={`shipments.${index}.invoiceFile`}
-                    className="relative flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/40 rounded-xl cursor-pointer hover:border-primary/70 hover:bg-muted/40 transition-colors overflow-hidden"
-                  >
-                    {Object.keys(localFilePreviews).length > 0 && (
-                      <div className="absolute inset-0">
-                        {Object.values(localFilePreviews).map(
-                          (preview, idx) => (
-                            <img
-                              key={idx}
-                              src={preview}
-                              alt="Preview"
-                              className="w-full h-full object-cover filter blur-sm opacity-30"
-                            />
-                          ),
-                        )}
-                      </div>
-                    )}
-
-                    <div className="relative z-10 flex flex-col items-center gap-2">
-                      <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-                      <span className="text-sm text-muted-foreground group-hover:text-primary">
-                        {Object.keys(localFilePreviews).length > 0
-                          ? "Click to add more files"
-                          : "Click to upload or drag PDF/Images here"}
-                      </span>
-                    </div>
-                    <Input
-                      id={`shipments.${index}.invoiceFile`}
-                      type="file"
-                      accept="application/pdf,image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                      multiple
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
-                        if (files.length === 0) return;
-
-                        const newPreviews = { ...localFilePreviews };
-                        const newImageFiles = { ...imageFiles };
-
-                        for (const file of files) {
-                          const fileIsImage = isImageType(file.type);
-                          const fileId = `${file.name}-${
-                            file.size
-                          }-${Date.now()}`;
-                          newImageFiles[fileId] = fileIsImage;
-
-                          if (fileIsImage) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                              newPreviews[fileId] = e.target?.result as string;
-                              setLocalFilePreviews(newPreviews);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }
-
-                        setImageFiles(newImageFiles);
-
-                        try {
-                          const fileTypes = files.map(
-                            (file) => file.type || "application/pdf",
-                          );
-                          const res = await fetch("/api/invoice-signed-url", {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              fileTypes,
-                            }),
-                          });
-                          if (!res.ok)
-                            throw new Error("Failed to get signed URLs");
-                          const { results } = await res.json();
-
-                          const uploadPromises = files.map(
-                            async (file, idx) => {
-                              const { signedUrl, publicUrl } = results[idx];
-                              const putRes = await fetch(signedUrl, {
-                                method: "PUT",
-                                headers: {
-                                  "Content-Type":
-                                    file.type || "application/pdf",
-                                },
-                                body: file,
-                              });
-                              if (!putRes.ok)
-                                throw new Error(
-                                  `Failed to upload file: ${file.name}`,
-                                );
-                              return publicUrl;
-                            },
-                          );
-
-                          const uploadedUrls =
-                            await Promise.all(uploadPromises);
-
-                          const currentUrls =
-                            getValues?.(`shipments.${index}.invoiceUrls`) || [];
-                          setValue(
-                            `shipments.${index}.invoiceUrls`,
-                            [...currentUrls, ...uploadedUrls],
-                            {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                            },
-                          );
-                        } catch (err) {
-                          console.error(err);
-                          setLocalFilePreviews({});
-                          setImageFiles({});
-                        } finally {
-                          e.currentTarget.value = "";
-                        }
-                      }}
-                    />
-                  </label>
-
-                  {getValues &&
-                    (getValues(`shipments.${index}.invoiceUrls`) || []).length >
-                      0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {getValues(`shipments.${index}.invoiceUrls`)?.map(
-                          (url: string, idx: number) => (
-                            <div
-                              key={idx}
-                              className="rounded-lg border border-border bg-muted/30 p-2"
-                            >
-                              {Object.values(localFilePreviews).length > idx ? (
-                                <img
-                                  src={Object.values(localFilePreviews)[idx]}
-                                  alt="Uploaded file preview"
-                                  className="size-20 object-cover rounded border"
-                                />
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-5 w-5 text-primary" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">
-                                      Invoice {idx + 1}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-destructive"
-                                    onClick={() => {
-                                      const currentUrls =
-                                        getValues(
-                                          `shipments.${index}.invoiceUrls`,
-                                        ) || [];
-                                      const newUrls = currentUrls.filter(
-                                        (_: any, i: number) => i !== idx,
-                                      );
-                                      setValue(
-                                        `shipments.${index}.invoiceUrls`,
-                                        newUrls,
-                                        {
-                                          shouldValidate: true,
-                                          shouldDirty: true,
-                                        },
-                                      );
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                {getValues &&
+                  (getValues(`shipments.${index}.invoiceUrls`) || []).length >
+                    0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {getValues(`shipments.${index}.invoiceUrls`)?.map(
+                        (url: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="rounded-lg border border-border bg-muted/30 p-2"
+                          >
+                            {Object.values(localFilePreviews).length > idx ? (
+                              <img
+                                src={Object.values(localFilePreviews)[idx]}
+                                alt="Uploaded file preview"
+                                className="size-20 object-cover rounded border"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    Invoice {idx + 1}
+                                  </p>
                                 </div>
-                              )}
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    )}
-                </div>
-                <ErrorMessage error={errors.shipments?.[index]?.invoiceUrls} />
-              </CardContent>
-            </Card>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    const currentUrls =
+                                      getValues(
+                                        `shipments.${index}.invoiceUrls`,
+                                      ) || [];
+                                    const newUrls = currentUrls.filter(
+                                      (_: any, i: number) => i !== idx,
+                                    );
+                                    setValue(
+                                      `shipments.${index}.invoiceUrls`,
+                                      newUrls,
+                                      {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                      },
+                                    );
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+              </div>
+              <ErrorMessage error={errors.shipments?.[index]?.invoiceUrls} />
+            </CardContent>
+          </Card>
         )}
 
         <div className="flex justify-between">
@@ -1321,7 +1340,8 @@ export function ProductsStep({
       <div className="hidden lg:block">
         <div className="sticky top-24 space-y-4">
           {/* Product Preview card: show only when empty (no URLs) or when at least one image fetched successfully */}
-          {(Object.keys(productImages).length === 0 || hasSuccessfulPreview) && (
+          {(Object.keys(productImages).length === 0 ||
+            hasSuccessfulPreview) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">

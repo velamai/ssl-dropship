@@ -186,6 +186,9 @@ export default function ShipmentsPage() {
   const [selectedWarehouseName, setSelectedWarehouseName] = useState<
     string | null
   >(null);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(
+    null,
+  );
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -193,31 +196,35 @@ export default function ShipmentsPage() {
   const { data: warehousesData, isLoading: warehousesDataLoading } =
     useWarehouses();
 
-  console.log("[Shipments Page] Initial user state:", user);
-
   // Fetch warehouse info when warehouse query parameter is present
   useEffect(() => {
-    const warehouseId = searchParams.get("warehouse");
-    if (!warehouseId || !user?.id) {
+    const countryCodeParam = searchParams.get("warehouse");
+    if (!countryCodeParam || !user?.id) {
       setSelectedWarehouseCountryCode(null);
       setSelectedWarehouseName(null);
+      setSelectedWarehouseId(null);
       return;
     }
 
+    // Convert lowercase country code to uppercase for database queries
+    const countryCodeUpper = countryCodeParam.toUpperCase();
+
     async function fetchWarehouseInfo() {
       try {
+        // Fetch warehouse info using country code
         const { data, error } = await supabase
           .from("warehouses")
           .select("country_code, name")
-          .eq("warehouse_id", warehouseId)
+          .eq("country_code", countryCodeUpper)
+          .limit(1)
           .single();
 
         if (error) throw error;
 
         if (data) {
-          setSelectedWarehouseCountryCode(data.country_code);
+          setSelectedWarehouseCountryCode(countryCodeUpper);
           setSelectedWarehouseName(data.name);
-          // Reset to first page when warehouse filter changes
+          setSelectedWarehouseId(null);
           setCurrentPage(1);
         }
       } catch (error: any) {
@@ -227,6 +234,7 @@ export default function ShipmentsPage() {
         });
         setSelectedWarehouseCountryCode(null);
         setSelectedWarehouseName(null);
+        setSelectedWarehouseId(null);
       }
     }
 
@@ -290,11 +298,8 @@ export default function ShipmentsPage() {
 
   // Load shipments with item counts
   useEffect(() => {
-    console.log("[Shipments Page] User state in useEffect:", user?.id);
-
     // Guard clause: don't proceed if user is not loaded
     if (!user || !user.id) {
-      console.log("[Shipments Page] No user found, skipping shipment load");
       setLoading(false);
       return;
     }
@@ -309,16 +314,15 @@ export default function ShipmentsPage() {
           .from("shipments")
           .select("*", { count: "estimated" })
           .eq("user_id", userId)
-          .not("drop_and_ship_order_id", "is", null)
-          .order("created_at", { ascending: false });
+          .eq("source", "drop_and_ship");
 
-        // Filter by warehouse country code if warehouse is selected
+        // Filter by source country code if warehouse is selected
         if (selectedWarehouseCountryCode) {
-          query = query
-            .eq("shipment_country_code", selectedWarehouseCountryCode)
-            .eq("source", "drop_and_ship");
+          query = query.eq(
+            "drop_and_ship_source_country_code",
+            selectedWarehouseCountryCode,
+          );
         }
-
         // Apply search filter at database level when warehouse is selected
         if (searchTerm.trim() && selectedWarehouseCountryCode) {
           // When warehouse is selected, search within that warehouse's shipments
@@ -337,6 +341,10 @@ export default function ShipmentsPage() {
         query = query.range(from, to);
 
         const { data, error, count } = await query;
+
+        console.log({ data });
+        console.log({ error });
+        console.log({ count });
 
         if (error) throw error;
 
@@ -368,7 +376,6 @@ export default function ShipmentsPage() {
             };
           }),
         );
-        console.log({ shipmentsWithExtras });
 
         setShipments(shipmentsWithExtras || []);
       } catch (error: any) {
@@ -875,7 +882,7 @@ export default function ShipmentsPage() {
                           </div>
                           <div className="pt-4 border-t border-text-subtle/20 space-y-2">
                             <Link
-                              href={`/shipments?warehouse=${warehouse.warehouse_id}`}
+                              href={`/shipments?warehouse=${countryCode.toLowerCase()}`}
                               className="block"
                             >
                               <Button className="w-full bg-primary hover:bg-primary/90 text-white">
@@ -947,6 +954,7 @@ export default function ShipmentsPage() {
                         router.push("/shipments");
                         setSelectedWarehouseCountryCode(null);
                         setSelectedWarehouseName(null);
+                        setSelectedWarehouseId(null);
                         setCurrentPage(1);
                       }}
                       className="border-text-subtle/30 h-8 w-10 text-text-subtle hover:bg-gray-50"

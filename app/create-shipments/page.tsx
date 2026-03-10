@@ -697,6 +697,7 @@ function CreateShipmentPageContent() {
         purchased_date: shipmentData.purchasedDate?.toISOString(),
         purchased_site: shipmentData.purchasedSite,
         notes: shipmentData.notes,
+        drop_and_ship_source_country_code: shipmentData.sourceCountryCode || "",
 
         receiver_first_name: shipmentData.receiver.firstName,
         receiver_last_name: shipmentData.receiver.lastName,
