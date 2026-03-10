@@ -886,7 +886,7 @@ export default function ShipmentsPage() {
                               className="block"
                             >
                               <Button className="w-full bg-primary hover:bg-primary/90 text-white">
-                                Manage {countryName} Location
+                                Manage {countryName} WH Orders
                               </Button>
                             </Link>
                             <Button
