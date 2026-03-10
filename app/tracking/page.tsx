@@ -186,7 +186,7 @@ function TrackingPageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trackingType, setTrackingType] = useState<"shipment" | "ups" | null>(
-    null
+    null,
   );
   const [countryName, setCountryName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -208,10 +208,12 @@ function TrackingPageContent() {
     setTrackingType("shipment");
 
     try {
+      // Convert to uppercase for database query
+      const normalizedId = shipmentId.trim().toUpperCase();
       const { data, error: dbError } = await supabase
         .from("shipments")
         .select("*")
-        .eq("system_tracking_id", shipmentId)
+        .eq("system_tracking_id", normalizedId)
         .single();
 
       if (dbError) {
@@ -243,7 +245,7 @@ function TrackingPageContent() {
       console.error("Shipment fetch error:", e);
       setError(
         e?.message ||
-        "Failed to fetch shipment data. Please check the shipment ID."
+          "Failed to fetch shipment data. Please check the shipment ID.",
       );
       setShipmentData(null);
     } finally {
@@ -259,10 +261,12 @@ function TrackingPageContent() {
       setTrackingType("shipment");
 
       try {
+        // Convert to uppercase for database query
+        const normalizedId = shipmentId.trim().toUpperCase();
         const { data, error: dbError } = await supabase
           .from("shipments")
           .select("*")
-          .eq("shipment_id", shipmentId)
+          .eq("shipment_id", normalizedId)
           .single();
 
         if (dbError) {
@@ -294,14 +298,14 @@ function TrackingPageContent() {
         console.error("Shipment fetch error:", e);
         setError(
           e?.message ||
-          "Failed to fetch shipment data. Please check the shipment ID."
+            "Failed to fetch shipment data. Please check the shipment ID.",
         );
         setShipmentData(null);
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   // Fetch UPS tracking data
@@ -320,7 +324,7 @@ function TrackingPageContent() {
           body: {
             tracking_id: trackingId,
           },
-        }
+        },
       );
 
       if (apiError) {
@@ -336,7 +340,7 @@ function TrackingPageContent() {
       console.error("UPS tracking error:", e);
       setError(
         e?.message ||
-        "Failed to fetch tracking data. Please check the tracking number."
+          "Failed to fetch tracking data. Please check the tracking number.",
       );
       setUpsTrackingData(null);
     } finally {
@@ -348,14 +352,16 @@ function TrackingPageContent() {
   useEffect(() => {
     if (trackingNumber) {
       setInputTrackingNumber(trackingNumber);
-      const type = getTrackingType(trackingNumber);
+      // Convert to uppercase for database queries (but keep original in input)
+      const normalizedTrackingNumber = trackingNumber.trim().toUpperCase();
+      const type = getTrackingType(normalizedTrackingNumber);
       if (type === "shipment") {
-        fetchShipmentDataByShipmentId(trackingNumber);
+        fetchShipmentDataByShipmentId(normalizedTrackingNumber);
       } else if (type === "trackship") {
-        fetchShipmentData(trackingNumber);
+        fetchShipmentData(normalizedTrackingNumber);
       } else {
         setError(
-          "Invalid tracking number. Must start with SH (shipment) or CM (tracking)"
+          "Invalid tracking number. Must start with SH (shipment) or CM (tracking)",
         );
       }
     }
@@ -368,31 +374,33 @@ function TrackingPageContent() {
       return;
     }
 
-    const type = getTrackingType(inputTrackingNumber);
+    // Convert to uppercase for URL and validation
+    const normalizedTrackingNumber = inputTrackingNumber.trim().toUpperCase();
+    const type = getTrackingType(normalizedTrackingNumber);
     if (!type) {
       toast.error(
-        "Invalid tracking number. Must start with SH (shipment) or CM (tracking)"
+        "Invalid tracking number. Must start with SH (shipment) or CM (tracking)",
       );
       return;
     }
 
     router.push(
       `/tracking?tracking_number=${encodeURIComponent(
-        inputTrackingNumber.trim()
-      )}`
+        normalizedTrackingNumber,
+      )}`,
     );
   };
 
   // Parse shipment tracking history
   const shipmentTrackingHistory: TrackingEvent[] = shipmentData?.status_timeline
     ? (typeof shipmentData.status_timeline === "string"
-      ? JSON.parse(shipmentData.status_timeline)
-      : shipmentData.status_timeline
-    ).sort((a: TrackingEvent, b: TrackingEvent) => {
-      return (
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
-    })
+        ? JSON.parse(shipmentData.status_timeline)
+        : shipmentData.status_timeline
+      ).sort((a: TrackingEvent, b: TrackingEvent) => {
+        return (
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
+      })
     : [];
 
   // Parse UPS tracking data
@@ -488,8 +496,8 @@ function TrackingPageContent() {
     trackingType === "shipment"
       ? shipmentData?.current_status
       : upsCurrentStatus?.simplifiedTextDescription ||
-      upsCurrentStatus?.description ||
-      "In Transit";
+        upsCurrentStatus?.description ||
+        "In Transit";
 
   // Calculate days in transit
   const calculateDaysInTransit = () => {
@@ -507,8 +515,8 @@ function TrackingPageContent() {
   // Get tracking link
   const trackingLink = displayId
     ? `https://www.buy2send.com/tracking?tracking_number=${encodeURIComponent(
-      displayId
-    )}`
+        displayId,
+      )}`
     : "";
 
   // Copy tracking link to clipboard
@@ -593,7 +601,9 @@ function TrackingPageContent() {
             {/* Error State */}
             {error && !isLoading && (
               <Alert className="border-red-300 bg-red-50">
-                <AlertTitle className="text-red-700 font-bold">Error</AlertTitle>
+                <AlertTitle className="text-red-700 font-bold">
+                  Error
+                </AlertTitle>
                 <AlertDescription className="text-red-600">
                   {error}
                 </AlertDescription>
@@ -644,15 +654,15 @@ function TrackingPageContent() {
                         {/* Timeline vertical line */}
                         <div
                           className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80"
-                        // style={{
-                        //   background: `linear-gradient(to bottom, ${getStatusColor(
-                        //     displayTrackingHistory[0]?.status
-                        //   )}, ${getStatusColor(
-                        //     displayTrackingHistory[
-                        //       displayTrackingHistory.length - 1
-                        //     ]?.status
-                        //   )})`,
-                        // }}
+                          // style={{
+                          //   background: `linear-gradient(to bottom, ${getStatusColor(
+                          //     displayTrackingHistory[0]?.status
+                          //   )}, ${getStatusColor(
+                          //     displayTrackingHistory[
+                          //       displayTrackingHistory.length - 1
+                          //     ]?.status
+                          //   )})`,
+                          // }}
                         />
 
                         <div className="space-y-0">
@@ -661,7 +671,9 @@ function TrackingPageContent() {
                               const isFirst = index === 0;
                               const isLast =
                                 index === displayTrackingHistory.length - 1;
-                              const statusColor = getStatusColor(history.status);
+                              const statusColor = getStatusColor(
+                                history.status,
+                              );
                               const dateTime = new Date(history.updated_at);
                               const formattedDate = dateTime.toLocaleDateString(
                                 "en-US",
@@ -669,7 +681,7 @@ function TrackingPageContent() {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
-                                }
+                                },
                               );
                               const formattedTime = dateTime.toLocaleTimeString(
                                 "en-US",
@@ -677,14 +689,17 @@ function TrackingPageContent() {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                   hour12: false,
-                                }
+                                },
                               );
 
                               return (
                                 <div
                                   key={index}
-                                  className={`relative flex flex-col sm:flex-row gap-4 sm:gap-6 py-3 pl-3 sm:pl-6 ${index % 2 === 0 ? "bg-slate-100" : "bg-white"
-                                    }`}
+                                  className={`relative flex flex-col sm:flex-row gap-4 sm:gap-6 py-3 pl-3 sm:pl-6 ${
+                                    index % 2 === 0
+                                      ? "bg-slate-100"
+                                      : "bg-white"
+                                  }`}
                                 >
                                   {/* Content - Layout like image */}
                                   <div className="flex-1 min-w-0">
@@ -701,10 +716,11 @@ function TrackingPageContent() {
 
                                       <div className="relative flex-shrink-0 z-10 mt-1 sm:mt-0">
                                         <div
-                                          className={`flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-sm transition-all duration-300 ${isFirst
-                                            ? "ring-4 ring-slate-500 border-slate-500"
-                                            : ""
-                                            }`}
+                                          className={`flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-sm transition-all duration-300 ${
+                                            isFirst
+                                              ? "ring-4 ring-slate-500 border-slate-500"
+                                              : ""
+                                          }`}
                                           style={{
                                             borderColor: "#e0e0e0",
                                             ...(isFirst && {
@@ -713,8 +729,9 @@ function TrackingPageContent() {
                                           }}
                                         >
                                           <div
-                                            className={`rounded-full transition-all bg-slate-500 ${isFirst ? "size-3.5" : "size-3"
-                                              }`}
+                                            className={`rounded-full transition-all bg-slate-500 ${
+                                              isFirst ? "size-3.5" : "size-3"
+                                            }`}
                                           />
                                         </div>
                                       </div>
@@ -722,7 +739,9 @@ function TrackingPageContent() {
                                       {/* Status and Description in center */}
                                       <div className="flex-1 min-w-0">
                                         <div className="mb-1.5">
-                                          <StatusBadge status={history.status} />
+                                          <StatusBadge
+                                            status={history.status}
+                                          />
                                         </div>
                                         {history.description && (
                                           <p className="text-sm text-gray-600 leading-relaxed">
@@ -734,7 +753,7 @@ function TrackingPageContent() {
                                   </div>
                                 </div>
                               );
-                            }
+                            },
                           )}
                         </div>
                       </div>
@@ -756,7 +775,9 @@ function TrackingPageContent() {
                           type="text"
                           placeholder="Enter shipment ID or tracking ID"
                           value={inputTrackingNumber}
-                          onChange={(e) => setInputTrackingNumber(e.target.value)}
+                          onChange={(e) =>
+                            setInputTrackingNumber(e.target.value)
+                          }
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               handleTrack();
@@ -810,8 +831,9 @@ function TrackingPageContent() {
                             </label>
                             <p className="text-sm font-semibold text-foreground">
                               {shipmentData.shipment_total_weight
-                                ? `${shipmentData.shipment_total_weight / 1000
-                                } KG`
+                                ? `${
+                                    shipmentData.shipment_total_weight / 1000
+                                  } KG`
                                 : "N/A"}
                             </p>
                           </div>
