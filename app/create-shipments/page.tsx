@@ -2,6 +2,7 @@
 
 import { IdentityVerificationDialog } from "@/components/identity-verification-v2";
 import { Navbar } from "@/components/navbar";
+import { Navbar as NavbarHome } from "@/components/home-page/navbar";
 import { AddOnsStep } from "@/components/shipments/addons-step";
 import { OrderSuccessDialog } from "@/components/shipments/order-success-dialog";
 import { PaymentAtCheckout } from "@/components/shipments/payment-at-checkout";
@@ -43,6 +44,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { cn } from "@/lib/utils";
 
 // Get the singleton instance
 const supabase = getSupabaseBrowserClient();
@@ -339,13 +341,30 @@ function CreateShipmentPageContent() {
         const formValues = draftToFormValues(pending);
         reset(formValues);
         setLoadedDraftId("pending-checkout");
+
+        // Restore add-ons state if saved
+        if (pending.selectedAddOns && Array.isArray(pending.selectedAddOns)) {
+          setSelectedAddOns(pending.selectedAddOns as AddOnId[]);
+        }
+
+        // Restore the step user was on (default to Review step)
+        const restoredStep =
+          pending.currentStep || (pending.serviceType === "warehouse" ? 5 : 4);
+        setCurrentStep(restoredStep as Step);
+
         clearPendingCheckoutDraft();
-        setCurrentStep((pending.serviceType === "warehouse" ? 5 : 4) as Step); // Go to Review step
+
         if (!hasTypeInUrl) {
           router.replace(
             `/create-shipments?from=checkout&type=${pending.serviceType}`,
           );
         }
+
+        toast({
+          title: "Form Restored",
+          description:
+            "Your form data has been restored. Please review and place your order.",
+        });
       }
     } else if (draftId) {
       const draft =
@@ -364,7 +383,7 @@ function CreateShipmentPageContent() {
         }
       }
     }
-  }, [searchParams, reset, router, drafts]);
+  }, [searchParams, reset, router, drafts, toast]);
 
   // Ensure shipmentType is synced with service type and clear warehouse fields for link service
   useEffect(() => {
@@ -1074,7 +1093,7 @@ function CreateShipmentPageContent() {
   if (isLoading || authIsLoading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <Navbar activePage="create-shipments" />
+        {user?.id ? <Navbar activePage="create-shipments" /> : <NavbarHome />}
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
@@ -1130,9 +1149,14 @@ function CreateShipmentPageContent() {
           }}
         />
       )}
-      <Navbar activePage="create-shipments" />
+      {user?.id ? <Navbar activePage="create-shipments" /> : <NavbarHome />}
 
-      <main className="flex-1 p-4 md:p-6 bg-gray-50">
+      <main
+        className={cn(
+          "flex-1 p-4 md:p-6 bg-gray-50",
+          user?.id ? "mt-0" : "mt-16",
+        )}
+      >
         <div className="md:container md:max-w-6xl mx-auto">
           {/* Identity Verification Banner - only when logged in */}
           {user && !isVerified && (
@@ -1225,7 +1249,7 @@ function CreateShipmentPageContent() {
           <div className="flex items-start justify-between">
             <div className="mb-6 space-y-1.5">
               <h1 className="text-[28px] font-medium leading-tight text-[#3f3f3f]">
-                Create Shipment{" "}
+                {user?.id ? "Create Shipment" : "Calculate Pricing "}
                 <span className="font-bold text-[#9c4cd2]">BUY2SEND</span>
               </h1>
               <p className="text-[14px] text-[#a2a2a2] mt-2">
@@ -1444,7 +1468,12 @@ function CreateShipmentPageContent() {
                 purchasedDate={watch("shipments.0.purchasedDate")}
                 onBack={handleBack}
                 user={user}
-                onLoginRequired={() => savePendingCheckoutDraft(getValues())}
+                onLoginRequired={() =>
+                  savePendingCheckoutDraft(getValues(), {
+                    selectedAddOns,
+                    currentStep,
+                  })
+                }
                 loginRedirectUrl={`/create-shipments?from=checkout&type=${getValues("shipments.0.shipmentType") || "link"}`}
                 isLinkService={isLinkService}
                 paymentMethod={checkoutPaymentMethod}
@@ -1464,7 +1493,10 @@ function CreateShipmentPageContent() {
                 ): Promise<void> => {
                   // Login gate: guests must log in before placing order
                   if (!user) {
-                    savePendingCheckoutDraft(getValues());
+                    savePendingCheckoutDraft(getValues(), {
+                      selectedAddOns,
+                      currentStep,
+                    });
                     const formServiceType =
                       getValues("shipments.0.shipmentType") || "link";
                     router.push(

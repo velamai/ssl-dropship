@@ -37,6 +37,11 @@ export interface OrderDraft {
   purchasedSite?: string;
   invoiceUrls?: string[];
   productImageUrls?: string[];
+  // Full form data for pending checkout (includes receiver info, dimensions, pickup, etc.)
+  fullFormData?: Partial<OrderFormData>;
+  // Additional state for complete restoration
+  selectedAddOns?: string[];
+  currentStep?: number;
 }
 
 function isClient(): boolean {
@@ -134,6 +139,12 @@ export function addItemToLatestDraft(item: OrderDraftItem, sourceCountryCode: st
  * Convert draft to form values for prefill
  */
 export function draftToFormValues(draft: OrderDraft): Partial<OrderFormData> {
+  // If full form data is available (from pending checkout), use it
+  if (draft.fullFormData) {
+    return draft.fullFormData;
+  }
+
+  // Otherwise, construct from draft items (legacy behavior)
   const items = draft.items.map((item) => ({
     uuid: generateUUID(),
     productUrl: item.productUrl,
@@ -230,11 +241,27 @@ export function formValuesToDraft(
 }
 
 // Pending checkout (for login redirect flow)
-export function savePendingCheckoutDraft(formData: OrderFormData): void {
+// Saves the ENTIRE form data including receiver info, dimensions, pickup, add-ons, etc.
+export function savePendingCheckoutDraft(
+  formData: OrderFormData,
+  additionalState?: {
+    selectedAddOns?: string[];
+    currentStep?: number;
+  }
+): void {
   if (!isClient()) return;
   const shipment = formData.shipments?.[0];
   if (!shipment) return;
   const draft = formValuesToDraft(shipment, "pending-checkout", "Pending checkout");
+  // Store full form data for complete restoration after login
+  draft.fullFormData = formData;
+  // Store additional UI state
+  if (additionalState?.selectedAddOns) {
+    draft.selectedAddOns = additionalState.selectedAddOns;
+  }
+  if (additionalState?.currentStep) {
+    draft.currentStep = additionalState.currentStep;
+  }
   localStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify(draft));
 }
 

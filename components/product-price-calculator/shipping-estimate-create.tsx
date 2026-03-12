@@ -112,7 +112,7 @@ export function ShippingEstimateCreate({
   }, [destinationCountryCode]);
 
   // Countries that use drop_and_ship_receiving_country_price table for pricing
-  const useReceivingCountryPriceCountries = ["IN", "LK", "AE", "GB", "MY"];
+  const useReceivingCountryPriceCountries = [""];
   const shouldUseReceivingCountryPrice =
     destinationCountryCode &&
     useReceivingCountryPriceCountries.includes(destinationCountryCode);
@@ -836,8 +836,8 @@ export function ShippingEstimateCreate({
                               {/* Weight Info */}
                               {servicePrice.final_weight && (
                                 <div className="text-xs text-muted-foreground text-center">
-                                  Weight:{" "}
-                                  {servicePrice.final_weight.toFixed(0)} g
+                                  Weight: {servicePrice.final_weight.toFixed(0)}{" "}
+                                  g
                                 </div>
                               )}
                             </div>

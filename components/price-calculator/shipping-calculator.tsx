@@ -130,7 +130,7 @@ export default function ShippingCalculator() {
   }, [selectedCountry]);
 
   // Countries that use drop_and_ship_receiving_country_price table for pricing
-  const useReceivingCountryPriceCountries = ["IN", "LK", "AE", "GB", "MY"];
+  const useReceivingCountryPriceCountries = [""];
   const shouldUseReceivingCountryPrice =
     selectedCountry &&
     useReceivingCountryPriceCountries.includes(selectedCountry);
@@ -207,9 +207,9 @@ export default function ShippingCalculator() {
     fetchReceivingCountryPrice();
   }, [shouldUseReceivingCountryPrice, sourceCountry, selectedCountry]);
 
-  // Calculate effective weight: use the greater of actual weight or volume weight
+  // Calculate effective weight: use the greater of actual weight or volume weight (in grams)
   const calculateEffectiveWeight = useMemo((): number | null => {
-    const weightValue = weight ? parseFloat(weight) / 1000 : null; // Convert grams to kg
+    const weightValue = weight ? parseFloat(weight) : null; // Weight in grams
 
     // Calculate volume weight if dimensions are provided
     let volumeWeight: number | null = null;
@@ -222,8 +222,8 @@ export default function ShippingCalculator() {
         const lCm = dimensionUnit === "cm" ? l : l * 2.54;
         const wCm = dimensionUnit === "cm" ? w : w * 2.54;
         const hCm = dimensionUnit === "cm" ? h : h * 2.54;
-        // Volume weight = (L × W × H) / 5000 (in kg)
-        volumeWeight = (lCm * wCm * hCm) / 5000;
+        // Volume weight = (L × W × H) / 5000 (in kg), convert to grams
+        volumeWeight = ((lCm * wCm * hCm) / 5000) * 1000;
       }
     }
 
@@ -260,7 +260,8 @@ export default function ShippingCalculator() {
     ) {
       return null;
     }
-    return receivingCountryPricePerKg * calculateEffectiveWeight;
+    // Convert effective weight from grams to kg for price calculation
+    return receivingCountryPricePerKg * (calculateEffectiveWeight / 1000);
   }, [
     shouldUseReceivingCountryPrice,
     receivingCountryPricePerKg,
@@ -551,7 +552,7 @@ export default function ShippingCalculator() {
 
       // Volume in cm³ (not m³)
       let volume = 0;
-      if (useDimensions && length && width && height) {
+      if (length && width && height) {
         const l = toCentimeters(length);
         const w = toCentimeters(width);
         const h = toCentimeters(height);
@@ -1400,7 +1401,7 @@ export default function ShippingCalculator() {
                             <div className="text-center pt-4 border-t border-primary/100">
                               <p className="text-sm font-medium text-gray-700">
                                 Effective Weight:{" "}
-                                {formatNumber(calculateEffectiveWeight, 2)} kg
+                                {formatNumber(calculateEffectiveWeight, 0)} g
                               </p>
                             </div>
                           )}

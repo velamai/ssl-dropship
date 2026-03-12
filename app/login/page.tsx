@@ -29,6 +29,11 @@ function SignInForm() {
   // Get redirect parameter from URL
   const redirectPath = searchParams.get("redirect") || "/shipments";
 
+  // Check if user is coming from create-shipments page
+  const isFromCreateShipments = redirectPath?.includes(
+    "/create-shipments?from=checkout",
+  );
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -61,7 +66,7 @@ function SignInForm() {
     } catch (err: any) {
       console.error("Login error:", err);
       setError(
-        err.message || "Failed to sign in. Please check your credentials."
+        err.message || "Failed to sign in. Please check your credentials.",
       );
       toast({
         title: "Login failed",
@@ -205,6 +210,16 @@ function SignInForm() {
               </p>
             </div>
 
+            {isFromCreateShipments && (
+              <div className="mb-4 rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                <p className="font-medium mb-1">Form Data Saved</p>
+                <p className="text-xs">
+                  Your shipment form will be restored after login so you can
+                  complete your order.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
                 {error}
@@ -285,7 +300,11 @@ function SignInForm() {
               <div className="text-center text-[13px] text-[#a2a2a2]">
                 Don't have an account?{" "}
                 <Link
-                  href="/register"
+                  href={
+                    isFromCreateShipments
+                      ? `/register?redirect=${encodeURIComponent(redirectPath)}`
+                      : "/register"
+                  }
                   className="text-primary font-medium hover:underline"
                 >
                   Register

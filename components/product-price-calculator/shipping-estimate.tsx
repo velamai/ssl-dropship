@@ -151,7 +151,7 @@ export function ShippingEstimate({
   const [isConvertingPrices, setIsConvertingPrices] = useState(false);
 
   // Countries that use drop_and_ship_receiving_country_price table for pricing
-  const useReceivingCountryPriceCountries = ["IN", "MY", "LK", "AE", "GB"];
+  const useReceivingCountryPriceCountries = [""];
   const shouldUseExchangeRate = useReceivingCountryPriceCountries.includes(
     destinationCountryCode,
   );

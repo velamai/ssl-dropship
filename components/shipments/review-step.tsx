@@ -156,7 +156,8 @@ export function ReviewStep({
   const { data: sourceCountries } = useSourceCountries();
 
   // Razorpay state (used when onPlaceOrderWithPayment is not provided)
-  const [isProcessingPaymentLocal, setIsProcessingPaymentLocal] = useState(false);
+  const [isProcessingPaymentLocal, setIsProcessingPaymentLocal] =
+    useState(false);
   const [razorpayScriptLoaded, setRazorpayScriptLoaded] = useState(false);
   const razorpayTriggered = useRef(false);
 
@@ -896,30 +897,22 @@ export function ReviewStep({
           Back
         </Button>
         {!user ? (
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              Login or register to place your order
+              Login to place your order
             </p>
-            <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link
-                  href={`/login?redirect=${encodeURIComponent(loginRedirectUrl)}`}
-                  onClick={onLoginRequired}
-                >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link
-                  href={`/register?redirect=${encodeURIComponent(loginRedirectUrl)}`}
-                  onClick={onLoginRequired}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Register
-                </Link>
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Your form data will be saved and restored after login
+            </p>
+            <Button asChild>
+              <Link
+                href={`/login?redirect=${encodeURIComponent(loginRedirectUrl)}`}
+                onClick={onLoginRequired}
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
+              </Link>
+            </Button>
           </div>
         ) : (
           <>
