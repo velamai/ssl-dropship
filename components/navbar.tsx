@@ -9,9 +9,6 @@ import { fetchIdentityVerificationData } from "@/lib/api/identity";
 import { useQuery } from "@tanstack/react-query";
 import {
   Calculator,
-  FileText,
-  Home,
-  MapPin,
   Menu,
   Package,
   Pause,
@@ -142,10 +139,10 @@ export function Navbar({ activePage }: { activePage?: string }) {
                 }
               />
               <NavItem
-                href="/product-price-calculator"
+                href="/create-shipments"
                 icon={<Calculator size={18} className="mr-1.5" />}
                 label="Product Pricing Calculator"
-                isActive={pathname === "/product-price-calculator"}
+                isActive={pathname === "/create-shipments"}
               />
               <NavItem
                 href="/calculator"

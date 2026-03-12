@@ -70,9 +70,10 @@ export function ServicesSection() {
                   </span>
                 </div>
               </div>
-              <Link href="/product-price-calculator">
+              <Link href="/create-shipments">
                 <Button className="w-full bg-primary hover:bg-primary/90">
-                  Ship Using Product Link <ArrowRight className="w-4 h-4 ml-2" />
+                  Ship Using Product Link{" "}
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </CardContent>

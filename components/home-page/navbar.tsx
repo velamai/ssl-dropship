@@ -82,9 +82,9 @@ export function Navbar() {
               Track Your Shipment
             </Link>
             <Link
-              href="/product-price-calculator"
+              href="/create-shipments"
               className={`text-sm font-medium transition-all relative group ${
-                pathname === "/product-price-calculator"
+                pathname === "/create-shipments"
                   ? "text-primary"
                   : "hover:text-primary"
               }`}
@@ -189,9 +189,9 @@ export function Navbar() {
               Track Your Shipment
             </Link>
             <Link
-              href="/product-price-calculator"
+              href="/create-shipments"
               className={`block py-2 text-sm font-medium transition-colors ${
-                pathname === "/product-price-calculator"
+                pathname === "/create-shipments"
                   ? "text-primary"
                   : "hover:text-primary"
               }`}

@@ -43,7 +43,7 @@ export function CTASection() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Link href="/product-price-calculator">
+              <Link href="/create-shipments">
                 <Button
                   size="lg"
                   variant="outline"

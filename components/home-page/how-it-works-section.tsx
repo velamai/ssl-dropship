@@ -112,7 +112,7 @@ export function HowItWorksSection() {
             size="lg"
             className="bg-pink-gradient text-white hover:opacity-90 hover:scale-105 transition-all"
             onClick={() => {
-              router.push("/product-price-calculator");
+              router.push("/create-shipments");
             }}
           >
             Try the Calculator Now

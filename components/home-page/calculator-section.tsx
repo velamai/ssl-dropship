@@ -30,7 +30,7 @@ export function CalculatorSection() {
   const [destination, setDestination] = useState("");
 
   const handleCalculate = () => {
-    router.push("/product-price-calculator");
+    router.push("/create-shipments");
   };
 
   return (
@@ -118,7 +118,13 @@ export function CalculatorSection() {
                       className="hover:bg-primary/10"
                     >
                       <span className="flex items-center gap-2">
-                        <Image src={country.flag} alt={country.label} width={20} height={20} className="rounded-sm object-cover" />
+                        <Image
+                          src={country.flag}
+                          alt={country.label}
+                          width={20}
+                          height={20}
+                          className="rounded-sm object-cover"
+                        />
                         <span>{country.label}</span>
                       </span>
                     </SelectItem>
