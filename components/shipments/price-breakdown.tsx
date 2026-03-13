@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { countryCodeToCurrencies } from "@/lib/api/product-price-calculator";
@@ -17,6 +18,15 @@ export type ShipmentItem = {
   valueCurrency: string;
   quantity?: number;
 };
+
+type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
+
+const ADD_ON_LABELS: Record<AddOnId, string> = {
+  "gift-wrapper": "Gift Wrapper",
+  "gift-message": "Gift Message",
+  "extra-packing": "Extra Packing Material",
+};
+
 interface ShipmentPriceBreakdownProps {
   breakdown: ShipmentPriceBreakdown;
   sourceCountryCode?: string;
@@ -24,12 +34,16 @@ interface ShipmentPriceBreakdownProps {
   destinationCurrencyCode?: string;
   sourceCurrencyCode?: string;
   items?: ShipmentItem[]; // Product items array
+  selectedAddOns?: AddOnId[]; // Selected add-ons
+  addOnTotal?: number; // Total add-ons amount in INR
 }
 
 export function ShipmentPriceBreakdown({
   breakdown,
   sourceCountryCode,
   destinationCountryCode,
+  selectedAddOns = [],
+  addOnTotal = 0,
 }: ShipmentPriceBreakdownProps) {
   return (
     <Card className="w-full">
@@ -39,102 +53,146 @@ export function ShipmentPriceBreakdown({
       <CardContent className="space-y-4">
         {/* Product Information - uses breakdown from page */}
         <>
-            {/* Item Price - use breakdown from page (single source of truth) */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Item Price</span>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
-                    {formatNumber(breakdown.itemPriceOrigin)}
-                  </p>
-                </div>
+          {/* Item Price - use breakdown from page (single source of truth) */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Item Price</span>
+              <div className="text-right">
+                <p className="font-semibold">
+                  {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                  {formatNumber(breakdown.itemPriceOrigin)}
+                </p>
               </div>
             </div>
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Domestic Courier Charge */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Domestic Courier Charge</span>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
-                    {formatNumber(breakdown.domesticCourier, 2)}
-                  </p>
-                </div>
+          {/* Domestic Courier Charge */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Domestic Courier Charge</span>
+              <div className="text-right">
+                <p className="font-semibold">
+                  {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                  {formatNumber(breakdown.domesticCourier)}
+                </p>
               </div>
             </div>
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Warehouse Handling Charges */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Warehouse Handling Charges</span>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
-                    {formatNumber(breakdown.warehouseHandling)}
-                  </p>
-                </div>
+          {/* Warehouse Handling Charges */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Warehouse Handling Charges</span>
+              <div className="text-right">
+                <p className="font-semibold">
+                  {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                  {formatNumber(breakdown.warehouseHandling)}
+                </p>
               </div>
             </div>
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Total Price */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-lg">
-                  Total Price (before shipping)
-                </span>
-                <div className="text-right">
-                  <p className="font-bold text-lg">
-                    {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
-                    {formatNumber(breakdown.totalPriceOrigin)}
-                  </p>
+          {/* Add-ons */}
+          {selectedAddOns.length > 0 && (
+            <>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">
+                    Add-ons ({selectedAddOns.length})
+                  </span>
+                  <div className="text-right">
+                    <p className="font-semibold">
+                      {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                      {formatNumber(
+                        addOnTotal / (breakdown.exchangeRateSourceToInr || 1),
+                        2,
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedAddOns.map((addOnId) => (
+                    <Badge
+                      key={addOnId}
+                      variant="outline"
+                      className="text-xs border-pink-300 bg-pink-50 text-pink-500 font-semibold"
+                    >
+                      {ADD_ON_LABELS[addOnId]}
+                    </Badge>
+                  ))}
                 </div>
               </div>
-              {/* {exchangeRate && (
+
+              <Separator />
+            </>
+          )}
+
+          {/* Grand Total */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-lg">
+                {selectedAddOns.length > 0
+                  ? "Grand Total"
+                  : "Total Price (before shipping)"}
+              </span>
+              <div className="text-right">
+                <p className="font-bold text-lg">
+                  {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                  {formatNumber(
+                    breakdown.totalPriceOrigin +
+                      addOnTotal / (breakdown.exchangeRateSourceToInr || 1),
+                    2,
+                  )}
+                </p>
+              </div>
+            </div>
+            {/* {exchangeRate && (
                 <p className="text-xs text-muted-foreground text-right mt-1">
                   (Exchange Rate {countryCodeToCurrencies(sourceCountryCode || "")}1
                   = {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                   {formatNumber(exchangeRate, 2)})
                 </p>
               )} */}
-            </div>
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Notification */}
-            <Alert className="border-blue-200 bg-blue-50">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                <p className="font-semibold mb-2">Price Calculation:</p>
-                <ul className="text-sm space-y-1 list-disc list-inside">
-                  <li>
-                    The base price includes item cost, domestic shipping charges,
-                    and warehouse handling charges.
-                  </li>
-                  <li>
-                    International shipping costs will be calculated separately when
-                    the package is received at the warehouse based on actual weight
-                    and dimensions.
-                  </li>
-                  <li className="font-semibold">
-                    You can use our shipping calculator below to estimate shipping
-                    costs.
-                  </li>
-                </ul>
-              </AlertDescription>
-            </Alert>
+          {/* Notification */}
+          <Alert className="border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <p className="font-semibold mb-2">Price Calculation:</p>
+              <ul className="text-sm space-y-1 list-disc list-inside">
+                <li>
+                  The base price includes item cost, domestic shipping charges,
+                  and warehouse handling charges.
+                </li>
+                <li>
+                  International shipping costs will be calculated separately
+                  when the package is received at the warehouse based on actual
+                  weight and dimensions.
+                </li>
+                <li className="font-semibold">
+                  You can use our shipping calculator below to estimate shipping
+                  costs.
+                </li>
+              </ul>
+            </AlertDescription>
+          </Alert>
         </>
       </CardContent>
 
       <div className="px-6 pb-6">
-        <ShippingEstimateCreate sourceCountryCode={sourceCountryCode || ""} destinationCountryCode={destinationCountryCode || ""} />
+        <ShippingEstimateCreate
+          sourceCountryCode={sourceCountryCode || ""}
+          destinationCountryCode={destinationCountryCode || ""}
+        />
       </div>
     </Card>
   );

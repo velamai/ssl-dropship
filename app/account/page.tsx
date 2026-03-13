@@ -150,7 +150,9 @@ export default function AccountPage() {
     useState(false);
   const [showAddressFormDialog, setShowAddressFormDialog] = useState(false);
   const [addressFormMode, setAddressFormMode] = useState<"add" | "edit">("add");
-  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
+    null,
+  );
   const [deleteAddressId, setDeleteAddressId] = useState<string | null>(null);
 
   const { data: userAddresses = [], isLoading: addressesLoading } =
@@ -614,9 +616,6 @@ export default function AccountPage() {
                               <h3 className="font-medium text-[#3f3f3f]">
                                 Password
                               </h3>
-                              <p className="text-sm text-[#a2a2a2]">
-                                Last changed 3 months ago
-                              </p>
                             </div>
                             <button
                               type="button"
@@ -761,20 +760,6 @@ export default function AccountPage() {
                       </h2>
                     </div>
                     <div className="p-4">
-                      <div className="mb-4 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddressFormMode("add");
-                            setEditingAddress(null);
-                            setShowAddressFormDialog(true);
-                          }}
-                          className="flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white"
-                        >
-                          Add New Address
-                        </button>
-                      </div>
-
                       {addressesLoading ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-[#a2a2a2] mr-2" />
@@ -808,7 +793,7 @@ export default function AccountPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="flex items-center">
+                                  {/* <div className="flex items-center">
                                     <h3 className="font-medium text-[#3f3f3f]">
                                       {addr.code || addr.address_line1}
                                     </h3>
@@ -817,7 +802,7 @@ export default function AccountPage() {
                                         Default
                                       </span>
                                     )}
-                                  </div>
+                                  </div> */}
                                   <p className="mt-1 text-sm text-[#3f3f3f]">
                                     {addr.address_line1}
                                   </p>
@@ -838,18 +823,26 @@ export default function AccountPage() {
                                   </p>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAddressFormMode("edit");
-                                      setEditingAddress(addr);
-                                      setShowAddressFormDialog(true);
-                                    }}
-                                    className="flex items-center rounded-md bg-accent/30 px-3 py-1.5 text-sm font-medium text-primary"
-                                  >
-                                    <Edit size={14} className="mr-1.5" />
-                                    Edit
-                                  </button>
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={150}>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="flex items-center rounded-md bg-accent/20 px-3 py-1.5 text-sm font-medium text-primary opacity-60 cursor-not-allowed"
+                                          disabled
+                                        >
+                                          <Edit size={14} className="mr-1.5" />
+                                          Edit
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-[300px] rounded-md border border-[#f0dfff] bg-[#fff9ff] px-3 py-2 text-xs font-medium text-primary/80 shadow-lg">
+                                        Editing addresses is restricted. Please
+                                        contact your administrator to change
+                                        your address or create a new Buy2Send
+                                        account.
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                   {!addr.is_primary && (
                                     <>
                                       <button
@@ -860,7 +853,8 @@ export default function AccountPage() {
                                             {
                                               onSuccess: () => {
                                                 toast({
-                                                  title: "Default address updated",
+                                                  title:
+                                                    "Default address updated",
                                                   description:
                                                     "Your default address has been updated.",
                                                   variant: "default",
@@ -868,7 +862,8 @@ export default function AccountPage() {
                                               },
                                               onError: (err) => {
                                                 toast({
-                                                  title: "Failed to set default",
+                                                  title:
+                                                    "Failed to set default",
                                                   description:
                                                     err instanceof Error
                                                       ? err.message
@@ -876,7 +871,7 @@ export default function AccountPage() {
                                                   variant: "destructive",
                                                 });
                                               },
-                                            }
+                                            },
                                           )
                                         }
                                         disabled={
@@ -899,7 +894,9 @@ export default function AccountPage() {
                                       <button
                                         type="button"
                                         onClick={() =>
-                                          setDeleteAddressId(addr.user_address_id)
+                                          setDeleteAddressId(
+                                            addr.user_address_id,
+                                          )
                                         }
                                         className="flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50"
                                       >

@@ -23,7 +23,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MapPin, Loader2, Globe, Check, ChevronDown } from "lucide-react";
+import {
+  MapPin,
+  Loader2,
+  Globe,
+  Check,
+  ChevronDown,
+  Mail,
+  Phone,
+} from "lucide-react";
 import { Controller, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -61,6 +69,8 @@ export function ReceiverInfoTab({
     useUserAddresses();
   const { data: userProfile, isLoading: profileLoading } = useUserProfile();
 
+  console.log({ userProfile, userAddresses });
+
   // Fetch countries from Supabase (use hook if not provided as prop)
   const { data: fetchedCountries, isLoading: isLoadingCountries } =
     useCountries();
@@ -79,7 +89,49 @@ export function ReceiverInfoTab({
     name: `shipments.${index}.country`,
   }) as string | undefined;
 
+  const clearReceiverFields = () => {
+    setValue(`shipments.${index}.receiver.firstName`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.lastName`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.email`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.phone`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.addressLine1`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.addressLine2`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.addressLine3`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.addressLine4`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.postalCode`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.receiver.receivingCountry`, "", {
+      shouldValidate: true,
+    });
+    setValue(`shipments.${index}.country`, "", {
+      shouldValidate: true,
+    });
+  };
+
   const handleAddressSelect = (address: any) => {
+    if (selectedAddressId === address.user_address_id) {
+      setSelectedAddressId(null);
+      clearReceiverFields();
+      return;
+    }
+
     setSelectedAddressId(address.user_address_id);
 
     // Auto-fill from user profile
@@ -135,7 +187,7 @@ export function ReceiverInfoTab({
       shouldValidate: true,
     });
     // Auto-fill receiving country from address (code is ISO country code)
-    const countryCode = address.code || address.country;
+    const countryCode = address.country || address.code;
     if (countryCode) {
       setValue(
         `shipments.${index}.receiver.receivingCountry`,
@@ -150,6 +202,20 @@ export function ReceiverInfoTab({
     }
   };
 
+  const receiverErrors = errors.shipments?.[index]?.receiver;
+  const showAddressSelectionError =
+    !!userAddresses?.length &&
+    !selectedAddressId &&
+    !!(
+      receiverErrors?.firstName ||
+      receiverErrors?.lastName ||
+      receiverErrors?.email ||
+      receiverErrors?.phone ||
+      receiverErrors?.addressLine1 ||
+      receiverErrors?.addressLine2 ||
+      receiverErrors?.receivingCountry
+    );
+
   const isReadOnly = !!selectedAddressId;
   return (
     <Card>
@@ -163,7 +229,7 @@ export function ReceiverInfoTab({
       <CardContent className="space-y-6">
         {/* Saved Addresses Section */}
         {!addressesLoading && userAddresses && userAddresses.length > 0 && (
-          <div className="space-y-3 border-b pb-6">
+          <div className="space-y-3">
             <Label className="text-sm font-semibold">
               Your Saved Addresses
             </Label>
@@ -198,23 +264,44 @@ export function ReceiverInfoTab({
                       <p className="text-xs font-semibold text-primary">
                         {address.is_primary ? "Primary Address" : ""}
                       </p>
-                      <h3 className="font-semibold text-sm mb-1">
+                      <h3 className="font-semibold text-sm">
                         {address.address_line1}
                       </h3>
                     </div>
-                    <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="space-y-1 text-xs text-muted-foreground leading-relaxed">
                       {address.address_line2 && <p>{address.address_line2}</p>}
                       {address.address_line3 && <p>{address.address_line3}</p>}
                       {address.address_line4 && <p>{address.address_line4}</p>}
                       <p>
-                        {address.country}
+                        {(address.country || address.code || "").toUpperCase()}
                         {address.pincode && ` - ${address.pincode}`}
+                      </p>
+
+                      {userProfile?.email && (
+                        <p className="flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5" />
+                          <span className="truncate">{userProfile.email}</span>
+                        </p>
+                      )}
+                      <p className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" />
+                        <span className="truncate">
+                          {userProfile?.phone_country_code &&
+                          userProfile?.phone_number
+                            ? `${userProfile.phone_country_code}${userProfile.phone_number}`
+                            : "-"}
+                        </span>
                       </p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            {showAddressSelectionError && (
+              <p className="text-sm text-destructive">
+                Please select an address to continue.
+              </p>
+            )}
           </div>
         )}
 
@@ -228,7 +315,7 @@ export function ReceiverInfoTab({
         )}
 
         {/* Form Fields - read-only when saved address is selected */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="gap-4 md:grid-cols-2 hidden">
           {/* Receiving Country - read-only when address selected */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor={`shipments.${index}.receiver.receivingCountry`}>
@@ -383,50 +470,7 @@ export function ReceiverInfoTab({
               className={isReadOnly ? "bg-muted/50" : ""}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`shipments.${index}.receiver.phone`}>
-              Phone Number *
-            </Label>
-            <Controller
-              name={`shipments.${index}.receiver.phone`}
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <PhoneInput
-                  id={`shipments.${index}.receiver.phone`}
-                  placeholder="Enter phone number"
-                  value={value || ""}
-                  onChange={onChange}
-                  defaultCountry={shipmentCountry as Country}
-                  international
-                  countryCallingCodeEditable={false}
-                  disabled={isReadOnly}
-                  className={`${
-                    errors.shipments?.[index]?.receiver?.phone
-                      ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
-                      : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
-                  } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] ${isReadOnly ? "[&_input]:bg-muted/50 [&_button]:bg-muted/50" : ""}`}
-                />
-              )}
-            />
-            <ErrorMessage error={errors.shipments?.[index]?.receiver?.phone} />
-            {!errors.shipments?.[index]?.receiver?.phone && (
-              <p className="text-[12px] text-[#a2a2a2] mt-1">
-                International phone numbers supported
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor={`shipments.${index}.receiver.email`}>Email *</Label>
-            <Input
-              id={`shipments.${index}.receiver.email`}
-              {...register(`shipments.${index}.receiver.email`)}
-              type="email"
-              placeholder="Email address"
-              readOnly={isReadOnly}
-              className={isReadOnly ? "bg-muted/50" : ""}
-            />
-            <ErrorMessage error={errors.shipments?.[index]?.receiver?.email} />
-          </div>
+
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor={`shipments.${index}.receiver.addressLine1`}>
               Address Line 1 *
@@ -495,6 +539,51 @@ export function ReceiverInfoTab({
             <ErrorMessage
               error={errors.shipments?.[index]?.receiver?.postalCode}
             />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor={`shipments.${index}.receiver.phone`}>
+              Phone Number *
+            </Label>
+            <Controller
+              name={`shipments.${index}.receiver.phone`}
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <PhoneInput
+                  id={`shipments.${index}.receiver.phone`}
+                  placeholder="Enter phone number"
+                  value={value || ""}
+                  onChange={onChange}
+                  defaultCountry={shipmentCountry as Country}
+                  international
+                  countryCallingCodeEditable={false}
+                  className={`${
+                    errors.shipments?.[index]?.receiver?.phone
+                      ? "[&_input]:border-red-500 [&_input]:focus:border-red-500 [&_input]:focus:ring-red-500 [&_button]:border-red-500"
+                      : "[&_input]:border-[#e2e2e2] [&_input]:focus:border-[#9c4cd2] [&_input]:focus:ring-[#9c4cd2] [&_button]:border-[#e2e2e2] [&_button]:focus:border-[#9c4cd2]"
+                  } [&_input]:h-[46px] [&_input]:bg-[#fcfcfc] [&_input]:text-[14px] [&_button]:h-[46px] [&_button]:bg-[#fcfcfc] ${isReadOnly ? "[&_input]:bg-muted/50 [&_button]:bg-muted/50" : ""}`}
+                />
+              )}
+            />
+            <ErrorMessage error={errors.shipments?.[index]?.receiver?.phone} />
+            {!errors.shipments?.[index]?.receiver?.phone && (
+              <p className="text-[12px] text-[#a2a2a2] mt-1">
+                International phone numbers supported
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`shipments.${index}.receiver.email`}>Email *</Label>
+            <Input
+              id={`shipments.${index}.receiver.email`}
+              {...register(`shipments.${index}.receiver.email`)}
+              type="email"
+              placeholder="Email address"
+            />
+            <ErrorMessage error={errors.shipments?.[index]?.receiver?.email} />
           </div>
         </div>
       </CardContent>

@@ -81,7 +81,7 @@ export function Navbar({ activePage }: { activePage?: string }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
-        <Link href={user ? "/shipments" : "/"} className="flex items-center">
+        <Link href={user ? "/" : "/"} className="flex items-center">
           {/* <div className="h-7 w-7 mr-2">
             <svg
               viewBox="0 0 40 40"

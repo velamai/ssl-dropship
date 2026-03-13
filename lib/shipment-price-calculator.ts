@@ -32,7 +32,7 @@ export interface ShipmentPriceBreakdown {
   itemPriceDestination: number; // Total item price converted to destination currency
 
   // Charges (in origin currency)
-  domesticCourier: number; // Domestic Courier Charge = Item Price × domestic_courier_charge% (from drop_and_ship_source_countries)
+  domesticCourier: number; // Domestic Courier Charge = Fixed amount in INR converted to origin currency (from drop_and_ship_source_countries)
   warehouseHandling: number; // Warehouse Handling = Item Price × warehouse_handling_charges% (from drop_and_ship_source_countries)
 
   // Total (in origin currency)
@@ -53,7 +53,7 @@ export interface ShipmentPriceBreakdown {
  * Calculate price breakdown for shipment items (without shipping rates)
  * Formula:
  * 1. Item Price (Origin Currency) = Sum of (item.price × item.quantity) for all items
- * 2. Domestic Courier Charge (Origin Currency) = Item Price × domestic_courier_charge% (from drop_and_ship_source_countries table)
+ * 2. Domestic Courier Charge (Origin Currency) = Fixed amount in INR converted to origin currency (from drop_and_ship_source_countries table)
  * 3. Warehouse Handling (Origin Currency) = Item Price × warehouse_handling_charges% (from drop_and_ship_source_countries table)
  * 4. Total Price (Origin Currency) = Item Price + Domestic Courier + Warehouse Handling
  * 5. Convert to destination currency using exchange rate
@@ -101,7 +101,7 @@ export async function calculateShipmentPriceBreakdown(
   const ratesToSource: Record<string, number> = {};
   await Promise.all(
     uniqueCurrencies.map(async (currency) => {
-      const itemCountryCode = currenciesToCountryCode(currency);
+      const itemCountryCode = currenciesToCountryCode(currency as any);
       const rate = await convertCurrencyByCountryCode({
         sourceCountryCode: itemCountryCode,
         destinationCountryCode: sourceCountryCode,
@@ -118,7 +118,7 @@ export async function calculateShipmentPriceBreakdown(
   }, 0);
 
   // 2. Get domestic courier charge (in origin currency)
-  // 2. Calculate domestic courier charge (in origin currency) = Item Price × percentage
+  // 2. Calculate domestic courier charge (in origin currency) = Fixed INR amount converted to origin currency
   const domesticCourier = await getDomesticCourier(
     originCountry,
     itemPriceOrigin

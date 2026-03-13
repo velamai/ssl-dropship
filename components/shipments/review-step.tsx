@@ -381,6 +381,8 @@ export function ReviewStep({
           destinationCurrencyCode={destinationCurrencyCodeValue}
           sourceCurrencyCode={sourceCurrencyCodeValue}
           items={items}
+          selectedAddOns={selectedAddOns}
+          addOnTotal={addOnTotal}
         />
       )}
 
@@ -407,10 +409,9 @@ export function ReviewStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex flex-col gap-2 rounded-md border border-dashed p-4 text-sm">
+          {/* <div className="flex flex-col gap-2 rounded-md border border-dashed p-4 text-sm">
             <p className="font-medium text-foreground">Order summary</p>
             {!isLinkService ? (
-              /* Warehouse order summary: Purchased Site, Date, Product names, Add-ons */
               <>
                 {purchasedSite && (
                   <div className="flex justify-between text-muted-foreground">
@@ -458,7 +459,6 @@ export function ReviewStep({
                 <span>Loading order summary...</span>
               </div>
             ) : (
-              /* Link service order summary */
               <>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Items Price</span>
@@ -504,7 +504,7 @@ export function ReviewStep({
                 </div>
               </>
             )}
-          </div>
+          </div> */}
 
           {/* Payment Method - Link to Ship only */}
           {isLinkService && onPaymentMethodChange && (

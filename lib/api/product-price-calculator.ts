@@ -103,13 +103,13 @@ export const productPriceCalculatorApi = {
   },
 
   /**
-   * Calculate domestic courier amount based on percentage from drop_and_ship_source_countries table
+   * Calculate domestic courier amount - value is in INR and converted to origin country currency
    */
   async calculateDomesticCourier(
     originCountryCode: string,
     itemPrice: number,
   ): Promise<number> {
-    // Get source country data which includes domestic_courier_charge percentage
+    // Get source country data which includes domestic_courier_charge in INR
     const { sourceCountriesApi } = await import("./source-countries");
     const sourceCountries = await sourceCountriesApi.getSourceCountries();
     const sourceCountry = sourceCountries.find(
@@ -121,8 +121,18 @@ export const productPriceCalculatorApi = {
       sourceCountry.domestic_courier_charge !== undefined &&
       sourceCountry.domestic_courier_charge !== null
     ) {
-      // Calculate as percentage of item price
-      return (itemPrice * sourceCountry.domestic_courier_charge) / 100;
+      // domestic_courier_charge is in INR, convert to origin country currency
+      const chargeInINR = sourceCountry.domestic_courier_charge;
+      
+      // Get the rate from INR to origin country currency
+      // Example: INR to MYR rate is 0.056, so 10 INR × 0.056 = 0.56 MYR
+      const rateINRToOrigin = await convertCurrencyByCountryCode({
+        sourceCountryCode: "IN", // From India (INR)
+        destinationCountryCode: originCountryCode, // To origin country (e.g., MY)
+        amount: null,
+      });
+      
+      return chargeInINR * (rateINRToOrigin || 1);
     }
 
     // Fallback: try old method from separate table

@@ -13,14 +13,7 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { useWarehouses } from "@/lib/hooks/useWarehouses";
 import type { OrderFormData } from "@/lib/schemas/shipmentSchema";
 import { getCountryCode } from "@/lib/utils";
-import {
-  Warehouse,
-  MapPin,
-  Mail,
-  Globe,
-  User2,
-  Loader2,
-} from "lucide-react";
+import { Warehouse, MapPin, Mail, Globe, User2, Loader2 } from "lucide-react";
 import type {
   Control,
   FieldErrors,
@@ -58,7 +51,7 @@ export function WarehouseSelectionStep({
   const filteredWarehouses =
     warehouses?.data?.filter(
       (wh: { country_code?: string }) =>
-        wh.country_code?.toUpperCase() === sourceCountryCode?.toUpperCase()
+        wh.country_code?.toUpperCase() === sourceCountryCode?.toUpperCase(),
     ) ?? [];
 
   // Clear selected warehouse if it no longer matches the filtered list (e.g. source country changed)
@@ -67,7 +60,8 @@ export function WarehouseSelectionStep({
       sourceCountryCode &&
       watchedWarehouseId &&
       !filteredWarehouses.some(
-        (wh: { warehouse_id: string }) => wh.warehouse_id === watchedWarehouseId
+        (wh: { warehouse_id: string }) =>
+          wh.warehouse_id === watchedWarehouseId,
       )
     ) {
       setValue(`shipments.${index}.warehouseId`, undefined, {
@@ -123,7 +117,7 @@ export function WarehouseSelectionStep({
                     warehouse.warehouse_id,
                     {
                       shouldValidate: true,
-                    }
+                    },
                   );
                 }}
               >
@@ -146,7 +140,11 @@ export function WarehouseSelectionStep({
                 <div className="pb-3 border-b border-border mb-3">
                   <div className="flex items-center gap-3 mb-2">
                     <CountryFlag
-                      countryCode={getCountryCode(warehouse.country)}
+                      countryCode={
+                        warehouse.country_code?.length === 2
+                          ? warehouse.country_code.toUpperCase()
+                          : getCountryCode(warehouse.country)
+                      }
                       size="md"
                     />
                     <div className="flex-1 pr-6">
@@ -165,9 +163,8 @@ export function WarehouseSelectionStep({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground">Name:</p>
                       <p className="text-xs font-medium text-foreground break-words">
-                        {warehouses?.userFirstName}{" "}
-                        {warehouses?.userLastName}{" "}
-                        {`${warehouse.country_code}${warehouses.userWarehouseId}`}
+                        {warehouses?.userFirstName} {warehouses?.userLastName}{" "}
+                        {`${warehouse.country_code}${warehouses?.userWarehouseId}`}
                       </p>
                     </div>
                   </div>
@@ -176,9 +173,7 @@ export function WarehouseSelectionStep({
                   <div className="flex items-start gap-2">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">
-                        Address:
-                      </p>
+                      <p className="text-xs text-muted-foreground">Address:</p>
                       <p className="text-xs font-medium text-foreground break-words">
                         {warehouse.address_line1}
                       </p>
@@ -202,9 +197,7 @@ export function WarehouseSelectionStep({
                     <div className="flex items-start gap-2">
                       <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground">
-                          City:
-                        </p>
+                        <p className="text-xs text-muted-foreground">City:</p>
                         <p className="text-xs font-medium text-foreground">
                           {warehouse.address_line3}
                         </p>
@@ -216,9 +209,7 @@ export function WarehouseSelectionStep({
                   <div className="flex items-start gap-2">
                     <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">
-                        Zip Code:
-                      </p>
+                      <p className="text-xs text-muted-foreground">Zip Code:</p>
                       <p className="text-xs font-medium text-foreground">
                         {warehouse.postal_code}
                       </p>
@@ -229,9 +220,7 @@ export function WarehouseSelectionStep({
                   <div className="flex items-start gap-2">
                     <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">
-                        Country:
-                      </p>
+                      <p className="text-xs text-muted-foreground">Country:</p>
                       <p className="text-xs font-medium text-foreground">
                         {warehouse.country}
                       </p>
@@ -253,4 +242,3 @@ export function WarehouseSelectionStep({
     </Card>
   );
 }
-

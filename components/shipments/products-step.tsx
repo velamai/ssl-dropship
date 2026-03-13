@@ -56,6 +56,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CountrySelector } from "@/components/product-price-calculator/country-selector";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import { Alert, AlertDescription } from "../ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProductsStepProps {
   index: number;
@@ -148,6 +154,19 @@ function ProductItemWithQuery({
     name: `shipments.${index}.items.${itemIndex}`,
   });
 
+  // Watch quantity and price for total calculation
+  const quantity = useWatch({
+    control,
+    name: `shipments.${index}.items.${itemIndex}.quantity`,
+  }) as number | undefined;
+
+  const price = useWatch({
+    control,
+    name: `shipments.${index}.items.${itemIndex}.price`,
+  }) as number | undefined;
+
+  const totalPrice = (quantity || 0) * (price || 0);
+
   // Auto-populate fields when product data is fetched - always update when new
   // productData arrives for the current URL (including when user re-enters a different link)
   useEffect(() => {
@@ -192,7 +211,7 @@ function ProductItemWithQuery({
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Product Name - first for warehouse */}
-        <div className="space-y-2">
+        <div className="space-y-2 col-span-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.productName`}>
             Product Name *
           </Label>
@@ -200,6 +219,7 @@ function ProductItemWithQuery({
             id={`shipments.${index}.items.${itemIndex}.productName`}
             {...register(`shipments.${index}.items.${itemIndex}.productName`)}
             placeholder="Product name"
+            className="w-full"
           />
           <ErrorMessage
             error={errors.shipments?.[index]?.items?.[itemIndex]?.productName}
@@ -207,7 +227,7 @@ function ProductItemWithQuery({
         </div>
 
         {/* Product URL - optional for warehouse */}
-        <div className="space-y-2 sm:col-span-2">
+        <div className="space-y-0.5 sm:col-span-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.productUrl`}>
             Product Link{!isWarehouseService && " *"}
           </Label>
@@ -241,10 +261,12 @@ function ProductItemWithQuery({
         </div>
 
         {/* Quantity */}
-        <div className="space-y-2">
-          <Label htmlFor={`shipments.${index}.items.${itemIndex}.quantity`}>
-            Qty *
-          </Label>
+        <div className="space-y-0.5">
+          <div className="flex items-center h-5">
+            <Label htmlFor={`shipments.${index}.items.${itemIndex}.quantity`}>
+              Qty *
+            </Label>
+          </div>
           <Input
             id={`shipments.${index}.items.${itemIndex}.quantity`}
             {...register(`shipments.${index}.items.${itemIndex}.quantity`, {
@@ -260,29 +282,59 @@ function ProductItemWithQuery({
         </div>
 
         {/* Price / Item Value - optional for warehouse */}
-        <div className="space-y-2">
-          <Label htmlFor={`shipments.${index}.items.${itemIndex}.price`}>
-            {isWarehouseService ? "Item Value" : "Item Price *"}
-          </Label>
-          <div className="relative">
-            <Input
-              id={`shipments.${index}.items.${itemIndex}.price`}
-              {...register(`shipments.${index}.items.${itemIndex}.price`, {
-                valueAsNumber: true,
-              })}
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-            />
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5 h-5">
+            <Label htmlFor={`shipments.${index}.items.${itemIndex}.price`}>
+              {isWarehouseService ? "Item Value" : "Item Price *"}
+            </Label>
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Enter the price of one product quantity. Total will be
+                    auto-calculated based on quantity.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
+          <Input
+            id={`shipments.${index}.items.${itemIndex}.price`}
+            {...register(`shipments.${index}.items.${itemIndex}.price`, {
+              valueAsNumber: true,
+            })}
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+          />
           <ErrorMessage
             error={errors.shipments?.[index]?.items?.[itemIndex]?.price}
           />
         </div>
 
+        {/* Total Price - auto-calculated */}
+        <div className="space-y-0.5">
+          <div className="flex items-center h-5">
+            <Label>Total Price</Label>
+          </div>
+          <Input
+            type="text"
+            value={totalPrice > 0 ? totalPrice.toFixed(2) : "0.00"}
+            readOnly
+            disabled
+            className="bg-muted cursor-not-allowed"
+          />
+          <p className="text-xs text-muted-foreground">
+            Calculated: Qty × Item Price
+          </p>
+        </div>
+
         {/* Currency - optional for warehouse */}
-        <div className="space-y-2">
+        <div className="space-y-0.5">
           <Label
             htmlFor={`shipments.${index}.items.${itemIndex}.valueCurrency`}
           >
@@ -295,7 +347,7 @@ function ProductItemWithQuery({
               <Select
                 onValueChange={field.onChange}
                 value={field.value ?? ""}
-                disabled={isCurrencyLocked}
+                disabled={true}
               >
                 <SelectTrigger>
                   <SelectValue
@@ -323,7 +375,7 @@ function ProductItemWithQuery({
         </div>
 
         {/* Notes */}
-        <div className="space-y-2 sm:col-span-2">
+        <div className="space-y-0.5 sm:col-span-2">
           <Label htmlFor={`shipments.${index}.items.${itemIndex}.productNote`}>
             Product Notes *
           </Label>
@@ -1412,13 +1464,9 @@ export function ProductsStep({
                   <ul className="space-y-1.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary/70 mt-0.5">•</span>
-                      <span>Images load automatically from product links</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary/70 mt-0.5">•</span>
                       <span>
-                        Product details auto-fill from major e-commerce
-                        platforms
+                        Images and product details auto-fill directly from major
+                        e-commerce platforms
                       </span>
                     </li>
                     <li className="flex items-start gap-2">

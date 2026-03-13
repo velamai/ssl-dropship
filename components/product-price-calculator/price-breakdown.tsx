@@ -33,12 +33,12 @@ interface PriceBreakdownProps {
   productCurrency?: string;
   quantity: number;
   originCountry:
-  | "india"
-  | "malaysia"
-  | "dubai"
-  | "us"
-  | "srilanka"
-  | "singapore";
+    | "india"
+    | "malaysia"
+    | "dubai"
+    | "us"
+    | "srilanka"
+    | "singapore";
   category: ProductCategory;
   destinationCountryCode?: string;
 }
@@ -64,7 +64,6 @@ export function PriceBreakdown({
   destinationCountryCode = "LK",
   sourceCountryCode,
 }: PriceBreakdownProps) {
-
   const [productPriceBreakdown, setProductPriceBreakdown] =
     useState<ProductPriceBreakDown | null>(null);
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
@@ -87,7 +86,8 @@ export function PriceBreakdown({
       try {
         const fromCountry = sourceCountryCode || getCountryCode(originCountry);
         const toCountry = destinationCountryCode;
-        const productPriceCurrency = productCurrency || breakdown.originCurrency;
+        const productPriceCurrency =
+          productCurrency || breakdown.originCurrency;
 
         // Call all three API functions in parallel
         const [productPriceData, handlingChargeData, courierChargeData] =
@@ -142,13 +142,13 @@ export function PriceBreakdown({
   const { user, isLoading } = useAuth();
   const { refreshDrafts } = useOrderDraft();
   const { toast } = useToast();
-  const {
-    exchangeRate,
-    originCurrency,
-    destinationCurrency,
-  } = breakdown;
+  const { exchangeRate, originCurrency, destinationCurrency } = breakdown;
 
-  const canAddToCart = productUrl?.trim() && productPrice != null && productPrice > 0 && sourceCountryCode;
+  const canAddToCart =
+    productUrl?.trim() &&
+    productPrice != null &&
+    productPrice > 0 &&
+    sourceCountryCode;
 
   const handleAddToCart = () => {
     if (!canAddToCart) return;
@@ -161,7 +161,7 @@ export function PriceBreakdown({
         quantity,
       },
       sourceCountryCode!,
-      destinationCountryCode
+      destinationCountryCode,
     );
     if (user?.id) {
       saveDraftToDb(draft, user.id).catch(() => {});
@@ -190,7 +190,7 @@ export function PriceBreakdown({
             quantity,
           },
           sourceCountryCode!,
-          destinationCountryCode
+          destinationCountryCode,
         );
         refreshDrafts();
         router.push(`/create-shipments?draft=${draft.id}&type=link`);
@@ -242,7 +242,7 @@ export function PriceBreakdown({
                       {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
                       {formatNumber(
                         productPriceBreakdown?.productPriceInSourceCountry *
-                        quantity,
+                          quantity,
                         2,
                       )}
                     </p>
@@ -253,7 +253,7 @@ export function PriceBreakdown({
                       {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                       {formatNumber(
                         productPriceBreakdown?.productPriceInDestinationCountry *
-                        quantity,
+                          quantity,
                         2,
                       )}
                     </p>
@@ -304,7 +304,8 @@ export function PriceBreakdown({
                     <p className="font-semibold">
                       {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
                       {formatNumber(
-                        productPriceBreakdown?.warehouseHandlingChargeInSourceCountry * quantity,
+                        productPriceBreakdown?.warehouseHandlingChargeInSourceCountry *
+                          quantity,
                         2,
                       )}
                     </p>
@@ -313,7 +314,8 @@ export function PriceBreakdown({
                     <p className="text-sm text-muted-foreground">
                       {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                       {formatNumber(
-                        productPriceBreakdown?.warehouseHandlingChargeInDestinationCountry * quantity,
+                        productPriceBreakdown?.warehouseHandlingChargeInDestinationCountry *
+                          quantity,
                         2,
                       )}
                     </p>
@@ -339,9 +341,9 @@ export function PriceBreakdown({
                         {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
                         {formatNumber(
                           productPriceBreakdown.productPriceInSourceCountry *
-                          quantity +
-                          productPriceBreakdown.courierChargeInSourceCountry +
-                          productPriceBreakdown.warehouseHandlingChargeInSourceCountry,
+                            quantity +
+                            productPriceBreakdown.courierChargeInSourceCountry +
+                            productPriceBreakdown.warehouseHandlingChargeInSourceCountry,
                           2,
                         )}
                       </p>
@@ -354,9 +356,9 @@ export function PriceBreakdown({
                         {countryCodeToCurrencies(destinationCountryCode || "")}{" "}
                         {formatNumber(
                           productPriceBreakdown.productPriceInDestinationCountry *
-                          quantity +
-                          productPriceBreakdown.courierChargeInDestinationCountry +
-                          productPriceBreakdown.warehouseHandlingChargeInDestinationCountry,
+                            quantity +
+                            productPriceBreakdown.courierChargeInDestinationCountry +
+                            productPriceBreakdown.warehouseHandlingChargeInDestinationCountry,
                           2,
                         )}
                       </p>
@@ -381,17 +383,17 @@ export function PriceBreakdown({
                 <p className="font-semibold mb-2">Price Calculation:</p>
                 <ul className="text-sm space-y-1 list-disc list-inside">
                   <li>
-                    The base price includes item cost, domestic shipping charges,
-                    and warehouse handling charges.
+                    The base price includes item cost, domestic shipping
+                    charges, and warehouse handling charges.
                   </li>
                   <li>
-                    International shipping costs will be calculated separately when
-                    the package is received at the warehouse based on actual weight
-                    and dimensions.
+                    International shipping costs will be calculated separately
+                    when the package is received at the warehouse based on
+                    actual weight and dimensions.
                   </li>
                   <li className="font-semibold">
-                    You can use our shipping calculator below to estimate shipping
-                    costs.
+                    You can use our shipping calculator below to estimate
+                    shipping costs.
                   </li>
                 </ul>
               </AlertDescription>
