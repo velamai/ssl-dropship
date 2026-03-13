@@ -1215,7 +1215,7 @@ function RegisterPageContent() {
         {/* Logo */}
         <div className="absolute left-12 top-12 z-10">
           <div className="flex items-center gap-2">
-            <div className="size-16">
+            <div className="size-48">
               {/* <svg
                 viewBox="0 0 40 40"
                 fill="none"
@@ -1226,7 +1226,7 @@ function RegisterPageContent() {
                 <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
               </svg> */}
               <Link href="/">
-                <Image src="logo.png" width={75} height={75} alt="logo" />
+                <Image src="logo.png" width={250} height={250} alt="logo" />
               </Link>
             </div>
             <div>
@@ -1237,9 +1237,6 @@ function RegisterPageContent() {
                 DROP & SHIP
               </div> */}
             </div>
-          </div>
-          <div className="mt-1 text-[10px] text-[#545454]">
-            we ship your orders
           </div>
         </div>
 

@@ -121,18 +121,9 @@ function SignInForm() {
           {/* Logo */}
           <div className="absolute left-12 top-12 z-10">
             <div className="flex items-center gap-2">
-              <div className="size-16">
-                {/* <svg
-                viewBox="0 0 40 40"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="#E53935" />
-                <path d="M10 15L30 15L20 35L10 15Z" fill="#B71C1C" />
-                <path d="M20 0L30 15L10 15L20 0Z" fill="#E53935" />
-              </svg> */}
+              <div className="size-48">
                 <Link href="/">
-                  <Image src="logo.png" width={75} height={75} alt="logo" />
+                  <Image src="logo.png" width={250} height={250} alt="logo" />
                 </Link>
               </div>
               <div>
@@ -143,9 +134,6 @@ function SignInForm() {
                   DROP SHIP
                 </div> */}
               </div>
-            </div>
-            <div className="mt-1 text-[10px] text-[#545454]">
-              we ship your orders
             </div>
           </div>
 
