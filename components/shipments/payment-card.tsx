@@ -35,7 +35,7 @@ const supabase = getSupabaseBrowserClient();
 
 export function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
   const [paymentMethod, setPaymentMethod] = useState<string>(
-    shipment.payment_method || "Bank Transfer"
+    shipment.payment_method || "Online Payment",
   );
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -476,8 +476,68 @@ export function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Online Payment">
-                  Online Payment (3.5% additional charge)
+                <SelectItem value="Online Payment" className="w-full">
+                  <div className="flex justify-between w-full gap-2">
+                    <span>Online Payment</span>
+                    <span className="flex items-center gap-1 ml-auto">
+                      <svg
+                        width="30"
+                        height="18"
+                        viewBox="0 0 30 18"
+                        aria-label="Visa accepted"
+                        role="img"
+                        className="rounded-none  border border-slate-200 bg-white"
+                      >
+                        <rect width="30" height="18" rx="2" fill="white" />
+                        <text
+                          x="15"
+                          y="12.5"
+                          textAnchor="middle"
+                          fontSize="8"
+                          fontWeight="700"
+                          fill="#1A1F71"
+                          fontFamily="Arial, sans-serif"
+                        >
+                          VISA
+                        </text>
+                      </svg>
+                      <svg
+                        width="30"
+                        height="18"
+                        viewBox="0 0 70 48"
+                        aria-label="Mastercard accepted"
+                        role="img"
+                      >
+                        <rect
+                          x="0.5"
+                          y="0.5"
+                          width="69"
+                          height="47"
+                          rx="5.5"
+                          fill="white"
+                          stroke="#D9D9D9"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M35.3945 34.7619C33.0114 36.8184 29.92 38.0599 26.5421 38.0599C19.0047 38.0599 12.8945 31.8788 12.8945 24.254C12.8945 16.6291 19.0047 10.448 26.5421 10.448C29.92 10.448 33.0114 11.6895 35.3945 13.7461C37.7777 11.6895 40.869 10.448 44.247 10.448C51.7843 10.448 57.8945 16.6291 57.8945 24.254C57.8945 31.8788 51.7843 38.0599 44.247 38.0599C40.869 38.0599 37.7777 36.8184 35.3945 34.7619Z"
+                          fill="#ED0006"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M35.3945 34.7619C38.3289 32.2296 40.1896 28.4616 40.1896 24.254C40.1896 20.0463 38.3289 16.2783 35.3945 13.7461C37.7777 11.6895 40.869 10.448 44.247 10.448C51.7843 10.448 57.8945 16.6291 57.8945 24.254C57.8945 31.8788 51.7843 38.0599 44.247 38.0599C40.869 38.0599 37.7777 36.8184 35.3945 34.7619Z"
+                          fill="#F9A000"
+                        />
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M35.3946 13.7461C38.329 16.2784 40.1897 20.0463 40.1897 24.254C40.1897 28.4616 38.329 32.2295 35.3946 34.7618C32.4603 32.2295 30.5996 28.4616 30.5996 24.254C30.5996 20.0463 32.4603 16.2784 35.3946 13.7461Z"
+                          fill="#FF5E00"
+                        />
+                      </svg>
+                    </span>
+                  </div>
                 </SelectItem>
                 <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                 <SelectItem value="Cash">Cash</SelectItem>
@@ -615,7 +675,7 @@ export function PaymentCard({ shipment, onPaymentUpdate }: PaymentCardProps) {
                   <Button
                     onClick={handleProofUpload}
                     disabled={Boolean(
-                      !selectedFile || isUploading || isPaymentProcessed
+                      !selectedFile || isUploading || isPaymentProcessed,
                     )}
                     className="w-full"
                   >
