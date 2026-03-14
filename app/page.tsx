@@ -693,19 +693,19 @@
 //   );
 // }
 
-import { Navbar } from "@/components/home-page/navbar";
-import { HeroSection } from "@/components/home-page/hero-section";
-import { ServicesSection } from "@/components/home-page/services-section";
 import { CountriesSection } from "@/components/home-page/countries-section";
-import { HowItWorksSection } from "@/components/home-page/how-it-works-section";
-import { TestimonialsSection } from "@/components/home-page/testimonials-section";
-import { Footer } from "@/components/home-page/footer";
-import { Partners } from "@/components/home-page/partners";
-import { ServicesCards } from "@/components/home-page/services-cards";
-import { CalculatorSection } from "@/components/home-page/calculator-section";
-import Image from "next/image";
 import { FAQSection } from "@/components/home-page/faq-section";
+import { Footer } from "@/components/home-page/footer";
+import { HeroSection } from "@/components/home-page/hero-section";
+import { HowItWorksSection } from "@/components/home-page/how-it-works-section";
+import { Navbar } from "@/components/home-page/navbar";
 import { OfficeLocation } from "@/components/home-page/office-location-card";
+import { Partners } from "@/components/home-page/partners";
+import { PartnersRow } from "@/components/home-page/partners-row";
+import { ServicesCards } from "@/components/home-page/services-cards";
+import { ServicesSection } from "@/components/home-page/services-section";
+import { TestimonialsSection } from "@/components/home-page/testimonials-section";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -726,6 +726,7 @@ export default function Home() {
         <div className="relative z-10 bg-background">
           <Navbar />
           <HeroSection />
+          <PartnersRow />
           <ServicesSection />
           <HowItWorksSection />
           {/* <CalculatorSection /> */}

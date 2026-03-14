@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowLeft, Package, Check, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { convertCurrencyByCountryCode, countryCodeToCurrencies } from "@/lib/api/product-price-calculator";
+import {
+  convertCurrencyByCountryCode,
+  countryCodeToCurrencies,
+} from "@/lib/api/product-price-calculator";
 
 const ADD_ON_PRICE = 100;
 
@@ -51,7 +54,7 @@ interface AddOnsStepProps {
 type ExchangeRate = {
   sourceCountryExchangeRate: number;
   destinationCountryExchangeRate: number;
-}
+};
 
 export function AddOnsStep({
   baseAmount,
@@ -62,39 +65,36 @@ export function AddOnsStep({
   sourceCountryCode,
   destinationCountryCode,
 }: AddOnsStepProps) {
-
   console.log({ sourceCountryCode, destinationCountryCode });
 
   const sourceCountryCurrency = useMemo(() => {
     return countryCodeToCurrencies(sourceCountryCode) || "INR";
   }, [sourceCountryCode]);
 
-  const destinationCountryCurrency = useMemo(() => {
-    return countryCodeToCurrencies(destinationCountryCode || "") || "USD";
-  }, [destinationCountryCode]);
-
-  const { data: exchangeRateData, isLoading: isLoadingExchangeRateData } = useQuery({
-    queryKey: ["exchangeRate", sourceCountryCode, destinationCountryCode],
-    queryFn: async () => {
-      const [sourceCountryExchangeRate, destinationCountryExchangeRate] = await Promise.all([
-        convertCurrencyByCountryCode({
-          sourceCountryCode: "IN",
-          destinationCountryCode: sourceCountryCode,
-          amount: null,
-        }),
-        convertCurrencyByCountryCode({
-          sourceCountryCode: "IN",
-          destinationCountryCode: destinationCountryCode || "",
-          amount: null,
-        }),
-      ])
-      return {
-        sourceCountryExchangeRate: sourceCountryExchangeRate || 1,
-        destinationCountryExchangeRate: destinationCountryExchangeRate || 1,
-      }
-    },
-    enabled: !!sourceCountryCode && !!destinationCountryCode,
-  });
+  const { data: exchangeRateData, isLoading: isLoadingExchangeRateData } =
+    useQuery({
+      queryKey: ["exchangeRate", sourceCountryCode, destinationCountryCode],
+      queryFn: async () => {
+        const [sourceCountryExchangeRate, destinationCountryExchangeRate] =
+          await Promise.all([
+            convertCurrencyByCountryCode({
+              sourceCountryCode: "IN",
+              destinationCountryCode: sourceCountryCode,
+              amount: null,
+            }),
+            convertCurrencyByCountryCode({
+              sourceCountryCode: "IN",
+              destinationCountryCode: destinationCountryCode || "",
+              amount: null,
+            }),
+          ]);
+        return {
+          sourceCountryExchangeRate: sourceCountryExchangeRate || 1,
+          destinationCountryExchangeRate: destinationCountryExchangeRate || 1,
+        };
+      },
+      enabled: !!sourceCountryCode && !!destinationCountryCode,
+    });
 
   const formatCurrency = (value: number) =>
     `${value.toLocaleString("en-IN", {
@@ -132,11 +132,20 @@ export function AddOnsStep({
               <>
                 Each add-on adds{" "}
                 <span className="font-medium text-foreground">
-                  {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                  {sourceCountryCurrency}{" "}
+                  {formatCurrency(
+                    ADD_ON_PRICE *
+                      (exchangeRateData?.sourceCountryExchangeRate || 1),
+                  )}
                 </span>{" "}
                 to your base amount of{" "}
                 <span className="font-medium text-foreground">
-                  {sourceCountryCurrency} {formatCurrency(baseAmount * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                  {sourceCountryCurrency}{" "}
+                  {formatCurrency(
+                    baseAmount *
+                      // (exchangeRateData?.sourceCountryExchangeRate || 1),
+                      1,
+                  )}
                 </span>
                 .
               </>
@@ -156,14 +165,14 @@ export function AddOnsStep({
                     "w-full rounded-md border p-4 text-left transition-colors",
                     isSelected
                       ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-muted"
+                      : "border-border hover:bg-muted",
                   )}
                 >
                   <div className="flex items-start gap-3">
                     <div
                       className={cn(
                         "mt-[2px] h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background flex items-center justify-center text-primary-foreground transition-colors",
-                        isSelected ? "bg-primary" : "bg-background"
+                        isSelected ? "bg-primary" : "bg-background",
                       )}
                     >
                       {isSelected && <Check className="h-4 w-4" />}
@@ -185,7 +194,12 @@ export function AddOnsStep({
                           </span>
                         ) : (
                           <>
-                            + {sourceCountryCurrency} {formatCurrency(ADD_ON_PRICE * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                            + {sourceCountryCurrency}{" "}
+                            {formatCurrency(
+                              ADD_ON_PRICE *
+                                (exchangeRateData?.sourceCountryExchangeRate ||
+                                  1),
+                            )}
                           </>
                         )}
                       </p>
@@ -207,7 +221,11 @@ export function AddOnsStep({
               </span>
             ) : (
               <span className="text-lg font-semibold text-foreground">
-                {sourceCountryCurrency} {formatCurrency(grandTotal * (exchangeRateData?.sourceCountryExchangeRate || 1))}
+                {sourceCountryCurrency}{" "}
+                {formatCurrency(
+                  grandTotal * 1,
+                  // (exchangeRateData?.sourceCountryExchangeRate || 1),
+                )}
               </span>
             )}
           </div>
