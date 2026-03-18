@@ -45,6 +45,7 @@ import {
   FileText,
   Image as ImageIcon,
   Loader2,
+  Printer,
   Truck,
 } from "lucide-react";
 import Link from "next/link";
@@ -65,6 +66,7 @@ export default function ShipmentDetailsPage() {
   const [isRefetching, setIsRefetching] = useState(false);
   const [showProductImagesDialog, setShowProductImagesDialog] = useState(false);
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
+  const [isGeneratingLabel, setIsGeneratingLabel] = useState(false);
 
   const labelData = {
     destinationName: "Chinenye Ezinma",
@@ -231,35 +233,55 @@ export default function ShipmentDetailsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {/* <Button variant="outline" size="sm" className="gap-1">
-                  <Printer className="h-4 w-4" />
-                  <PDFDownloadLink
-                    document={
-                      <OrderPdf
-                        {...labelData}
-                        destinationAddress={formatAddressForLabel(shipment)}
-                        code={shipment.order_id || ""}
-                        destinationName={
-                          `${shipment.receiver_first_name || ""} ${
-                            shipment.receiver_last_name || ""
-                          }` || ""
-                        }
-                        date={formatDate(shipment.created_at)}
-                        weight={`${shipment.shipment_total_weight || 0} g`}
-                        destinationPostcode={
-                          shipment.receiver_postal_code || ""
-                        }
-                        shipmentId={shipment.shipment_id}
-                        qrCodeData={qrCodeData || undefined}
-                      />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  disabled={isGeneratingLabel}
+                  onClick={async () => {
+                    setIsGeneratingLabel(true);
+                    try {
+                      const response = await fetch(
+                        "/api/generate-shipping-label",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            shipment_id: shipment.shipment_id,
+                            user_id: user?.id,
+                          }),
+                        },
+                      );
+
+                      if (!response.ok) {
+                        throw new Error("Failed to generate PDF");
+                      }
+
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `label-${shipment.shipment_id}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error("Error generating PDF:", error);
+                    } finally {
+                      setIsGeneratingLabel(false);
                     }
-                    fileName="order-label.pdf"
-                  >
-                    {({ loading }) =>
-                      loading ? "Generating PDF..." : "Print Label"
-                    }
-                  </PDFDownloadLink>
-                </Button> */}
+                  }}
+                >
+                  {isGeneratingLabel ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Printer className="h-4 w-4" />
+                  )}
+                  Print Label
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

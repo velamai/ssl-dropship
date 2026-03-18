@@ -13,11 +13,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useSourceCountries } from "@/lib/hooks/useSourceCountries";
 import type { ShipmentPriceBreakdown as ShipmentPriceBreakdownType } from "@/lib/shipment-price-calculator";
 import {
   ArrowLeft,
+  Check,
   CreditCard,
   FileText,
   Info,
@@ -27,12 +37,22 @@ import {
   Send,
   UserPlus,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonnerToast } from "sonner";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
+
+interface BankDetail {
+  id: number;
+  account_name: string;
+  account_number: string;
+  ifsc_code: string;
+  bank_name: string;
+  created_at: string;
+}
 
 interface ReviewStepProps {
   baseAmount: number;
@@ -58,6 +78,7 @@ interface ReviewStepProps {
       totalGrandTotal: number;
       warehouseHandlingCharge: number;
       courierCharge: number;
+      paymentProofUrls?: string[];
     },
     options?: { skipSuccessDialog?: boolean },
   ) => Promise<void>; // Creates order in database
@@ -154,12 +175,22 @@ export function ReviewStep({
     })}`;
 
   const { data: sourceCountries } = useSourceCountries();
+  const supabase = getSupabaseBrowserClient();
 
   // Razorpay state (used when onPlaceOrderWithPayment is not provided)
   const [isProcessingPaymentLocal, setIsProcessingPaymentLocal] =
     useState(false);
   const [razorpayScriptLoaded, setRazorpayScriptLoaded] = useState(false);
   const razorpayTriggered = useRef(false);
+
+  // Bank transfer state
+  const [bankDetails, setBankDetails] = useState<BankDetail[] | null>(null);
+  const [isFetchingBank, setIsFetchingBank] = useState(false);
+  const [bankError, setBankError] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [uploadedProofUrl, setUploadedProofUrl] = useState<string | null>(null);
 
   // Use parent's isProcessingPayment when onPlaceOrderWithPayment is provided
   const isProcessingPayment =
@@ -359,6 +390,98 @@ export function ReviewStep({
     };
   }, []);
 
+  // Fetch bank details when Bank Transfer is selected
+  const fetchBankDetails = async () => {
+    setIsFetchingBank(true);
+    setBankError(null);
+    try {
+      const { data, error } = await supabase.from("bank_details").select("*");
+      if (error) throw error;
+      setBankDetails((data || []) as BankDetail[]);
+    } catch (err: any) {
+      console.error("Failed to load bank details:", err);
+      setBankError("Failed to load bank details. Please try again.");
+      setBankDetails(null);
+    } finally {
+      setIsFetchingBank(false);
+    }
+  };
+
+  useEffect(() => {
+    if (paymentMethod === "Bank Transfer") {
+      fetchBankDetails();
+    }
+  }, [paymentMethod]);
+
+  // Handle file selection and upload
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      showToast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, JPEG or PNG file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        title: "File too large",
+        description: "Please upload a file smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFilePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setSelectedFile(file);
+
+    // Upload file to storage immediately
+    setIsUploadingProof(true);
+    try {
+      const filename = `payment-proof-checkout/${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("colombo-storage")
+        .upload(filename, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("colombo-storage").getPublicUrl(filename);
+
+      setUploadedProofUrl(publicUrl);
+      showToast({
+        title: "Success",
+        description: "Payment proof uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading proof:", error);
+      showToast({
+        title: "Error",
+        description: "Failed to upload payment proof. Please try again.",
+        variant: "destructive",
+      });
+      // Clear the file selection on error
+      setSelectedFile(null);
+      setFilePreview(null);
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Price Breakdown - Link service only; warehouse orders have no breakdown */}
@@ -550,11 +673,139 @@ export function ReviewStep({
                     <div className="text-left">
                       <p className="font-medium">Bank Transfer</p>
                       <p className="text-sm text-muted-foreground">
-                        Upload payment proof after placing order
+                        Transfer to our bank account
                       </p>
                     </div>
                   </button>
                 </div>
+
+                {paymentMethod === "Bank Transfer" && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        Bank Transfer Details
+                      </p>
+                      {isFetchingBank && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {bankError && (
+                      <p className="text-xs text-red-600">{bankError}</p>
+                    )}
+                    {!bankError &&
+                      !isFetchingBank &&
+                      bankDetails &&
+                      bankDetails.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          No bank details available.
+                        </p>
+                      )}
+                    {!bankError && bankDetails && bankDetails.length > 0 && (
+                      <div className="space-y-3">
+                        {bankDetails.map((b) => (
+                          <div
+                            key={b.id}
+                            className="rounded-md border p-3 bg-muted/30"
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">
+                                  Account Name:
+                                </span>{" "}
+                                <span className="font-medium">
+                                  {b.account_name}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">
+                                  Account Number:
+                                </span>{" "}
+                                <span className="font-medium">
+                                  {b.account_number}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">
+                                  IFSC Code:
+                                </span>{" "}
+                                <span className="font-medium">
+                                  {b.ifsc_code}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">
+                                  Bank Name:
+                                </span>{" "}
+                                <span className="font-medium">
+                                  {b.bank_name}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+                          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <AlertDescription className="text-blue-800 dark:text-blue-200">
+                            Please complete the bank transfer to the account
+                            above and upload the payment proof below to place
+                            your order.
+                          </AlertDescription>
+                        </Alert>
+
+                        {/* Upload payment proof before placing order */}
+                        <div className="space-y-3 pt-3 border-t">
+                          <Label
+                            htmlFor="bankProofFile"
+                            className="text-sm font-medium"
+                          >
+                            Upload Payment Proof{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="bankProofFile"
+                            type="file"
+                            accept=".jpg,.jpeg,.png"
+                            onChange={handleFileSelect}
+                            required
+                            disabled={isUploadingProof}
+                          />
+                          {isUploadingProof && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Uploading payment proof...</span>
+                            </div>
+                          )}
+                          {uploadedProofUrl && !isUploadingProof && (
+                            <div className="flex items-center gap-2 text-sm text-green-600">
+                              <Check className="h-4 w-4" />
+                              <span>Payment proof uploaded successfully</span>
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Upload a screenshot or photo of your bank transfer
+                            receipt (JPG, JPEG, or PNG, max 5MB). This is
+                            required to place your order.
+                          </p>
+                          {filePreview && (
+                            <div className="mt-3">
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Preview:
+                              </p>
+                              <div className="relative aspect-video w-full max-w-sm rounded-md overflow-hidden border">
+                                <Image
+                                  src={filePreview}
+                                  alt="Payment proof preview"
+                                  className="object-cover"
+                                  fill
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -939,111 +1190,118 @@ export function ReviewStep({
                 }}
               />
             )}
-            <Button
-              type="button"
-              onClick={async () => {
-                console.log("[ReviewStep] Place Order clicked", {
-                  isLinkService,
-                  priceBreakdown: !!priceBreakdown,
-                  sourceCurrencyCodeValue,
-                  destinationCurrencyCodeValue,
-                  paymentMethod,
-                  receiverInfo,
-                  razorpayScriptLoaded,
-                });
+            {/* Check if bank transfer is selected and payment proof is required */}
+            {isLinkService && 
+             paymentMethod === "Bank Transfer" && 
+             !uploadedProofUrl ? (
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button type="button" disabled={true} className="gap-2">
+                        <Send className="h-4 w-4" />
+                        Place Order
+                        {priceBreakdown && (
+                          <>
+                            {" "}
+                            ({sourceCurrencyCodeValue}{" "}
+                            {formatCurrency(
+                              priceBreakdown.totalPriceOrigin +
+                                addOnTotal /
+                                  (priceBreakdown.exchangeRateSourceToInr || 1),
+                            )}
+                            )
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Please upload payment proof to place your order</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                type="button"
+                onClick={async () => {
+                  console.log("[ReviewStep] Place Order clicked", {
+                    isLinkService,
+                    priceBreakdown: !!priceBreakdown,
+                    sourceCurrencyCodeValue,
+                    destinationCurrencyCodeValue,
+                    paymentMethod,
+                    receiverInfo,
+                    razorpayScriptLoaded,
+                  });
 
-                if (
-                  isLinkService &&
-                  priceBreakdown &&
-                  sourceCurrencyCodeValue &&
-                  destinationCurrencyCodeValue
-                ) {
-                  const addOnInSource =
-                    addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1);
-                  const grandTotal =
-                    priceBreakdown.totalPriceOrigin + addOnInSource;
+                  if (
+                    isLinkService &&
+                    priceBreakdown &&
+                    sourceCurrencyCodeValue &&
+                    destinationCurrencyCodeValue
+                  ) {
+                    const addOnInSource =
+                      addOnTotal /
+                      (priceBreakdown.exchangeRateSourceToInr || 1);
+                    const grandTotal =
+                      priceBreakdown.totalPriceOrigin + addOnInSource;
 
-                  const currencyData = {
-                    sourceCurrencyCode: sourceCurrencyCodeValue,
-                    destinationCurrencyCode: destinationCurrencyCodeValue,
-                    exchangeRateSourceToInr:
-                      priceBreakdown.exchangeRateSourceToInr,
-                    exchangeRateDestinationToInr: 1,
-                    totalGrandTotal: grandTotal,
-                    warehouseHandlingCharge: priceBreakdown.warehouseHandling,
-                    courierCharge: priceBreakdown.domesticCourier,
-                  };
-
-                  // For Link service with Online Payment: create Razorpay order first, then create database order after payment success
-                  if (paymentMethod === "Online Payment") {
-                    if (!receiverInfo) {
-                      console.error(
-                        "[ReviewStep] Receiver info missing:",
-                        receiverInfo,
-                      );
-                      showToast({
-                        title: "Error",
-                        description: "Receiver information is required",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-
-                    // Calculate total amount in source currency (same as displayed in UI)
-                    const totalAmount = grandTotal;
-                    console.log("[ReviewStep] Initializing payment with:", {
-                      totalAmount,
-                      sourceCurrencyCodeValue,
+                    const currencyData = {
+                      sourceCurrencyCode: sourceCurrencyCodeValue,
+                      destinationCurrencyCode: destinationCurrencyCodeValue,
                       exchangeRateSourceToInr:
                         priceBreakdown.exchangeRateSourceToInr,
-                      receiverInfo,
-                    });
+                      exchangeRateDestinationToInr: 1,
+                      totalGrandTotal: grandTotal,
+                      warehouseHandlingCharge: priceBreakdown.warehouseHandling,
+                      courierCharge: priceBreakdown.domesticCourier,
+                    };
 
-                    // Use parent's payment flow when provided (page.tsx creates Razorpay session, then createOrder after payment success)
-                    if (onPlaceOrderWithPayment) {
-                      await onPlaceOrderWithPayment(
+                    // For Link service with Online Payment: create Razorpay order first, then create database order after payment success
+                    if (paymentMethod === "Online Payment") {
+                      if (!receiverInfo) {
+                        console.error(
+                          "[ReviewStep] Receiver info missing:",
+                          receiverInfo,
+                        );
+                        showToast({
+                          title: "Error",
+                          description: "Receiver information is required",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      // Calculate total amount in source currency (same as displayed in UI)
+                      const totalAmount = grandTotal;
+                      console.log("[ReviewStep] Initializing payment with:", {
                         totalAmount,
                         sourceCurrencyCodeValue,
-                        priceBreakdown.exchangeRateSourceToInr,
+                        exchangeRateSourceToInr:
+                          priceBreakdown.exchangeRateSourceToInr,
                         receiverInfo,
-                        currencyData,
-                      );
-                      return;
-                    }
+                      });
 
-                    // Fallback: internal Razorpay flow (when onPlaceOrderWithPayment not provided)
-                    if (
-                      typeof window !== "undefined" &&
-                      (window as any).Razorpay
-                    ) {
-                      setRazorpayScriptLoaded(true);
-                      setTimeout(() => {
-                        initializeRazorpay(
+                      // Use parent's payment flow when provided (page.tsx creates Razorpay session, then createOrder after payment success)
+                      if (onPlaceOrderWithPayment) {
+                        await onPlaceOrderWithPayment(
                           totalAmount,
                           sourceCurrencyCodeValue,
                           priceBreakdown.exchangeRateSourceToInr,
                           receiverInfo,
                           currencyData,
                         );
-                      }, 100);
-                    } else if (razorpayScriptLoaded) {
-                      setTimeout(() => {
-                        initializeRazorpay(
-                          totalAmount,
-                          sourceCurrencyCodeValue,
-                          priceBreakdown.exchangeRateSourceToInr,
-                          receiverInfo,
-                          currencyData,
-                        );
-                      }, 100);
-                    } else {
-                      const checkScript = setInterval(() => {
-                        if (
-                          typeof window !== "undefined" &&
-                          (window as any).Razorpay
-                        ) {
-                          setRazorpayScriptLoaded(true);
-                          clearInterval(checkScript);
+                        return;
+                      }
+
+                      // Fallback: internal Razorpay flow (when onPlaceOrderWithPayment not provided)
+                      if (
+                        typeof window !== "undefined" &&
+                        (window as any).Razorpay
+                      ) {
+                        setRazorpayScriptLoaded(true);
+                        setTimeout(() => {
                           initializeRazorpay(
                             totalAmount,
                             sourceCurrencyCodeValue,
@@ -1051,82 +1309,112 @@ export function ReviewStep({
                             receiverInfo,
                             currencyData,
                           );
-                        }
-                      }, 200);
-                      setTimeout(() => {
-                        clearInterval(checkScript);
-                        if (!razorpayScriptLoaded) {
-                          showToast({
-                            title: "Error",
-                            description:
-                              "Payment script failed to load. Please refresh the page.",
-                            variant: "destructive",
-                          });
-                        }
-                      }, 10000);
+                        }, 100);
+                      } else if (razorpayScriptLoaded) {
+                        setTimeout(() => {
+                          initializeRazorpay(
+                            totalAmount,
+                            sourceCurrencyCodeValue,
+                            priceBreakdown.exchangeRateSourceToInr,
+                            receiverInfo,
+                            currencyData,
+                          );
+                        }, 100);
+                      } else {
+                        const checkScript = setInterval(() => {
+                          if (
+                            typeof window !== "undefined" &&
+                            (window as any).Razorpay
+                          ) {
+                            setRazorpayScriptLoaded(true);
+                            clearInterval(checkScript);
+                            initializeRazorpay(
+                              totalAmount,
+                              sourceCurrencyCodeValue,
+                              priceBreakdown.exchangeRateSourceToInr,
+                              receiverInfo,
+                              currencyData,
+                            );
+                          }
+                        }, 200);
+                        setTimeout(() => {
+                          clearInterval(checkScript);
+                          if (!razorpayScriptLoaded) {
+                            showToast({
+                              title: "Error",
+                              description:
+                                "Payment script failed to load. Please refresh the page.",
+                              variant: "destructive",
+                            });
+                          }
+                        }, 10000);
+                      }
+                    } else {
+                      // Bank Transfer: submit the order with payment proof
+                      onSubmit({
+                        ...currencyData,
+                        paymentProofUrls: uploadedProofUrl ? [uploadedProofUrl] : [],
+                      });
                     }
+                  } else if (!isLinkService) {
+                    // Warehouse: no payment for item value; grand total = add-ons only; zeros for charges
+                    onSubmit({
+                      sourceCurrencyCode: sourceCurrencyCodeValue,
+                      destinationCurrencyCode: destinationCurrencyCodeValue,
+                      exchangeRateSourceToInr: 1,
+                      exchangeRateDestinationToInr: 1,
+                      totalGrandTotal: addOnTotal,
+                      warehouseHandlingCharge: 0,
+                      courierCharge: 0,
+                    });
                   } else {
-                    // Bank Transfer: just submit the order
-                    onSubmit(currencyData);
+                    console.warn(
+                      "[ReviewStep] Missing required data for Link service:",
+                      {
+                        priceBreakdown: !!priceBreakdown,
+                        sourceCurrencyCodeValue,
+                        destinationCurrencyCodeValue,
+                      },
+                    );
+                    showToast({
+                      title: "Error",
+                      description: "Please complete all required fields",
+                      variant: "destructive",
+                    });
                   }
-                } else if (!isLinkService) {
-                  // Warehouse: no payment for item value; grand total = add-ons only; zeros for charges
-                  onSubmit({
-                    sourceCurrencyCode: sourceCurrencyCodeValue,
-                    destinationCurrencyCode: destinationCurrencyCodeValue,
-                    exchangeRateSourceToInr: 1,
-                    exchangeRateDestinationToInr: 1,
-                    totalGrandTotal: addOnTotal,
-                    warehouseHandlingCharge: 0,
-                    courierCharge: 0,
-                  });
-                } else {
-                  console.warn(
-                    "[ReviewStep] Missing required data for Link service:",
-                    {
-                      priceBreakdown: !!priceBreakdown,
-                      sourceCurrencyCodeValue,
-                      destinationCurrencyCodeValue,
-                    },
-                  );
-                  showToast({
-                    title: "Error",
-                    description: "Please complete all required fields",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              disabled={isSubmitting || isProcessingPayment}
-              className="gap-2"
-            >
-              {isSubmitting || isProcessingPayment ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {isProcessingPayment
-                    ? "Processing Payment..."
-                    : "Processing..."}
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  {isLinkService && paymentMethod === "Online Payment"
-                    ? "Place Order and Pay"
-                    : "Place Order"}
-                  {isLinkService && priceBreakdown && (
-                    <>
-                      {" "}
-                      ({sourceCurrencyCodeValue}{" "}
-                      {formatCurrency(
-                        priceBreakdown.totalPriceOrigin +
-                          addOnTotal /
-                            (priceBreakdown.exchangeRateSourceToInr || 1),
-                      )}
-                      )
-                    </>
-                  )}
-                </>
-              )}
-            </Button>
+                }}
+                disabled={isSubmitting || isProcessingPayment}
+                className="gap-2"
+              >
+                {isSubmitting || isProcessingPayment ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isProcessingPayment
+                      ? "Processing Payment..."
+                      : "Processing..."}
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    {isLinkService && paymentMethod === "Online Payment"
+                      ? "Place Order and Pay"
+                      : "Place Order"}
+                    {isLinkService && priceBreakdown && (
+                      <>
+                        {" "}
+                        ({sourceCurrencyCodeValue}{" "}
+                        {formatCurrency(
+                          priceBreakdown.totalPriceOrigin +
+                            addOnTotal /
+                              (priceBreakdown.exchangeRateSourceToInr || 1),
+                        )}
+                        )
+                      </>
+                    )}
+                  </>
+                )}
+              </Button>
+            )}
           </>
         )}
       </div>

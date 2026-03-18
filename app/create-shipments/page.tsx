@@ -120,6 +120,7 @@ function CreateShipmentPageContent() {
     totalGrandTotal: number;
     warehouseHandlingCharge: number;
     courierCharge: number;
+    paymentProofUrls?: string[];
   } | null>(null);
   const razorpayTriggeredRef = useRef(false);
 
@@ -841,6 +842,14 @@ function CreateShipmentPageContent() {
             currencyDataRef.current.exchangeRateDestinationToInr,
           drop_and_ship_courier_charge: courierCharge,
           drop_and_ship_handling_charges: warehouseHandlingCharge,
+          ...(currencyDataRef.current.paymentProofUrls &&
+            currencyDataRef.current.paymentProofUrls.length > 0 && {
+              drop_and_ship_product_payment_proof_url:
+                currencyDataRef.current.paymentProofUrls[0],
+              drop_and_ship_product_payment_proof_status: "Submitted",
+              drop_and_ship_product_payment_proof_submitted_at:
+                new Date().toISOString(),
+            }),
         }),
       };
 
