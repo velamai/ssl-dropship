@@ -29,6 +29,8 @@ import { IdentityVerificationV2 } from "@/components/identity-verification-v2";
 import { parsePhoneNumber } from "react-phone-number-input";
 import { toast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { normalizeCountryToName } from "@/lib/utils/country";
+import { useCountries } from "@/lib/hooks/useCountries";
 
 // User data fetching function
 const fetchUserData = async (userId: string) => {
@@ -157,6 +159,7 @@ export default function AccountPage() {
 
   const { data: userAddresses = [], isLoading: addressesLoading } =
     useUserAddresses();
+  const { data: countries = [] } = useCountries();
   const deleteAddressMutation = useDeleteAddress();
   const setPrimaryAddressMutation = useSetPrimaryAddress();
 
@@ -819,7 +822,9 @@ export default function AccountPage() {
                                     </p>
                                   )}
                                   <p className="text-sm text-[#3f3f3f]">
-                                    {addr.country}
+                                    {countries.length > 0
+                                      ? normalizeCountryToName(addr.country, countries)
+                                      : addr.country}
                                   </p>
                                 </div>
                                 <div className="flex flex-col gap-2">

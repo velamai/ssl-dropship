@@ -47,6 +47,7 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { useUserAddresses, useUserProfile } from "@/lib/hooks/useUserAddresses";
 import { useCountries } from "@/lib/hooks/useCountries";
 import { Country } from "react-phone-number-input";
+import { normalizeCountryToCode, normalizeCountryToName } from "@/lib/utils/country";
 
 interface ReceiverInfoTabProps {
   index: number;
@@ -186,19 +187,22 @@ export function ReceiverInfoTab({
     setValue(`shipments.${index}.receiver.postalCode`, address.pincode || "", {
       shouldValidate: true,
     });
-    // Auto-fill receiving country from address (code is ISO country code)
-    const countryCode = address.country || address.code;
-    if (countryCode) {
-      setValue(
-        `shipments.${index}.receiver.receivingCountry`,
-        typeof countryCode === "string"
-          ? countryCode.toUpperCase()
-          : countryCode,
-        { shouldValidate: true },
-      );
-      setValue(`shipments.${index}.country`, countryCode, {
-        shouldValidate: true,
-      });
+    
+    // Auto-fill receiving country from address
+    // The address might have country as name or code, normalize it to code for storage
+    const countryValue = address.country || address.code;
+    if (countryValue && countriesList.length > 0) {
+      const normalizedCode = normalizeCountryToCode(countryValue, countriesList);
+      if (normalizedCode) {
+        setValue(
+          `shipments.${index}.receiver.receivingCountry`,
+          normalizedCode,
+          { shouldValidate: true },
+        );
+        setValue(`shipments.${index}.country`, normalizedCode, {
+          shouldValidate: true,
+        });
+      }
     }
   };
 
@@ -273,7 +277,12 @@ export function ReceiverInfoTab({
                       {address.address_line3 && <p>{address.address_line3}</p>}
                       {address.address_line4 && <p>{address.address_line4}</p>}
                       <p>
-                        {(address.country || address.code || "").toUpperCase()}
+                        {countriesList.length > 0
+                          ? normalizeCountryToName(
+                              address.country || address.code || "",
+                              countriesList
+                            )
+                          : (address.country || address.code || "").toUpperCase()}
                         {address.pincode && ` - ${address.pincode}`}
                       </p>
 
@@ -326,13 +335,15 @@ export function ReceiverInfoTab({
                 name={`shipments.${index}.receiver.receivingCountry`}
                 control={control}
                 render={({ field }) => {
-                  const selectedCountry = countriesList.find(
-                    (country) => country.code === field.value,
-                  );
+                  // Normalize to name for display
+                  const displayName = countriesList.length > 0 && field.value
+                    ? normalizeCountryToName(field.value, countriesList)
+                    : field.value;
+                  
                   return (
                     <div className="flex h-[46px] items-center rounded-md border border-[#e2e2e2] bg-muted/50 px-3 text-sm">
                       <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {selectedCountry?.name ?? field.value ?? "—"}
+                      {displayName ?? "—"}
                     </div>
                   );
                 }}

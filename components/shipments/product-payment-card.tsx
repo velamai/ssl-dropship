@@ -44,7 +44,7 @@ export function ProductPaymentCard({
   onPaymentUpdate,
 }: ProductPaymentCardProps) {
   const [paymentMethod, setPaymentMethod] = useState<string>(
-    shipment.drop_and_ship_product_payment_method || "Bank Transfer"
+    shipment.drop_and_ship_product_payment_method || "Bank Transfer",
   );
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -76,7 +76,8 @@ export function ProductPaymentCard({
 
   // Get courier charge and handling charges from shipment
   const courierCharge = Number(shipment.drop_and_ship_courier_charge ?? 0) || 0;
-  const handlingCharges = Number(shipment.drop_and_ship_handling_charges ?? 0) || 0;
+  const handlingCharges =
+    Number(shipment.drop_and_ship_handling_charges ?? 0) || 0;
 
   // Product payment amount = items total + add-ons total + courier charge + handling charges
   // Use drop_and_ship_product_payment_charges if available, otherwise calculate from items + add-ons + courier + handling
@@ -84,8 +85,16 @@ export function ProductPaymentCard({
     ? Number(shipment.drop_and_ship_product_payment_charges)
     : itemsTotal + addOnsTotal + courierCharge + handlingCharges;
 
-  const onlinePaymentCharges = productPaymentAmount * 0.035;
-  const totalWithCharges = productPaymentAmount + onlinePaymentCharges;
+  // Get advance payment amount
+  const advancePayment =
+    Number(shipment.drop_and_ship_advance_payment ?? 0) || 0;
+
+  // Calculate remaining balance after advance
+  const remainingBalance = productPaymentAmount - advancePayment;
+
+  // Apply 3.5% online payment charge only on remaining balance
+  const onlinePaymentCharges = remainingBalance * 0.035;
+  const totalWithCharges = remainingBalance + onlinePaymentCharges;
 
   // Check if payment is already processed or being reviewed
   const isPaymentProcessed =
@@ -214,8 +223,9 @@ export function ProductPaymentCard({
 
     try {
       // Upload file to storage
-      const filename = `product-payment-proof/${Date.now()}-${selectedFile.name
-        }`;
+      const filename = `product-payment-proof/${Date.now()}-${
+        selectedFile.name
+      }`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("colombo-storage")
         .upload(filename, selectedFile);
@@ -415,7 +425,7 @@ export function ProductPaymentCard({
               <div>
                 Paid on:{" "}
                 {new Date(
-                  shipment.drop_and_ship_product_paid_at!
+                  shipment.drop_and_ship_product_paid_at!,
                 ).toLocaleString()}
               </div>
             </div>
@@ -436,7 +446,7 @@ export function ProductPaymentCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {shipment.drop_and_ship_product_payment_proof_status ===
-                "Rejected" ? (
+              "Rejected" ? (
                 <XCircle className="h-4 w-4 text-red-600" />
               ) : shipment.drop_and_ship_product_payment_proof_status ===
                 "Approved" ? (
@@ -447,7 +457,7 @@ export function ProductPaymentCard({
               <AlertTitle>
                 Product Payment Proof{" "}
                 {shipment.drop_and_ship_product_payment_proof_status ===
-                  "Rejected"
+                "Rejected"
                   ? "Rejected"
                   : "Status"}
               </AlertTitle>
@@ -463,13 +473,13 @@ export function ProductPaymentCard({
               "Your product payment has been verified by our admin team. Your shipment will be processed shortly."}
             {shipment.drop_and_ship_product_payment_proof_status ===
               "Rejected" && (
-                <>
-                  {shipment.drop_and_ship_product_payment_proof_rejection_reason}
-                  <div className="mt-2">
-                    Please submit a new product payment proof.
-                  </div>
-                </>
-              )}
+              <>
+                {shipment.drop_and_ship_product_payment_proof_rejection_reason}
+                <div className="mt-2">
+                  Please submit a new product payment proof.
+                </div>
+              </>
+            )}
             {shipment.drop_and_ship_product_payment_proof_url &&
               (paymentMethod === "Bank Transfer" ||
                 paymentMethod === "Cash") && (
@@ -557,10 +567,24 @@ export function ProductPaymentCard({
                 <span>{formatPrice(handlingCharges, shipment)}</span>
               </div>
             )}
-            {(itemsTotal > 0 || addOnsTotal > 0 || courierCharge > 0 || handlingCharges > 0) && <Separator />}
+            {(itemsTotal > 0 ||
+              addOnsTotal > 0 ||
+              courierCharge > 0 ||
+              handlingCharges > 0) && <Separator />}
             <div className="flex justify-between text-sm font-medium">
-              <span>Amount:</span>
+              <span>Subtotal:</span>
               <span>{formatPrice(productPaymentAmount, shipment)}</span>
+            </div>
+            {advancePayment > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Advance Paid:</span>
+                <span>- {formatPrice(advancePayment, shipment)}</span>
+              </div>
+            )}
+            {advancePayment > 0 && <Separator />}
+            <div className="flex justify-between text-sm font-medium">
+              <span>Remaining Balance:</span>
+              <span>{formatPrice(remainingBalance, shipment)}</span>
             </div>
             {paymentMethod === "Online Payment" && (
               <>
@@ -688,7 +712,7 @@ export function ProductPaymentCard({
                   <Button
                     onClick={handleProofUpload}
                     disabled={Boolean(
-                      !selectedFile || isUploading || isPaymentProcessed
+                      !selectedFile || isUploading || isPaymentProcessed,
                     )}
                     className="w-full"
                   >
@@ -756,10 +780,24 @@ export function ProductPaymentCard({
                   <span>{handlingCharges.toFixed(2)} INR</span>
                 </div>
               )}
-              {(itemsTotal > 0 || addOnsTotal > 0 || courierCharge > 0 || handlingCharges > 0) && <Separator />}
+              {(itemsTotal > 0 ||
+                addOnsTotal > 0 ||
+                courierCharge > 0 ||
+                handlingCharges > 0) && <Separator />}
               <div className="flex justify-between text-sm font-medium">
-                <span>Amount:</span>
+                <span>Subtotal:</span>
                 <span>{productPaymentAmount.toFixed(2)} INR</span>
+              </div>
+              {advancePayment > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Advance Paid:</span>
+                  <span>- {advancePayment.toFixed(2)} INR</span>
+                </div>
+              )}
+              {advancePayment > 0 && <Separator />}
+              <div className="flex justify-between text-sm font-medium">
+                <span>Remaining Balance:</span>
+                <span>{remainingBalance.toFixed(2)} INR</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Online Payment Charge (3.5%):</span>

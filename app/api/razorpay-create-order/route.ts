@@ -68,7 +68,12 @@ export async function POST(req: Request) {
         const handlingCharges =
           Number(shipment.drop_and_ship_handling_charges ?? 0) || 0;
 
-        baseAmount = itemsTotal + addOnsTotal + courierCharge + handlingCharges;
+        baseAmount =
+          itemsTotal +
+          addOnsTotal +
+          courierCharge +
+          handlingCharges -
+          shipment.drop_and_ship_advance_payment;
       }
     } else {
       // For regular payment: use grand_total

@@ -34,6 +34,7 @@ import {
   useUpdateAddress,
 } from "@/lib/hooks/useUserAddresses";
 import { toast } from "@/components/ui/use-toast";
+import { normalizeCountryToCode } from "@/lib/utils/country";
 
 interface AddressFormDialogProps {
   open: boolean;
@@ -73,6 +74,11 @@ export function AddressFormDialog({
   useEffect(() => {
     if (open) {
       if (mode === "edit" && address) {
+        // Normalize country to code if it's a name
+        const normalizedCountry = countries.length > 0 && address.country
+          ? normalizeCountryToCode(address.country, countries)
+          : address.country || "";
+        
         setFormData({
           code: address.code || "",
           address_line1: address.address_line1 || "",
@@ -80,7 +86,7 @@ export function AddressFormDialog({
           address_line3: address.address_line3 || "",
           address_line4: address.address_line4 || "",
           pincode: address.pincode || "",
-          country: address.country || "",
+          country: normalizedCountry,
           is_primary: address.is_primary || false,
         });
       } else {
@@ -88,7 +94,7 @@ export function AddressFormDialog({
       }
       setError(null);
     }
-  }, [open, mode, address]);
+  }, [open, mode, address, countries]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
