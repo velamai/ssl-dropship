@@ -172,7 +172,10 @@ export async function POST(req: NextRequest) {
     case "payment.failed":
       await supabase
         .from("shipments")
-        .update({ ecommerce_payment_status: "failed" })
+        .update({
+          ecommerce_payment_status: "failed",
+          payment_status: "failed",
+        })
         .eq("id", shipment_id);
       console.log("Payment failed:", event.payload.payment.entity);
       break;
