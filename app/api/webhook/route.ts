@@ -93,28 +93,56 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // Update regular payment fields
-        const { error: updateError } = await supabase
-          .from("shipments")
-          .update({
-            payment_status: "paid",
-            paid_at: new Date().toISOString(),
-            current_status_updated_at: new Date().toISOString(),
-            payment_id: payment_id,
-            status_timeline: [
-              ...statusTimeline,
-              {
-                status: "Paid",
-                updated_at: new Date().toISOString(),
-                description: "Payment has been captured",
-              },
-            ],
-            current_status: "Paid",
-            payment_details: JSON.stringify(event.payload.payment.entity),
-            payment_method: "Online Payment",
-          })
-          .eq("shipment_id", shipment_id);
-        if (updateError) {
-          return new NextResponse("Error updating shipment", { status: 500 });
+
+        if (shipmentData.source === "ecommerce") {
+          const { error: updateError } = await supabase
+            .from("shipments")
+            .update({
+              payment_status: "paid",
+              ecommerce_payment_status: "paid",
+              paid_at: new Date().toISOString(),
+              current_status_updated_at: new Date().toISOString(),
+              payment_id: payment_id,
+              status_timeline: [
+                ...statusTimeline,
+                {
+                  status: "Paid",
+                  updated_at: new Date().toISOString(),
+                  description: "Payment has been captured",
+                },
+              ],
+              current_status: "Paid",
+              payment_details: JSON.stringify(event.payload.payment.entity),
+              payment_method: "Online Payment",
+            })
+            .eq("shipment_id", shipment_id);
+          if (updateError) {
+            return new NextResponse("Error updating shipment", { status: 500 });
+          }
+        } else {
+          const { error: updateError } = await supabase
+            .from("shipments")
+            .update({
+              payment_status: "paid",
+              paid_at: new Date().toISOString(),
+              current_status_updated_at: new Date().toISOString(),
+              payment_id: payment_id,
+              status_timeline: [
+                ...statusTimeline,
+                {
+                  status: "Paid",
+                  updated_at: new Date().toISOString(),
+                  description: "Payment has been captured",
+                },
+              ],
+              current_status: "Paid",
+              payment_details: JSON.stringify(event.payload.payment.entity),
+              payment_method: "Online Payment",
+            })
+            .eq("shipment_id", shipment_id);
+          if (updateError) {
+            return new NextResponse("Error updating shipment", { status: 500 });
+          }
         }
       }
 
