@@ -49,7 +49,7 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // Get the singleton instance
@@ -57,6 +57,11 @@ const supabase = getSupabaseBrowserClient();
 
 export default function ShipmentDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const warehouseCode = searchParams.get("warehouse");
+  const shipmentsListHref = warehouseCode
+    ? `/shipments?warehouse=${encodeURIComponent(warehouseCode.toLowerCase())}`
+    : "/shipments";
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [items, setItems] = useState<ShipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +199,7 @@ export default function ShipmentDetailsPage() {
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/shipments">Return to Orders</Link>
+                <Link href={shipmentsListHref}>Return to Orders</Link>
               </Button>
             </CardContent>
           </Card>
@@ -211,7 +216,7 @@ export default function ShipmentDetailsPage() {
         <div className="sm:container">
           <div className="mb-6">
             <Link
-              href="/shipments"
+              href={shipmentsListHref}
               className="mb-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />

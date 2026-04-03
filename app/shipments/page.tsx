@@ -9,6 +9,7 @@ import {
   User,
   Warehouse,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -167,79 +168,156 @@ interface WarehouseWithPackageCount {
 }
 
 export default function ShipmentsPage() {
-  const [shipments, setShipments] = useState<ShipmentWithRelations[]>([]);
-  const [filteredShipments, setFilteredShipments] = useState<
-    ShipmentWithRelations[]
-  >([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [warehousesWithCounts, setWarehousesWithCounts] = useState<
     WarehouseWithPackageCount[]
   >([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
-  const [selectedWarehouseCountryCode, setSelectedWarehouseCountryCode] =
-    useState<string | null>(null);
-  const [selectedWarehouseName, setSelectedWarehouseName] = useState<
-    string | null
-  >(null);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(
-    null,
-  );
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { data: warehousesData, isLoading: warehousesDataLoading } =
     useWarehouses();
 
-  // Fetch warehouse info when warehouse query parameter is present
+  /** From URL on every render — avoids a race where shipments fetched before async state updates. */
+  const warehouseParamRaw = searchParams.get("warehouse");
+  const activeWarehouseCountryCode =
+    warehouseParamRaw?.trim() && warehouseParamRaw.trim().length > 0
+      ? warehouseParamRaw.trim().toUpperCase()
+      : null;
+
+  const { data: warehouseRow, error: warehouseMetaError } = useQuery({
+    queryKey: ["warehouse", "byCountry", user?.id, activeWarehouseCountryCode],
+    enabled: !!user?.id && !!activeWarehouseCountryCode,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("country_code, name")
+        .eq("country_code", activeWarehouseCountryCode!)
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    retry: false,
+  });
+
   useEffect(() => {
-    const countryCodeParam = searchParams.get("warehouse");
-    if (!countryCodeParam || !user?.id) {
-      setSelectedWarehouseCountryCode(null);
-      setSelectedWarehouseName(null);
-      setSelectedWarehouseId(null);
-      return;
-    }
+    if (!activeWarehouseCountryCode || !warehouseMetaError) return;
+    console.error("Failed to fetch warehouse info:", warehouseMetaError);
+    toast.error("Failed to load warehouse information", {
+      description:
+        warehouseMetaError instanceof Error
+          ? warehouseMetaError.message
+          : "Please try again.",
+    });
+    router.replace("/shipments");
+  }, [activeWarehouseCountryCode, warehouseMetaError, router]);
 
-    // Convert lowercase country code to uppercase for database queries
-    const countryCodeUpper = countryCodeParam.toUpperCase();
+  const selectedWarehouseName = warehouseRow?.name ?? null;
 
-    async function fetchWarehouseInfo() {
-      try {
-        // Fetch warehouse info using country code
-        const { data, error } = await supabase
-          .from("warehouses")
-          .select("country_code, name")
-          .eq("country_code", countryCodeUpper)
-          .limit(1)
-          .single();
+  const {
+    data: shipmentsPage,
+    isPending: shipmentsLoading,
+    isError: shipmentsQueryFailed,
+    error: shipmentsQueryError,
+  } = useQuery({
+    queryKey: [
+      "shipments",
+      "dropAndShip",
+      user?.id,
+      activeWarehouseCountryCode,
+      statusFilter,
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+    ],
+    enabled: !!user?.id && !!activeWarehouseCountryCode,
+    queryFn: async () => {
+      const userId = user!.id;
+      const countryCode = activeWarehouseCountryCode!;
 
-        if (error) throw error;
+      let query = supabase
+        .from("shipments")
+        .select("*", { count: "estimated" })
+        .eq("user_id", userId)
+        .eq("source", "drop_and_ship")
+        .eq("drop_and_ship_source_country_code", countryCode);
 
-        if (data) {
-          setSelectedWarehouseCountryCode(countryCodeUpper);
-          setSelectedWarehouseName(data.name);
-          setSelectedWarehouseId(null);
-          setCurrentPage(1);
-        }
-      } catch (error: any) {
-        console.error("Failed to fetch warehouse info:", error);
-        toast.error("Failed to load warehouse information", {
-          description: error.message || "Please try again.",
-        });
-        setSelectedWarehouseCountryCode(null);
-        setSelectedWarehouseName(null);
-        setSelectedWarehouseId(null);
+      if (searchTerm.trim()) {
+        const searchPattern = `%${searchTerm.toLowerCase()}%`;
+        query = query.or(
+          `shipment_id.ilike.${searchPattern},drop_and_ship_order_id.ilike.${searchPattern},receiver_first_name.ilike.${searchPattern},receiver_last_name.ilike.${searchPattern},receiver_postal_code.ilike.${searchPattern},receiver_address_line1.ilike.${searchPattern}`,
+        );
       }
-    }
 
-    fetchWarehouseInfo();
-  }, [searchParams, user?.id]);
+      if (statusFilter !== "all") {
+        query = query.eq("current_status", statusFilter);
+      }
+
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      const shipmentsWithExtras: ShipmentWithRelations[] = await Promise.all(
+        (data || []).map(async (shipment) => {
+          const { data: itemData } = await supabase
+            .from("shipment_items")
+            .select("total_price, quantity")
+            .eq("shipment_id", shipment.shipment_id);
+
+          return {
+            ...shipment,
+            total_price:
+              itemData?.reduce(
+                (acc, item) => acc + (item.total_price || 0),
+                0,
+              ) || 0,
+            total_quantity:
+              itemData?.reduce(
+                (acc, item) => acc + (item.quantity || 0),
+                0,
+              ) || 0,
+          };
+        }),
+      );
+
+      return {
+        shipments: shipmentsWithExtras,
+        totalCount: count ?? 0,
+      };
+    },
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeWarehouseCountryCode]);
+
+  const filteredShipments = shipmentsPage?.shipments ?? [];
+  const totalCount = shipmentsPage?.totalCount ?? 0;
+
+  useEffect(() => {
+    if (!shipmentsQueryFailed || !activeWarehouseCountryCode) return;
+    console.error("Failed to load shipments:", shipmentsQueryError);
+    toast.error("Failed to load shipments", {
+      description:
+        shipmentsQueryError instanceof Error
+          ? shipmentsQueryError.message
+          : "Please try again.",
+    });
+  }, [
+    shipmentsQueryFailed,
+    shipmentsQueryError,
+    activeWarehouseCountryCode,
+  ]);
 
   // Load warehouses with package counts
   useEffect(() => {
@@ -294,152 +372,12 @@ export default function ShipmentsPage() {
     loadWarehousesWithCounts();
   }, [user?.id, warehousesData, warehousesDataLoading]);
 
-  // Helper function to get courier name
-
-  // Load shipments with item counts
-  useEffect(() => {
-    // Guard clause: don't proceed if user is not loaded
-    if (!user || !user.id) {
-      setLoading(false);
-      return;
-    }
-
-    // Use a ref to track the current user ID to prevent unnecessary reloads
-    const userId = user.id;
-
-    async function loadShipments() {
-      setLoading(true);
-      try {
-        let query = supabase
-          .from("shipments")
-          .select("*", { count: "estimated" })
-          .eq("user_id", userId)
-          .eq("source", "drop_and_ship");
-
-        // Filter by source country code if warehouse is selected
-        if (selectedWarehouseCountryCode) {
-          query = query.eq(
-            "drop_and_ship_source_country_code",
-            selectedWarehouseCountryCode,
-          );
-        }
-        // Apply search filter at database level when warehouse is selected
-        if (searchTerm.trim() && selectedWarehouseCountryCode) {
-          // When warehouse is selected, search within that warehouse's shipments
-          const searchPattern = `%${searchTerm.toLowerCase()}%`;
-          query = query.or(
-            `shipment_id.ilike.${searchPattern},drop_and_ship_order_id.ilike.${searchPattern},receiver_first_name.ilike.${searchPattern},receiver_last_name.ilike.${searchPattern},receiver_postal_code.ilike.${searchPattern},receiver_address_line1.ilike.${searchPattern}`,
-          );
-        }
-
-        if (statusFilter !== "all") {
-          query = query.eq("current_status", statusFilter);
-        }
-
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data, error, count } = await query;
-
-        console.log({ data });
-        console.log({ error });
-        console.log({ count });
-
-        if (error) throw error;
-
-        if (count !== null) {
-          setTotalCount(count);
-        }
-
-        // Process shipments with courier names
-        const shipmentsWithExtras: ShipmentWithRelations[] = await Promise.all(
-          (data || []).map(async (shipment) => {
-            // Get item count
-            const { data: itemData } = await supabase
-              .from("shipment_items")
-              .select("total_price, quantity") // Use head: true for count only
-              .eq("shipment_id", shipment.shipment_id);
-
-            return {
-              ...shipment,
-              total_price:
-                itemData?.reduce(
-                  (acc, item) => acc + (item.total_price || 0),
-                  0,
-                ) || 0,
-              total_quantity:
-                itemData?.reduce(
-                  (acc, item) => acc + (item.quantity || 0),
-                  0,
-                ) || 0,
-            };
-          }),
-        );
-
-        setShipments(shipmentsWithExtras || []);
-      } catch (error: any) {
-        // Catch error as any for broader compatibility
-        console.error("Failed to load shipments:", error);
-        // Correct usage of sonner toast for error
-        toast.error("Failed to load shipments", {
-          description: error.message || "Please try again.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadShipments();
-    // Use user.id instead of user object to prevent reloads on token refresh
-  }, [
-    user?.id,
-    statusFilter,
-    currentPage,
-    itemsPerPage,
-    selectedWarehouseCountryCode,
-    searchTerm, // Added searchTerm to reload when searching with warehouse filter
-  ]);
-
-  // Filter shipments based on search term (only when no warehouse filter is active)
-  useEffect(() => {
-    // If warehouse filter is active, search is handled at database level
-    if (selectedWarehouseCountryCode) {
-      setFilteredShipments(shipments);
-      return;
-    }
-
-    // Client-side filtering for all warehouses view
-    if (!searchTerm.trim()) {
-      setFilteredShipments(shipments);
-      return;
-    }
-
-    const lowerCaseSearch = searchTerm.toLowerCase();
-    const filtered = shipments.filter(
-      (shipment) =>
-        shipment.shipment_id.toLowerCase().includes(lowerCaseSearch) ||
-        shipment.drop_and_ship_order_id
-          ?.toLowerCase()
-          .includes(lowerCaseSearch) ||
-        `${shipment.receiver_first_name} ${shipment.receiver_last_name}`
-          .toLowerCase()
-          .includes(lowerCaseSearch) ||
-        (shipment.receiver_postal_code &&
-          shipment.receiver_postal_code
-            .toLowerCase()
-            .includes(lowerCaseSearch)) ||
-        (shipment.receiver_address_line1 &&
-          shipment.receiver_address_line1
-            .toLowerCase()
-            .includes(lowerCaseSearch)),
-    );
-
-    setFilteredShipments(filtered);
-  }, [searchTerm, shipments, selectedWarehouseCountryCode]);
-
   const handleCardClick = (shipmentId: string) => {
-    router.push(`/shipments/${shipmentId}`);
+    const warehouseCode = searchParams.get("warehouse");
+    const qs = warehouseCode
+      ? `?warehouse=${encodeURIComponent(warehouseCode.toLowerCase())}`
+      : "";
+    router.push(`/shipments/${shipmentId}${qs}`);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -518,7 +456,12 @@ export default function ShipmentsPage() {
     );
   };
 
-  if (loading) {
+  /** Auth still resolving: query is disabled so isPending is false — avoid empty-state flash. */
+  const showWarehouseOrdersSkeleton =
+    !!activeWarehouseCountryCode &&
+    (authLoading || (!!user?.id && shipmentsLoading));
+
+  if (showWarehouseOrdersSkeleton) {
     return (
       <div className="flex min-h-screen flex-col bg-white">
         <Navbar activePage="shipments" />
@@ -575,7 +518,7 @@ export default function ShipmentsPage() {
       <main className="flex-1 p-4 md:p-6">
         <div className="md:container">
           {/* Locations Section - Only show when no warehouse filter is active */}
-          {!selectedWarehouseCountryCode && (
+          {!activeWarehouseCountryCode && (
             <div className="mb-8">
               <div className="mb-6 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -585,7 +528,7 @@ export default function ShipmentsPage() {
                   </h2>
                 </div>
 
-                {!selectedWarehouseCountryCode && (
+                {!activeWarehouseCountryCode && (
                   <div className="mb-8 flex justify-end">
                     <Link href="/create-shipments?service=link">
                       <Button className="gap-2">Create Orders</Button>
@@ -942,7 +885,7 @@ export default function ShipmentsPage() {
           )}
 
           {/* Orders Section - Only show when warehouse filter is active */}
-          {selectedWarehouseCountryCode && (
+          {activeWarehouseCountryCode && (
             <>
               <div className="mb-8">
                 <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -952,9 +895,6 @@ export default function ShipmentsPage() {
                       size="sm"
                       onClick={() => {
                         router.push("/shipments");
-                        setSelectedWarehouseCountryCode(null);
-                        setSelectedWarehouseName(null);
-                        setSelectedWarehouseId(null);
                         setCurrentPage(1);
                       }}
                       className="border-text-subtle/30 h-8 w-10 text-text-subtle hover:bg-gray-50"
@@ -963,7 +903,8 @@ export default function ShipmentsPage() {
                     </Button>
                     <div>
                       <h2 className="text-2xl font-bold tracking-tight text-dark">
-                        Orders at {selectedWarehouseName}
+                        Orders at{" "}
+                        {selectedWarehouseName ?? activeWarehouseCountryCode}
                       </h2>
                       {/* <p className="text-text-subtle mt-1 text-sm">
                         Showing orders for{" "}
