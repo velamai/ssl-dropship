@@ -39,7 +39,7 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
       <CardContent className="p-4 space-y-4">
         {items.length > 0 ? (
           <>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               <div>
                 <h3 className="text-xs font-medium text-muted-foreground">
                   Items
@@ -50,6 +50,17 @@ export function ProductInfoCard({ shipment, items }: ProductInfoCardProps) {
                   </span>
                   <span className="text-sm">items</span>
                 </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground">
+                  Total weight
+                </h3>
+                <p className="text-sm">
+                  {shipment.shipment_total_weight != null &&
+                  shipment.shipment_total_weight > 0
+                    ? `${shipment.shipment_total_weight.toLocaleString()} g`
+                    : "—"}
+                </p>
               </div>
               {shipment.drop_and_ship_purchase_date && (
                 <div>
