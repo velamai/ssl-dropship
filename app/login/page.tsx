@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { toast } from "@/components/ui/use-toast";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +24,7 @@ function SignInForm() {
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Get redirect parameter from URL
@@ -81,7 +82,7 @@ function SignInForm() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSendingReset(true);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
@@ -109,7 +110,7 @@ function SignInForm() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSendingReset(false);
     }
   };
 
@@ -337,7 +338,7 @@ function SignInForm() {
               className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2"
               aria-label="Close forgot password dialog"
             >
-              <EyeOff size={16} />
+              <X size={16} />
             </button>
 
             <div className="text-center">
@@ -374,10 +375,10 @@ function SignInForm() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="h-[46px] w-full rounded-lg bg-primary text-[15px] font-medium text-white transition-all hover:bg-[#8a34c3] focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2 active:scale-[0.98]"
+                  disabled={isSendingReset}
+                  className="h-[46px] w-full rounded-lg bg-primary text-[15px] font-medium text-white transition-all hover:bg-[#8a34c3] focus:outline-none focus:ring-2 focus:ring-[#9a3bd9] focus:ring-offset-2 active:scale-[0.98] disabled:opacity-70"
                 >
-                  Reset Password
+                  {isSendingReset ? "Sending..." : "Reset Password"}
                 </button>
               </form>
             </div>

@@ -19,7 +19,7 @@ type AuthContextType = {
     email: string,
     password: string
   ) => Promise<{ error: any | null; data: any | null }>;
-  signOut: () => Promise<void>;
+  signOut: (redirectTo?: string) => Promise<void>;
   refreshSession: () => Promise<void>;
 };
 
@@ -212,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (redirectTo?: string) => {
     try {
       queryClient.clear();
       currentUserIdRef.current = null;
@@ -220,7 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       router.refresh();
-      router.push("/");
+      router.push(redirectTo ?? "/");
     } catch (error) {
       console.error("Error signing out:", error);
     }

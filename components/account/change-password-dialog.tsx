@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -27,6 +28,7 @@ export function ChangePasswordDialog({
   open,
   onOpenChange,
 }: ChangePasswordDialogProps) {
+  const { signOut } = useAuth();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,17 +69,26 @@ export function ChangePasswordDialog({
 
       if (updateError) {
         setError(updateError.message);
+        toast({
+          title: "Password update failed",
+          description: updateError.message,
+          variant: "destructive",
+        });
         return;
       }
 
       toast({
         title: "Password updated",
-        description: "Your password has been changed successfully.",
+        description: "Your password has been changed. Please sign in again.",
         variant: "default",
       });
 
       resetForm();
       handleClose(false);
+
+      setTimeout(() => {
+        void signOut("/login");
+      }, 1500);
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("Error changing password:", err);
