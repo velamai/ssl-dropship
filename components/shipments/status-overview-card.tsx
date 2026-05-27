@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Package } from "lucide-react";
 import { StatusBadge } from "./status-badge";
-import { formatDate, getStatusColor } from "./utils";
+import { formatDate, getDisplayShipmentStatus, getStatusColor } from "./utils";
 import type { Shipment } from "./types";
 
 interface StatusOverviewCardProps {
@@ -16,11 +16,14 @@ interface StatusOverviewCardProps {
 }
 
 export function StatusOverviewCard({ shipment }: StatusOverviewCardProps) {
+  const { status: displayStatus, updatedAt: displayUpdatedAt } =
+    getDisplayShipmentStatus(shipment);
+
   return (
     <Card
       className="border-l-4 mb-6"
       style={{
-        borderLeftColor: getStatusColor(shipment.current_status),
+        borderLeftColor: getStatusColor(displayStatus),
       }}
     >
       <CardContent className="p-6">
@@ -34,12 +37,10 @@ export function StatusOverviewCard({ shipment }: StatusOverviewCardProps) {
                 Current Status
               </p>
               <div className="flex items-center gap-2">
-                <StatusBadge status={shipment.current_status} />
+                <StatusBadge status={displayStatus} />
                 <span className="text-sm text-muted-foreground">
                   Updated:{" "}
-                  {formatDate(
-                    shipment.current_status_updated_at || shipment.created_at
-                  )}
+                  {formatDate(displayUpdatedAt || shipment.created_at)}
                 </span>
               </div>
             </div>

@@ -4,7 +4,84 @@
 
 import { sortedCountries } from "@/lib/countries";
 import { DROP_AND_SHIP_ADD_ON_LABELS } from "./constants";
-import type { Shipment } from "./types";
+import type { Shipment, TrackingEvent } from "./types";
+
+/**
+ * Statuses omitted from customer-facing tracking UI (timeline rows and headline
+ * status). Data and APIs are unchanged; this is display-only.
+ */
+const HIDDEN_TRACKING_STATUS_SET = new Set<string>([
+  "Accepted",
+  "Price Ready",
+  "Product Price Ready",
+  "Invoice Generated",
+  "Product Invoice Generated",
+  "Ready to Ship",
+]);
+
+export function isHiddenTrackingStatus(status: string): boolean {
+  return HIDDEN_TRACKING_STATUS_SET.has(status);
+}
+
+export function filterVisibleTrackingEvents<T extends { status: string }>(
+  events: T[],
+): T[] {
+  return events.filter((e) => !isHiddenTrackingStatus(e.status));
+}
+
+type ShipmentDisplayStatusInput = Pick<
+  Shipment,
+  | "current_status"
+  | "current_status_updated_at"
+  | "created_at"
+  | "status_timeline"
+>;
+
+/**
+ * Timeline entries newest-first (same sort as existing tracking UIs).
+ */
+export function getSortedShipmentTimelineDesc(
+  status_timeline: Shipment["status_timeline"] | null | undefined,
+): TrackingEvent[] {
+  if (!status_timeline) return [];
+  const raw =
+    typeof status_timeline === "string"
+      ? JSON.parse(status_timeline)
+      : status_timeline;
+  if (!Array.isArray(raw)) return [];
+  return [...raw].sort(
+    (a: TrackingEvent, b: TrackingEvent) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+  );
+}
+
+/**
+ * When the real current status is hidden in the UI, show the latest visible
+ * status from the timeline; otherwise show the real current status.
+ */
+export function getDisplayShipmentStatus(
+  shipment: ShipmentDisplayStatusInput,
+): { status: string; updatedAt: string | undefined } {
+  const timeline = getSortedShipmentTimelineDesc(shipment.status_timeline);
+
+  if (!isHiddenTrackingStatus(shipment.current_status)) {
+    return {
+      status: shipment.current_status,
+      updatedAt: shipment.current_status_updated_at || shipment.created_at,
+    };
+  }
+
+  for (const event of timeline) {
+    if (!isHiddenTrackingStatus(event.status)) {
+      return { status: event.status, updatedAt: event.updated_at };
+    }
+  }
+
+  return {
+    status: "Pending",
+    updatedAt: shipment.created_at,
+  };
+}
 
 /**
  * Formats an address for label printing

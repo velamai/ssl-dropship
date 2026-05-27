@@ -5,7 +5,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock } from "lucide-react";
 import { StatusBadge } from "./status-badge";
-import { getStatusColor } from "./utils";
+import {
+  filterVisibleTrackingEvents,
+  getDisplayShipmentStatus,
+  getStatusColor,
+} from "./utils";
 import type { Shipment, TrackingEvent } from "./types";
 
 interface TrackingHistoryCardProps {
@@ -19,11 +23,15 @@ export function TrackingHistoryCard({ shipment }: TrackingHistoryCardProps) {
       : shipment.status_timeline
     : [];
 
-  const sortedTrackingHistory = [...trackingHistory].sort((a, b) => {
-    const dateA = new Date(a.updated_at).getTime();
-    const dateB = new Date(b.updated_at).getTime();
-    return dateB - dateA;
-  });
+  const sortedTrackingHistory = filterVisibleTrackingEvents(
+    [...trackingHistory].sort((a, b) => {
+      const dateA = new Date(a.updated_at).getTime();
+      const dateB = new Date(b.updated_at).getTime();
+      return dateB - dateA;
+    }),
+  );
+
+  const displayStatus = getDisplayShipmentStatus(shipment).status;
 
   return (
     <Card className="transition-all hover:shadow-md h-full">
@@ -39,13 +47,13 @@ export function TrackingHistoryCard({ shipment }: TrackingHistoryCardProps) {
             <Clock className="h-10 w-10 mb-3 text-gray-400" />
             <p className="font-medium mb-1">No Tracking History Yet</p>
             <p className="text-sm">
-              {shipment.current_status === "Payment Requested"
+              {displayStatus === "Payment Requested"
                 ? "Awaiting payment confirmation."
-                : shipment.current_status === "Pick Up"
-                ? "Waiting for pickup."
-                : shipment.current_status === "Pending"
-                ? "Shipment is being processed."
-                : "Check back later for updates."}
+                : displayStatus === "Pick Up"
+                  ? "Waiting for pickup."
+                  : displayStatus === "Pending"
+                    ? "Shipment is being processed."
+                    : "Check back later for updates."}
             </p>
           </div>
         ) : (

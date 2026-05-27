@@ -6,6 +6,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  filterVisibleTrackingEvents,
+  getDisplayShipmentStatus,
+} from "@/components/shipments/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import {
   ArrowRight,
@@ -483,9 +487,16 @@ function TrackingPageContent() {
       );
     });
 
+  // Shipment timeline: hide selected internal statuses from the customer UI only
+  const visibleShipmentTrackingHistory = filterVisibleTrackingEvents(
+    shipmentTrackingHistory,
+  );
+
   // Determine which tracking history to display
   const displayTrackingHistory =
-    trackingType === "shipment" ? shipmentTrackingHistory : upsTrackingHistory;
+    trackingType === "shipment"
+      ? visibleShipmentTrackingHistory
+      : upsTrackingHistory;
 
   const displayId =
     trackingType === "shipment"
@@ -494,7 +505,9 @@ function TrackingPageContent() {
 
   const currentStatus =
     trackingType === "shipment"
-      ? shipmentData?.current_status
+      ? shipmentData
+        ? getDisplayShipmentStatus(shipmentData).status
+        : "Pending"
       : upsCurrentStatus?.simplifiedTextDescription ||
         upsCurrentStatus?.description ||
         "In Transit";

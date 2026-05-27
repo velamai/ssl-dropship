@@ -19,7 +19,11 @@ import type {
   ShipmentItem,
   TrackingEvent,
 } from "@/components/shipments/types";
-import { getStatusColor } from "@/components/shipments/utils";
+import {
+  filterVisibleTrackingEvents,
+  getDisplayShipmentStatus,
+  getStatusColor,
+} from "@/components/shipments/utils";
 import { WarehouseInfoCard } from "@/components/shipments/warehouse-info-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -228,7 +232,9 @@ export default function ShipmentDetailsPage() {
                   Shipment {shipment.shipment_id}
                 </h1>
                 <div className="ml-auto flex items-center gap-2 mt-2">
-                  <StatusBadge status={shipment.current_status} />
+                  <StatusBadge
+                    status={getDisplayShipmentStatus(shipment).status}
+                  />
                   {shipment.order_id && (
                     <Badge variant="secondary">
                       Order: {shipment.order_id}
@@ -460,7 +466,7 @@ export default function ShipmentDetailsPage() {
           </DialogHeader>
           <div className="mt-4">
             {(() => {
-              // Parse tracking history from shipment
+              // Parse tracking history from shipment (UI hides selected internal statuses)
               const trackingHistory: TrackingEvent[] = shipment?.status_timeline
                 ? (typeof shipment.status_timeline === "string"
                     ? JSON.parse(shipment.status_timeline)
@@ -473,7 +479,14 @@ export default function ShipmentDetailsPage() {
                   })
                 : [];
 
-              if (trackingHistory.length === 0) {
+              const visibleTrackingHistory =
+                filterVisibleTrackingEvents(trackingHistory);
+
+              const displayStatus = shipment
+                ? getDisplayShipmentStatus(shipment).status
+                : "Pending";
+
+              if (visibleTrackingHistory.length === 0) {
                 return (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <div className="p-4 rounded-full bg-muted/50 mb-4">
@@ -483,11 +496,11 @@ export default function ShipmentDetailsPage() {
                       No Tracking History Yet
                     </p>
                     <p className="text-sm text-muted-foreground max-w-[250px]">
-                      {shipment?.current_status === "Payment Requested"
+                      {displayStatus === "Payment Requested"
                         ? "Awaiting payment confirmation."
-                        : shipment?.current_status === "Pick Up"
+                        : displayStatus === "Pick Up"
                           ? "Waiting for pickup."
-                          : shipment?.current_status === "Pending"
+                          : displayStatus === "Pending"
                             ? "Shipment is being processed."
                             : "Check back later for updates."}
                     </p>
@@ -501,7 +514,7 @@ export default function ShipmentDetailsPage() {
                   <div className="hidden md:block absolute left-[172px] z-10 top-3 bottom-3 w-0.5 rounded-full bg-slate-400/80" />
 
                   <div className="space-y-0">
-                    {trackingHistory.map(
+                    {visibleTrackingHistory.map(
                       (history: TrackingEvent, index: number) => {
                         const isFirst = index === 0;
                         const statusColor = getStatusColor(history.status);
