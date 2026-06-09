@@ -1,6 +1,18 @@
+import "server-only";
+
 const ZEPTO_MAIL_API_URL =
   process.env.ZEPTO_MAIL_API_URL || "https://api.zeptomail.in/v1.1/email";
 const SENDER_EMAIL = "noreply@universalmail.in";
+
+function getZeptoMailApiKey(): string {
+  const apiKey = process.env.ZEPTO_MAIL_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "ZEPTO_MAIL_API_KEY is not configured. Set it in your server environment (.env).",
+    );
+  }
+  return apiKey;
+}
 
 export function formatShipmentType(type: string): string {
   if (!type) return "Standard";
@@ -35,7 +47,6 @@ export async function sendEmailViaZeptoMail({
     subject,
     recipientName,
     senderEmail: SENDER_EMAIL,
-    apiUrl: ZEPTO_MAIL_API_URL,
     htmlBodyLength: htmlBody.length,
     timestamp: new Date().toISOString(),
   });
@@ -53,7 +64,7 @@ export async function sendEmailViaZeptoMail({
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Zoho-enczapikey PHtE6r0KQb263WF69RYF4f65FJOnN44r/esyJQdFuYlFCvcGTU1cqtsukTDh/0gjUaUXEKLKnt1s57Oase/XLTnkNDpKX2qyqK3sx/VYSPOZsbq6x00aslkff0PUXIDocdBr1CbQs9eX`,
+        Authorization: `Zoho-enczapikey ${getZeptoMailApiKey()}`,
       },
       body: JSON.stringify({
         from: { address: SENDER_EMAIL },
