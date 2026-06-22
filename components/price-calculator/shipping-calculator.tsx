@@ -806,7 +806,7 @@ export default function ShippingCalculator() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-10 w-10 rounded-full flex-shrink-0 p-0"
+                          className="h-10 w-10 rounded-full flex-shrink-0 p-0 hidden md:block"
                           onClick={() =>
                             setWeight(adjustNumericField(weight, -100, 1))
                           }
@@ -829,7 +829,7 @@ export default function ShippingCalculator() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-10 w-10 rounded-full flex-shrink-0 p-0"
+                          className="h-10 w-10 rounded-full flex-shrink-0 p-0 hidden md:block"
                           onClick={() =>
                             setWeight(adjustNumericField(weight, 100, 1))
                           }
@@ -1094,7 +1094,7 @@ export default function ShippingCalculator() {
                     </div>
 
                     {/* Package Weight */}
-                    <div className="space-y-2 max-w-[12rem]">
+                    <div className="space-y-2 w-[300px]">
                       <Label className="flex items-center text-sm font-medium whitespace-nowrap">
                         <Weight className="mr-1 h-4 w-4 text-primary flex-shrink-0" />
                         Package Weight (grams)
