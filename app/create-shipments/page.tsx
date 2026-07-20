@@ -36,6 +36,7 @@ import {
   ShipmentFormData,
   getPhoneDetails,
 } from "@/lib/schemas/shipmentSchema";
+import { sendAdminOrderNotificationEmail } from "@/lib/admin-order-email";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
@@ -876,7 +877,7 @@ function CreateShipmentPageContent() {
       const shipmentId =
         responseData?.shipment_id ?? responseData?.data?.shipment_id;
 
-      // Send order confirmation email (fire-and-forget)
+      // Send order confirmation and admin notification emails (fire-and-forget)
       if (shipmentId) {
         fetch("/api/send-order-confirmation", {
           method: "POST",
@@ -884,6 +885,10 @@ function CreateShipmentPageContent() {
           body: JSON.stringify({ shipment_id: shipmentId }),
         }).catch((err) =>
           console.error("Order confirmation email failed:", err),
+        );
+
+        sendAdminOrderNotificationEmail(shipmentId).catch((err) =>
+          console.error("Admin notification email failed:", err),
         );
       }
 

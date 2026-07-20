@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { fetchCountries } from "@/lib/api-client";
 import { fetchIdentityVerificationData } from "@/lib/api/identity";
 import { type PriceCalculationResult } from "@/lib/price-calculator";
+import { sendAdminOrderNotificationEmail } from "@/lib/admin-order-email";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
@@ -573,7 +574,7 @@ export default function CreateShipmentPage() {
 
       console.log("Drop and Ship Order created:", responseData);
 
-      // Send order confirmation email (fire-and-forget)
+      // Send order confirmation and admin notification emails (fire-and-forget)
       const shipmentId =
         responseData?.shipment_id ?? responseData?.data?.shipment_id;
       if (shipmentId) {
@@ -582,7 +583,11 @@ export default function CreateShipmentPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ shipment_id: shipmentId }),
         }).catch((err) =>
-          console.error("Order confirmation email failed:", err)
+          console.error("Order confirmation email failed:", err),
+        );
+
+        sendAdminOrderNotificationEmail(shipmentId).catch((err) =>
+          console.error("Admin notification email failed:", err),
         );
       }
 
