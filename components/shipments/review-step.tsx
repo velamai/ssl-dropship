@@ -45,6 +45,8 @@ import { toast as sonnerToast } from "sonner";
 
 type AddOnId = "gift-wrapper" | "gift-message" | "extra-packing";
 
+const ONLINE_PAYMENT_CHARGE_PERCENT = 0.035; // 3.5% Razorpay processing fee
+
 interface BankDetail {
   id: number;
   account_name: string;
@@ -202,6 +204,18 @@ export function ReviewStep({
   const destinationCurrencyCodeValue =
     sourceCountries?.find((country) => country.code === destinationCountryCode)
       ?.currency || "USD";
+
+  const orderGrandTotal = priceBreakdown
+    ? priceBreakdown.totalPriceOrigin +
+      addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1)
+    : null;
+
+  const orderPayAmount =
+    orderGrandTotal !== null &&
+    isLinkService &&
+    paymentMethod === "Online Payment"
+      ? orderGrandTotal * (1 + ONLINE_PAYMENT_CHARGE_PERCENT)
+      : orderGrandTotal;
 
   // Initialize Razorpay payment - create order first, then get payment from frontend (same logic)
   const initializeRazorpay = async (
@@ -656,7 +670,9 @@ export function ReviewStep({
                     <div className="text-left">
                       <p className="font-medium">Online Payment</p>
                       <p className="text-sm text-muted-foreground">
-                        Pay by card or UPI (3.5% processing fee applies)
+                        Pay by card or UPI (
+                        <span className="font-bold text-foreground">3.5%</span>{" "}
+                        processing fee applies)
                       </p>
                     </div>
                   </button>
@@ -1201,16 +1217,11 @@ export function ReviewStep({
                       <Button type="button" disabled={true} className="gap-2">
                         <Send className="h-4 w-4" />
                         Place Order
-                        {priceBreakdown && (
+                        {orderGrandTotal !== null && (
                           <>
                             {" "}
                             ({sourceCurrencyCodeValue}{" "}
-                            {formatCurrency(
-                              priceBreakdown.totalPriceOrigin +
-                                addOnTotal /
-                                  (priceBreakdown.exchangeRateSourceToInr || 1),
-                            )}
-                            )
+                            {formatCurrency(orderGrandTotal)})
                           </>
                         )}
                       </Button>
@@ -1399,14 +1410,17 @@ export function ReviewStep({
                     {isLinkService && paymentMethod === "Online Payment"
                       ? "Place Order and Pay"
                       : "Place Order"}
-                    {isLinkService && priceBreakdown && (
+                    {isLinkService && orderPayAmount !== null && (
                       <>
                         {" "}
                         ({sourceCurrencyCodeValue}{" "}
-                        {formatCurrency(
-                          priceBreakdown.totalPriceOrigin +
-                            addOnTotal /
-                              (priceBreakdown.exchangeRateSourceToInr || 1),
+                        {formatCurrency(orderPayAmount)}
+                        {paymentMethod === "Online Payment" && (
+                          <>
+                            {" "}
+                            incl.{" "}
+                            <span className="font-bold">3.5%</span> fee
+                          </>
                         )}
                         )
                       </>
