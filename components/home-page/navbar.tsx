@@ -197,7 +197,18 @@ export function Navbar() {
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Pricing Calculator
+              Product Pricing Calculator
+            </Link>
+            <Link
+              href="/calculator"
+              className={`block py-2 text-sm font-medium transition-colors ${
+                pathname === "/calculator"
+                  ? "text-primary"
+                  : "hover:text-primary"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Shipping Pricing Calculator
             </Link>
             <Link
               href="/#faqs"
