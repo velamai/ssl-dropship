@@ -215,7 +215,7 @@ export const OfficeLocation = () => {
           company="SUPER SAVE MALAYSIA (PVT) LTD."
           address="NO 35 JALAN KUBAH U8/53 BUKIT JELUTONG, 40150 SHAH ALAM, SELANGOR"
           email="malaysia@colombomail.lk"
-          phones={["(+60) 162860465", "(+60) 139460182"]}
+          phones={["(+60) 162 860 465", "(+60) 139 460 182"]}
         />
       </div>
     </div>
