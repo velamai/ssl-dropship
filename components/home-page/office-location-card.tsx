@@ -213,9 +213,9 @@ export const OfficeLocation = () => {
           flag={"/flags/ml.png"}
           name="MALAYSIA OFFICE"
           company="SUPER SAVE MALAYSIA (PVT) LTD."
-          address="SOHO-1- FLOOR 11 NUMBER13 (11/13), VISTA ALAM SERVICE APARTMENT, JALAN IKHTISAS, SEKSYEN14, SHAH ALAM."
+          address="NO 35 JALAN KUBAH U8/53 BUKIT JELUTONG, 40150 SHAH ALAM, SELANGOR"
           email="malaysia@colombomail.lk"
-          phones={["(+60) 162 860 465", "(+60) 169 433 125"]}
+          phones={["(+60) 162860465", "(+60) 139460182"]}
         />
       </div>
     </div>
