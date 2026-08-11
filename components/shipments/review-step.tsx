@@ -206,8 +206,9 @@ export function ReviewStep({
       ?.currency || "USD";
 
   const orderGrandTotal = priceBreakdown
-    ? priceBreakdown.totalPriceOrigin +
-      addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1)
+    ? (priceBreakdown.totalPriceOrigin +
+        addOnTotal / (priceBreakdown.exchangeRateSourceToInr || 1)) *
+      1.18
     : null;
 
   const orderPayAmount =
@@ -1256,7 +1257,7 @@ export function ReviewStep({
                       addOnTotal /
                       (priceBreakdown.exchangeRateSourceToInr || 1);
                     const grandTotal =
-                      priceBreakdown.totalPriceOrigin + addOnInSource;
+                      (priceBreakdown.totalPriceOrigin + addOnInSource) * 1.18;
 
                     const currencyData = {
                       sourceCurrencyCode: sourceCurrencyCodeValue,

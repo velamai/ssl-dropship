@@ -133,6 +133,26 @@ export function ShipmentPriceBreakdown({
             </>
           )}
 
+          {/* Tax (18%) */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Tax (18%)</span>
+              <div className="text-right">
+                <p className="font-semibold">
+                  {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
+                  {formatNumber(
+                    (breakdown.totalPriceOrigin +
+                      addOnTotal / (breakdown.exchangeRateSourceToInr || 1)) *
+                      0.18,
+                    2,
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Grand Total */}
           <div className="space-y-1">
             <div className="flex justify-between items-center">
@@ -145,8 +165,9 @@ export function ShipmentPriceBreakdown({
                 <p className="font-bold text-lg">
                   {countryCodeToCurrencies(sourceCountryCode || "")}{" "}
                   {formatNumber(
-                    breakdown.totalPriceOrigin +
-                      addOnTotal / (breakdown.exchangeRateSourceToInr || 1),
+                    (breakdown.totalPriceOrigin +
+                      addOnTotal / (breakdown.exchangeRateSourceToInr || 1)) *
+                      1.18,
                     2,
                   )}
                 </p>
