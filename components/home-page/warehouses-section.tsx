@@ -32,7 +32,7 @@ const warehouses = [
     country: "Malaysia",
     city: "Shah Alam",
     flag: "/flags/ml.png",
-    address: "SOHO-1- FLOOR 11 NUMBER13 (11/13), VISTA ALAM SERVICE APARTMENT, JALAN IKHTISAS, SEKSYEN14, SHAH ALAM",
+    address: "NO 35 JALAN KUBAH U8/53 BUKIT JELUTONG, 40150 SHAH ALAM, SELANGOR",
     hours: "9:00 AM - 6:00 PM MYT",
     image: "/warehouse images/Warehouse-Malaysia.png",
   },

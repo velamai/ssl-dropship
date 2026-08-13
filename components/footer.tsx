@@ -173,9 +173,8 @@ export default function Footer() {
                 </div>
                 <div className="text-purple-200 text-sm space-y-1">
                   <p>SUPER SAVE MALAYSIA (PVT) LTD.</p>
-                  <p>SOHO-1- FLOOR 11 NUMBER13 (11/13),</p>
-                  <p>VISTA ALAM SERVICE APARTMENT,</p>
-                  <p>JALAN IKHTISAS, SEKSYEN14, SHAH ALAM, MALAYSIA</p>
+                  <p>NO 35 JALAN KUBAH U8/53 BUKIT JELUTONG,</p>
+                  <p>40150 SHAH ALAM, SELANGOR, MALAYSIA</p>
                   <a
                     href="mailto:malaysia@colombomail.lk"
                     className="block hover:text-white transition-colors"
@@ -183,6 +182,7 @@ export default function Footer() {
                     malaysia@colombomail.lk
                   </a>
                   <p>(+60) 162 860 465</p>
+                  <p>(+60) 139 460 182</p>
                 </div>
               </div>
             </div>
