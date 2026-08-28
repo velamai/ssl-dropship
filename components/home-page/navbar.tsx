@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/auth-context";
+import { getMaintenanceNavbarTopClass } from "@/lib/maintenance-config";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,9 +31,12 @@ export function Navbar() {
       }
     }
   }, []);
+
+  const navbarTopClass = getMaintenanceNavbarTopClass();
+
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 shadow-md ${
+      className={`fixed ${navbarTopClass} left-0 right-0 w-full z-50 transition-all duration-300 shadow-md ${
         scrolled
           ? "bg-white/95 backdrop-blur-xl"
           : "bg-white/80 backdrop-blur-lg"

@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrderDraft } from "@/contexts/order-draft-context";
 import { fetchIdentityVerificationData } from "@/lib/api/identity";
+import { getMaintenanceNavbarTopClass } from "@/lib/maintenance-config";
 import { useQuery } from "@tanstack/react-query";
 import {
   Calculator,
@@ -78,8 +79,12 @@ export function Navbar({ activePage }: { activePage?: string }) {
     return null;
   }
 
+  const navbarTopClass = getMaintenanceNavbarTopClass();
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
+    <header
+      className={`sticky ${navbarTopClass} z-40 w-full border-b bg-white shadow-sm`}
+    >
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
         <Link href={user ? "/" : "/"} className="flex items-center">
           {/* <div className="h-7 w-7 mr-2">
