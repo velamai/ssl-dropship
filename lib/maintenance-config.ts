@@ -7,9 +7,9 @@ export type MaintenanceNotice = {
 
 const DEFAULT_NOTICE: MaintenanceNotice = {
   enabled: true,
-  date: "28-08-2026",
-  startTime: "10:30 PM IST",
-  endTime: "1:30 AM IST",
+  date: "04, 05 & 06 September 2026",
+  startTime: "11:00 PM IST",
+  endTime: "1:00 AM IST",
 };
 
 export function getMaintenanceNotice(): MaintenanceNotice {
@@ -21,7 +21,7 @@ export function isMaintenanceBannerActive(): boolean {
 }
 
 export function getMaintenanceNavbarTopClass(): string {
-  return isMaintenanceBannerActive() ? "top-10" : "top-0";
+  return isMaintenanceBannerActive() ? "top-7" : "top-0";
 }
 
 export function getMaintenanceBannerMessage(): string {
